@@ -31,14 +31,14 @@ android {
     signingConfigs {
         create("release") {
             val storePath = keystoreProperties.getProperty("storeFile")
-                ?: System.getenv("ANDROID_KEYSTORE_PATH")
+                ?: "netprobe-release.jks"
             val storePass = keystoreProperties.getProperty("storePassword")
-                ?: System.getenv("ANDROID_KEYSTORE_PASSWORD")
+                ?: System.getenv("KEYSTORE_PASSWORD")
             val alias = keystoreProperties.getProperty("keyAlias")
-                ?: System.getenv("ANDROID_KEY_ALIAS")
+                ?: System.getenv("KEY_ALIAS")
                 ?: "netprobe"
             val keyPass = keystoreProperties.getProperty("keyPassword")
-                ?: System.getenv("ANDROID_KEY_PASSWORD")
+                ?: System.getenv("KEY_PASSWORD")
                 ?: storePass
 
             if (!storePath.isNullOrBlank() && !storePass.isNullOrBlank()) {
