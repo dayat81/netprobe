@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="primary">#1565C0</color>
+    <color name="primary_dark">#0D47A1</color>
+    <color name="surface">#F5F7FA</color>
+    <color name="card_bg">#FFFFFF</color>
+    <color name="text_primary">#1A1A2E</color>
+    <color name="text_secondary">#5C6370</color>
+    <color name="metric_latency">#1565C0</color>
+    <color name="metric_loss_ok">#2E7D32</color>
+    <color name="metric_loss_bad">#C62828</color>
+    <color name="metric_latency_ok">#2E7D32</color>
+    <color name="metric_latency_warn">#E65100</color>
+    <color name="metric_latency_bad">#C62828</color>
+    <color name="metric_jitter_ok">#2E7D32</color>
+    <color name="metric_jitter_warn">#E65100</color>
+    <color name="metric_jitter_bad">#C62828</color>
+    <color name="metric_jitter">#6A1B9A</color>
+    <color name="metric_rounds">#00838F</color>
+    <color name="log_bg">#ECEFF4</color>
+    <color name="log_ok">#2E7D32</color>
+    <color name="log_warn">#E65100</color>
+    <color name="radio_bg">#000000</color>
+    <color name="radio_label">#FFFFFF</color>
+    <color name="radio_value">#FFFFFF</color>
+    <color name="radio_muted">#888888</color>
+    <color name="sync_pending">#FFB74D</color>
+    <color name="sync_syncing">#64B5F6</color>
+    <color name="sync_synced">#81C784</color>
+    <color name="sync_failed">#E57373</color>
+</resources>

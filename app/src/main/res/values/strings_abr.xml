@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="tab_abr">MTU</string>
+    <string name="mtu_start">Find MTU</string>
+    <string name="mtu_stop">Running…</string>
+    <string name="mtu_status_running">ICMP MTU probing…</string>
+    <string name="mtu_status_idle">Ready</string>
+    <string name="mtu_stopped">MTU probe stopped</string>
+    <string name="mtu_channel_name">MTU probe</string>
+    <string name="mtu_channel_desc">Shows while an ICMP MTU probe runs in the background</string>
+    <string name="mtu_notification_title">NetProbe MTU probe</string>
+    <string name="mtu_notification_starting">Starting ICMP MTU discovery…</string>
+    <string name="mtu_stop_action">Stop MTU</string>
+    <string name="mtu_pmtu_label">PATH MTU</string>
+    <string name="mtu_wg_label">WIREGUARD MTU</string>
+    <string name="mtu_log_title">Activity</string>
+
+    <!-- Legacy ABR aliases (kept for code compatibility) -->
+    <string name="abr_start">@string/mtu_start</string>
+    <string name="abr_stop">@string/mtu_stop</string>
+    <string name="abr_status_running">@string/mtu_status_running</string>
+    <string name="abr_status_idle">@string/mtu_status_idle</string>
+    <string name="abr_stopped">@string/mtu_stopped</string>
+    <string name="abr_channel_name">@string/mtu_channel_name</string>
+    <string name="abr_channel_desc">@string/mtu_channel_desc</string>
+    <string name="abr_notification_title">@string/mtu_notification_title</string>
+    <string name="abr_notification_starting">@string/mtu_notification_starting</string>
+    <string name="abr_stop_action">@string/mtu_stop_action</string>
+    <string name="abr_optimal_uplink">PATH MTU</string>
+    <string name="abr_optimal_downlink">WG MTU</string>
+    <string name="abr_log_title">@string/mtu_log_title</string>
+</resources>

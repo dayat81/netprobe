@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.UdpClient" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/primary</item>
+        <item name="colorPrimaryDark">@color/primary_dark</item>
+        <item name="android:statusBarColor">@color/primary_dark</item>
+        <item name="android:windowBackground">@color/surface</item>
+    </style>
+
+    <style name="MetricLabel">
+        <item name="android:textSize">12sp</item>
+        <item name="android:textColor">@color/text_secondary</item>
+        <item name="android:textAllCaps">true</item>
+        <item name="android:letterSpacing">0.05</item>
+    </style>
+
+    <style name="MetricValue">
+        <item name="android:textSize">22sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:textColor">@color/text_primary</item>
+    </style>
+
+    <style name="TabTextAppearance" parent="TextAppearance.Design.Tab">
+        <item name="android:textSize">13sp</item>
+        <item name="android:textAllCaps">true</item>
+    </style>
+</resources>

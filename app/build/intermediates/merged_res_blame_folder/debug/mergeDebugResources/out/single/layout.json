@@ -1,0 +1,74 @@
+[
+    {
+        "merged": "/root/.gradle/daemon/8.9/com.telcoagent.udpclient.app-mergeDebugResources-39:/layout/item_radio_field.xml",
+        "source": "/root/.gradle/daemon/8.9/com.telcoagent.udpclient.app-main-42:/layout/item_radio_field.xml"
+    },
+    {
+        "merged": "/root/.gradle/daemon/8.9/com.telcoagent.udpclient.app-mergeDebugResources-39:/layout/activity_main.xml",
+        "source": "/root/.gradle/daemon/8.9/com.telcoagent.udpclient.app-main-42:/layout/activity_main.xml"
+    },
+    {
+        "merged": "/root/.gradle/daemon/8.9/com.telcoagent.udpclient.app-mergeDebugResources-39:/layout/fragment_probe.xml",
+        "source": "/root/.gradle/daemon/8.9/com.telcoagent.udpclient.app-main-42:/layout/fragment_probe.xml"
+    },
+    {
+        "merged": "/root/.gradle/daemon/8.9/com.telcoagent.udpclient.app-mergeDebugResources-39:/layout/fragment_analysis.xml",
+        "source": "/root/.gradle/daemon/8.9/com.telcoagent.udpclient.app-main-42:/layout/fragment_analysis.xml"
+    },
+    {
+        "merged": "/root/.gradle/daemon/8.9/com.telcoagent.udpclient.app-mergeDebugResources-39:/layout/fragment_radio.xml",
+        "source": "/root/.gradle/daemon/8.9/com.telcoagent.udpclient.app-main-42:/layout/fragment_radio.xml"
+    },
+    {
+        "merged": "/root/.gradle/daemon/8.9/com.telcoagent.udpclient.app-mergeDebugResources-39:/layout/fragment_max.xml",
+        "source": "/root/.gradle/daemon/8.9/com.telcoagent.udpclient.app-main-42:/layout/fragment_max.xml"
+    },
+    {
+        "merged": "/root/.gradle/daemon/8.9/com.telcoagent.udpclient.app-mergeDebugResources-39:/layout/fragment_flow.xml",
+        "source": "/root/.gradle/daemon/8.9/com.telcoagent.udpclient.app-main-42:/layout/fragment_flow.xml"
+    },
+    {
+        "merged": "/root/.gradle/daemon/8.9/com.telcoagent.udpclient.app-mergeDebugResources-39:/layout/item_nearby_session.xml",
+        "source": "/root/.gradle/daemon/8.9/com.telcoagent.udpclient.app-main-42:/layout/item_nearby_session.xml"
+    },
+    {
+        "merged": "/root/.gradle/daemon/8.9/com.telcoagent.udpclient.app-mergeDebugResources-39:/layout/item_log_record.xml",
+        "source": "/root/.gradle/daemon/8.9/com.telcoagent.udpclient.app-main-42:/layout/item_log_record.xml"
+    },
+    {
+        "merged": "/root/.gradle/daemon/8.9/com.telcoagent.udpclient.app-mergeDebugResources-39:/layout/fragment_around_you.xml",
+        "source": "/root/.gradle/daemon/8.9/com.telcoagent.udpclient.app-main-42:/layout/fragment_around_you.xml"
+    },
+    {
+        "merged": "com.telcoagent.udpclient.app-mergeDebugResources-39:/layout/fragment_abr.xml",
+        "source": "com.telcoagent.udpclient.app-main-42:/layout/fragment_abr.xml"
+    },
+    {
+        "merged": "com.telcoagent.udpclient.app-mergeDebugResources-39:/layout/fragment_radio.xml",
+        "source": "com.telcoagent.udpclient.app-main-42:/layout/fragment_radio.xml"
+    },
+    {
+        "merged": "/root/.gradle/daemon/8.9/com.telcoagent.udpclient.app-mergeDebugResources-39:/layout/item_split_tunnel_app.xml",
+        "source": "/root/.gradle/daemon/8.9/com.telcoagent.udpclient.app-main-42:/layout/item_split_tunnel_app.xml"
+    },
+    {
+        "merged": "/root/.gradle/daemon/8.9/com.telcoagent.udpclient.app-mergeDebugResources-39:/layout/item_flow.xml",
+        "source": "/root/.gradle/daemon/8.9/com.telcoagent.udpclient.app-main-42:/layout/item_flow.xml"
+    },
+    {
+        "merged": "/root/.gradle/daemon/8.9/com.telcoagent.udpclient.app-mergeDebugResources-39:/layout/fragment_logs.xml",
+        "source": "/root/.gradle/daemon/8.9/com.telcoagent.udpclient.app-main-42:/layout/fragment_logs.xml"
+    },
+    {
+        "merged": "/root/.gradle/daemon/8.9/com.telcoagent.udpclient.app-mergeDebugResources-39:/layout/bottom_sheet_nearby_sessions.xml",
+        "source": "/root/.gradle/daemon/8.9/com.telcoagent.udpclient.app-main-42:/layout/bottom_sheet_nearby_sessions.xml"
+    },
+    {
+        "merged": "/root/.gradle/daemon/8.9/com.telcoagent.udpclient.app-mergeDebugResources-39:/layout/fragment_abr.xml",
+        "source": "/root/.gradle/daemon/8.9/com.telcoagent.udpclient.app-main-42:/layout/fragment_abr.xml"
+    },
+    {
+        "merged": "/root/.gradle/daemon/8.9/com.telcoagent.udpclient.app-mergeDebugResources-39:/layout/item_nearby_provider.xml",
+        "source": "/root/.gradle/daemon/8.9/com.telcoagent.udpclient.app-main-42:/layout/item_nearby_provider.xml"
+    }
+]

@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="tab_max">MAX</string>
+    <string name="max_start">Start MAX Test</string>
+    <string name="max_stop">Running…</string>
+    <string name="max_status_running">MAX testing…</string>
+    <string name="max_status_idle">Ready</string>
+    <string name="max_stopped">MAX test stopped</string>
+    <string name="max_channel_name">MAX throughput probe</string>
+    <string name="max_channel_desc">Shows while a MAX throughput test runs in the background</string>
+    <string name="max_notification_title">NetProbe MAX test</string>
+    <string name="max_notification_starting">Starting MAX throughput test…</string>
+    <string name="max_stop_action">Stop MAX</string>
+    <string name="max_optimal_streams_label">OPTIMAL STREAMS</string>
+    <string name="max_throughput_label">MAX THROUGHPUT</string>
+    <string name="max_burst_label">BURST (5s)</string>
+    <string name="max_log_title">Activity</string>
+</resources>

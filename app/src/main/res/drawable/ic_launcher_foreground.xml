@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- phone body -->
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M38,30 L70,30 A6,6 0 0,1 76,36 L76,72 A6,6 0 0,1 70,78 L38,78 A6,6 0 0,1 32,72 L32,36 A6,6 0 0,1 38,30 Z"
+        android:strokeWidth="3"
+        android:strokeColor="#E7ECF3"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+    <!-- notch -->
+    <path
+        android:fillColor="#E7ECF3"
+        android:pathData="M48,30 L60,30 L60,34 L48,34 Z" />
+    <!-- screen area -->
+    <path
+        android:fillColor="#1A2332"
+        android:pathData="M36,38 L72,38 L72,70 L36,70 Z" />
+    <!-- signal bars: 2 good, 2 weak -->
+    <path
+        android:fillColor="#3B82F6"
+        android:pathData="M42,62 L44,62 L44,66 L42,66 Z" />
+    <path
+        android:fillColor="#3B82F6"
+        android:pathData="M46,58 L48,58 L48,66 L46,66 Z" />
+    <path
+        android:fillColor="#EAB308"
+        android:pathData="M50,60 L52,60 L52,66 L50,66 Z" />
+    <path
+        android:fillColor="#EF4444"
+        android:pathData="M54,62 L56,62 L56,66 L54,66 Z" />
+    <!-- log document (overlapping bottom-right) -->
+    <path
+        android:fillColor="#3B82F6"
+        android:pathData="M58,52 L78,52 L78,74 L58,74 Z" />
+    <path
+        android:fillColor="#2563EB"
+        android:pathData="M72,52 L78,52 L78,58 L72,52 Z" />
+    <!-- log lines -->
+    <path
+        android:fillColor="#E7ECF3"
+        android:pathData="M62,58 L74,58 L74,59.5 L62,59.5 Z" />
+    <path
+        android:fillColor="#E7ECF3"
+        android:pathData="M62,62 L74,62 L74,63.5 L62,63.5 Z" />
+    <path
+        android:fillColor="#E7ECF3"
+        android:pathData="M62,66 L70,66 L70,67.5 L62,67.5 Z" />
+    <!-- recording indicator -->
+    <path
+        android:fillColor="#22C55E"
+        android:pathData="M74,68m3,0a3,3 0,1 1,-6 0a3,3 0,1 1,6 0" />
+</vector>

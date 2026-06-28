@@ -1,0 +1,66 @@
+[
+    {
+        "merged": "com.telcoagent.udpclient.app-mergeReleaseResources-39:/layout/item_log_record.xml",
+        "source": "com.telcoagent.udpclient.app-main-41:/layout/item_log_record.xml"
+    },
+    {
+        "merged": "com.telcoagent.udpclient.app-mergeReleaseResources-39:/layout/fragment_flow.xml",
+        "source": "com.telcoagent.udpclient.app-main-41:/layout/fragment_flow.xml"
+    },
+    {
+        "merged": "com.telcoagent.udpclient.app-mergeReleaseResources-39:/layout/item_radio_field.xml",
+        "source": "com.telcoagent.udpclient.app-main-41:/layout/item_radio_field.xml"
+    },
+    {
+        "merged": "com.telcoagent.udpclient.app-mergeReleaseResources-39:/layout/fragment_around_you.xml",
+        "source": "com.telcoagent.udpclient.app-main-41:/layout/fragment_around_you.xml"
+    },
+    {
+        "merged": "com.telcoagent.udpclient.app-mergeReleaseResources-39:/layout/fragment_radio.xml",
+        "source": "com.telcoagent.udpclient.app-main-41:/layout/fragment_radio.xml"
+    },
+    {
+        "merged": "com.telcoagent.udpclient.app-mergeReleaseResources-39:/layout/fragment_logs.xml",
+        "source": "com.telcoagent.udpclient.app-main-41:/layout/fragment_logs.xml"
+    },
+    {
+        "merged": "com.telcoagent.udpclient.app-mergeReleaseResources-39:/layout/item_nearby_provider.xml",
+        "source": "com.telcoagent.udpclient.app-main-41:/layout/item_nearby_provider.xml"
+    },
+    {
+        "merged": "com.telcoagent.udpclient.app-mergeReleaseResources-39:/layout/item_flow.xml",
+        "source": "com.telcoagent.udpclient.app-main-41:/layout/item_flow.xml"
+    },
+    {
+        "merged": "com.telcoagent.udpclient.app-mergeReleaseResources-39:/layout/fragment_max.xml",
+        "source": "com.telcoagent.udpclient.app-main-41:/layout/fragment_max.xml"
+    },
+    {
+        "merged": "com.telcoagent.udpclient.app-mergeReleaseResources-39:/layout/item_nearby_session.xml",
+        "source": "com.telcoagent.udpclient.app-main-41:/layout/item_nearby_session.xml"
+    },
+    {
+        "merged": "com.telcoagent.udpclient.app-mergeReleaseResources-39:/layout/bottom_sheet_nearby_sessions.xml",
+        "source": "com.telcoagent.udpclient.app-main-41:/layout/bottom_sheet_nearby_sessions.xml"
+    },
+    {
+        "merged": "com.telcoagent.udpclient.app-mergeReleaseResources-39:/layout/activity_main.xml",
+        "source": "com.telcoagent.udpclient.app-main-41:/layout/activity_main.xml"
+    },
+    {
+        "merged": "com.telcoagent.udpclient.app-mergeReleaseResources-39:/layout/item_split_tunnel_app.xml",
+        "source": "com.telcoagent.udpclient.app-main-41:/layout/item_split_tunnel_app.xml"
+    },
+    {
+        "merged": "com.telcoagent.udpclient.app-mergeReleaseResources-39:/layout/fragment_analysis.xml",
+        "source": "com.telcoagent.udpclient.app-main-41:/layout/fragment_analysis.xml"
+    },
+    {
+        "merged": "com.telcoagent.udpclient.app-mergeReleaseResources-39:/layout/fragment_abr.xml",
+        "source": "com.telcoagent.udpclient.app-main-41:/layout/fragment_abr.xml"
+    },
+    {
+        "merged": "com.telcoagent.udpclient.app-mergeReleaseResources-39:/layout/fragment_probe.xml",
+        "source": "com.telcoagent.udpclient.app-main-41:/layout/fragment_probe.xml"
+    }
+]

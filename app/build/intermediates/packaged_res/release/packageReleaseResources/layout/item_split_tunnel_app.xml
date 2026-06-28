@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="48dp"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:paddingStart="12dp"
+    android:paddingEnd="12dp">
+
+    <ImageView
+        android:id="@+id/appIcon"
+        android:layout_width="28dp"
+        android:layout_height="28dp"
+        android:scaleType="fitCenter" />
+
+    <TextView
+        android:id="@+id/appName"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="10dp"
+        android:layout_weight="1"
+        android:ellipsize="end"
+        android:maxLines="1"
+        android:textColor="@color/text_primary"
+        android:textSize="13sp" />
+
+    <CheckBox
+        android:id="@+id/appCheck"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:buttonTint="@color/primary" />
+
+</LinearLayout>

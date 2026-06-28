@@ -1,0 +1,86 @@
+[
+    {
+        "merged": "com.telcoagent.udpclient.app-release-40:/mipmap-anydpi-v26_ic_launcher_round.xml.flat",
+        "source": "com.telcoagent.udpclient.app-main-41:/mipmap-anydpi-v26/ic_launcher_round.xml"
+    },
+    {
+        "merged": "com.telcoagent.udpclient.app-release-40:/layout_fragment_flow.xml.flat",
+        "source": "com.telcoagent.udpclient.app-main-41:/layout/fragment_flow.xml"
+    },
+    {
+        "merged": "com.telcoagent.udpclient.app-release-40:/layout_fragment_probe.xml.flat",
+        "source": "com.telcoagent.udpclient.app-main-41:/layout/fragment_probe.xml"
+    },
+    {
+        "merged": "com.telcoagent.udpclient.app-release-40:/layout_fragment_radio.xml.flat",
+        "source": "com.telcoagent.udpclient.app-main-41:/layout/fragment_radio.xml"
+    },
+    {
+        "merged": "com.telcoagent.udpclient.app-release-40:/layout_fragment_analysis.xml.flat",
+        "source": "com.telcoagent.udpclient.app-main-41:/layout/fragment_analysis.xml"
+    },
+    {
+        "merged": "com.telcoagent.udpclient.app-release-40:/layout_activity_main.xml.flat",
+        "source": "com.telcoagent.udpclient.app-main-41:/layout/activity_main.xml"
+    },
+    {
+        "merged": "com.telcoagent.udpclient.app-release-40:/layout_fragment_abr.xml.flat",
+        "source": "com.telcoagent.udpclient.app-main-41:/layout/fragment_abr.xml"
+    },
+    {
+        "merged": "com.telcoagent.udpclient.app-release-40:/mipmap-anydpi-v26_ic_launcher.xml.flat",
+        "source": "com.telcoagent.udpclient.app-main-41:/mipmap-anydpi-v26/ic_launcher.xml"
+    },
+    {
+        "merged": "com.telcoagent.udpclient.app-release-40:/layout_fragment_max.xml.flat",
+        "source": "com.telcoagent.udpclient.app-main-41:/layout/fragment_max.xml"
+    },
+    {
+        "merged": "com.telcoagent.udpclient.app-release-40:/layout_bottom_sheet_nearby_sessions.xml.flat",
+        "source": "com.telcoagent.udpclient.app-main-41:/layout/bottom_sheet_nearby_sessions.xml"
+    },
+    {
+        "merged": "com.telcoagent.udpclient.app-release-40:/layout_item_log_record.xml.flat",
+        "source": "com.telcoagent.udpclient.app-main-41:/layout/item_log_record.xml"
+    },
+    {
+        "merged": "com.telcoagent.udpclient.app-release-40:/drawable_ic_launcher_foreground.xml.flat",
+        "source": "com.telcoagent.udpclient.app-main-41:/drawable/ic_launcher_foreground.xml"
+    },
+    {
+        "merged": "com.telcoagent.udpclient.app-release-40:/layout_item_radio_field.xml.flat",
+        "source": "com.telcoagent.udpclient.app-main-41:/layout/item_radio_field.xml"
+    },
+    {
+        "merged": "com.telcoagent.udpclient.app-release-40:/layout_item_nearby_provider.xml.flat",
+        "source": "com.telcoagent.udpclient.app-main-41:/layout/item_nearby_provider.xml"
+    },
+    {
+        "merged": "com.telcoagent.udpclient.app-release-40:/layout_item_flow.xml.flat",
+        "source": "com.telcoagent.udpclient.app-main-41:/layout/item_flow.xml"
+    },
+    {
+        "merged": "com.telcoagent.udpclient.app-release-40:/layout_fragment_logs.xml.flat",
+        "source": "com.telcoagent.udpclient.app-main-41:/layout/fragment_logs.xml"
+    },
+    {
+        "merged": "com.telcoagent.udpclient.app-release-40:/layout_fragment_around_you.xml.flat",
+        "source": "com.telcoagent.udpclient.app-main-41:/layout/fragment_around_you.xml"
+    },
+    {
+        "merged": "com.telcoagent.udpclient.app-release-40:/drawable_dropdown_bg.xml.flat",
+        "source": "com.telcoagent.udpclient.app-main-41:/drawable/dropdown_bg.xml"
+    },
+    {
+        "merged": "com.telcoagent.udpclient.app-release-40:/drawable_ic_launcher_background.xml.flat",
+        "source": "com.telcoagent.udpclient.app-main-41:/drawable/ic_launcher_background.xml"
+    },
+    {
+        "merged": "com.telcoagent.udpclient.app-release-40:/layout_item_nearby_session.xml.flat",
+        "source": "com.telcoagent.udpclient.app-main-41:/layout/item_nearby_session.xml"
+    },
+    {
+        "merged": "com.telcoagent.udpclient.app-release-40:/layout_item_split_tunnel_app.xml.flat",
+        "source": "com.telcoagent.udpclient.app-main-41:/layout/item_split_tunnel_app.xml"
+    }
+]
