@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>National Video Score — Weekly Comparison</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; background: #0f172a; color: #e2e8f0; padding: 20px; }
+  .header { text-align: center; margin-bottom: 30px; }
+  .header h1 { font-size: 28px; color: #60a5fa; margin-bottom: 5px; }
+  .header p { color: #94a3b8; font-size: 14px; }
+  .summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 30px; max-width: 1200px; margin-left: auto; margin-right: auto; }
+  .summary-card { background: #1e293b; border-radius: 12px; padding: 20px; text-align: center; border: 1px solid #334155; }
+  .summary-card .label { font-size: 12px; color: #64748b; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+  .summary-card .value { font-size: 28px; font-weight: 700; }
+  .summary-card .sub { font-size: 12px; color: #94a3b8; margin-top: 5px; }
+  .container { max-width: 1200px; margin: 0 auto; }
+  .section { background: #1e293b; border-radius: 12px; padding: 25px; margin-bottom: 25px; border: 1px solid #334155; }
+  .section h2 { font-size: 20px; margin-bottom: 20px; color: #60a5fa; }
+  table { width: 100%; border-collapse: collapse; }
+  th { text-align: left; padding: 12px 10px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #64748b; border-bottom: 2px solid #334155; }
+  th.num { text-align: right; }
+  td { padding: 14px 10px; border-bottom: 1px solid #334155; font-size: 14px; }
+  td.num { text-align: right; font-variant-numeric: tabular-nums; }
+  td.provider { font-weight: 700; }
+  .dot { display: inline-block; width: 12px; height: 12px; border-radius: 50%; margin-right: 8px; vertical-align: middle; }
+  .rank { display: inline-block; width: 28px; height: 28px; border-radius: 50%; text-align: center; line-height: 28px; font-weight: 700; font-size: 14px; }
+  .rank-1 { background: #fbbf24; color: #78350f; }
+  .rank-2 { background: #94a3b8; color: #1e293b; }
+  .rank-3 { background: #b45309; color: #fef3c7; }
+  .rank-4 { background: #334155; color: #94a3b8; }
+  .rank-5 { background: #334155; color: #64748b; }
+  .delta-better { color: #4ade80; font-weight: 600; }
+  .delta-worse { color: #f87171; font-weight: 600; }
+  .delta-same { color: #94a3b8; }
+  .bar-container { display: inline-block; width: 120px; height: 24px; background: #334155; border-radius: 4px; overflow: hidden; vertical-align: middle; margin-left: 10px; }
+  .bar-fill { height: 100%; border-radius: 4px; display: flex; align-items: center; justify-content: flex-end; padding-right: 6px; font-size: 10px; font-weight: 700; color: white; min-width: 30px; }
+  .chart-row { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+  .chart-label { width: 100px; font-weight: 600; font-size: 14px; }
+  .chart-bar-bg { flex: 1; height: 32px; background: #334155; border-radius: 6px; overflow: hidden; position: relative; }
+  .chart-bar-fill { height: 100%; border-radius: 6px; display: flex; align-items: center; padding-left: 12px; font-weight: 700; color: white; font-size: 13px; }
+  .chart-value { width: 80px; text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; }
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 25px; }
+  @media (max-width: 768px) { .two-col { grid-template-columns: 1fr; } }
+  .badge-best { background: #4ade80; color: #052e16; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 700; }
+  .badge-worst { background: #f87171; color: #450a0a; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 700; }
+  .insight { background: #0f172a; border-left: 4px solid #60a5fa; padding: 15px; margin-top: 15px; border-radius: 0 8px 8px 0; font-size: 14px; line-height: 1.6; }
+  .insight strong { color: #60a5fa; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>🏆 National Video Quality Score</h1>
+  <p>Weekly Comparison · 4G+5G · ABR Video Tests · Weight Score = (Buffer/Max × 50) + (Stall/Max × 50)</p>
+</div>
+
+<div class="summary-grid">
+  <div class="summary-card">
+    <div class="label">Total Records (This Week)</div>
+    <div class="value" style="color:#60a5fa">8,268,956</div>
+    <div class="sub">Prev: 8,534,207 (-265,251)</div>
+  </div>
+  <div class="summary-card">
+    <div class="label">Best Provider</div>
+    <div class="value" style="color:#4A90D9">XL</div>
+    <div class="sub">Score 54.4 (was 56.1)</div>
+  </div>
+  <div class="summary-card">
+    <div class="label">Worst Provider</div>
+    <div class="value" style="color:#E67E22">Smartfren</div>
+    <div class="sub">Score 100.0</div>
+  </div>
+  <div class="summary-card">
+    <div class="label">Score Gap (Best–Worst)</div>
+    <div class="value" style="color:#fbbf24">45.6</div>
+    <div class="sub">XL vs Smartfren</div>
+  </div>
+</div>
+
+<div class="container">
+
+<!-- WEIGHT SCORE TABLE -->
+<div class="section">
+  <h2>📊 Weight Score — Weekly Comparison</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Rank</th>
+        <th>Provider</th>
+        <th class="num">Buffer Count</th>
+        <th class="num">Stall Time (s)</th>
+        <th class="num">Score (This Wk)</th>
+        <th class="num">Score (Prev Wk)</th>
+        <th class="num">Δ Trend</th>
+        <th class="num">Records</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="rank rank-1">1</span></td>
+        <td class="provider"><span class="dot" style="background:#4A90D9"></span>XL <span class="badge-best">BEST</span></td>
+        <td class="num">0.0767 <span style="color:#64748b;font-size:12px">(0.0843)</span></td>
+        <td class="num">246.9 <span style="color:#64748b;font-size:12px">(280.2)</span></td>
+        <td class="num" style="font-size:18px;font-weight:700;color:#4A90D9">54.4</td>
+        <td class="num" style="color:#64748b">56.1</td>
+        <td class="num"><span class="delta-better">🟢 -1.7</span></td>
+        <td class="num">1,312,696</td>
+      </tr>
+      <tr>
+        <td><span class="rank rank-2">2</span></td>
+        <td class="provider"><span class="dot" style="background:#F5A623"></span>Indosat</td>
+        <td class="num">0.0779 <span style="color:#64748b;font-size:12px">(0.0879)</span></td>
+        <td class="num">279.5 <span style="color:#64748b;font-size:12px">(290.8)</span></td>
+        <td class="num" style="font-size:18px;font-weight:700;color:#F5A623">58.9</td>
+        <td class="num" style="color:#64748b">58.4</td>
+        <td class="num"><span class="delta-worse">🔴 +0.5</span></td>
+        <td class="num">1,897,356</td>
+      </tr>
+      <tr>
+        <td><span class="rank rank-3">3</span></td>
+        <td class="provider"><span class="dot" style="background:#E74C3C"></span>Telkomsel</td>
+        <td class="num">0.0951 <span style="color:#64748b;font-size:12px">(0.0949)</span></td>
+        <td class="num">263.4 <span style="color:#64748b;font-size:12px">(269.9)</span></td>
+        <td class="num" style="font-size:18px;font-weight:700;color:#E74C3C">61.8</td>
+        <td class="num" style="color:#64748b">58.0</td>
+        <td class="num"><span class="delta-worse">🔴 +3.8</span></td>
+        <td class="num">3,573,876</td>
+      </tr>
+      <tr>
+        <td><span class="rank rank-4">4</span></td>
+        <td class="provider"><span class="dot" style="background:#9B59B6"></span>Tri</td>
+        <td class="num">0.0874 <span style="color:#64748b;font-size:12px">(0.0902)</span></td>
+        <td class="num">315.8 <span style="color:#64748b;font-size:12px">(331.0)</span></td>
+        <td class="num" style="font-size:18px;font-weight:700;color:#9B59B6">66.4</td>
+        <td class="num" style="color:#64748b">63.7</td>
+        <td class="num"><span class="delta-worse">🔴 +2.7</span></td>
+        <td class="num">1,051,478</td>
+      </tr>
+      <tr>
+        <td><span class="rank rank-5">5</span></td>
+        <td class="provider"><span class="dot" style="background:#E67E22"></span>Smartfren <span class="badge-worst">WORST</span></td>
+        <td class="num">0.1717 <span style="color:#64748b;font-size:12px">(0.1759)</span></td>
+        <td class="num">385.6 <span style="color:#64748b;font-size:12px">(435.3)</span></td>
+        <td class="num" style="font-size:18px;font-weight:700;color:#E67E22">100.0</td>
+        <td class="num" style="color:#64748b">100.0</td>
+        <td class="num"><span class="delta-same">➡️ 0.0</span></td>
+        <td class="num">433,550</td>
+      </tr>
+    </tbody>
+  </table>
+  <div class="insight">
+    <strong>XL 🔵 maintains #1 position</strong> nationally with Score 54.4, improving 1.7 points from last week (56.1 → 54.4).
+    Buffer count dropped from 0.0843 to 0.0767, and stall time from 280s to 247s.
+    <br><br>
+    <strong>Telkomsel 🔴 dropped from rank #2 to #3</strong>, with score worsening by +3.8 points.
+  </div>
+</div>
+
+<!-- BUFFER COUNT BAR CHART -->
+<div class="section">
+  <h2>📉 Buffer Count — National Average</h2>
+  <p style="color:#64748b;margin-bottom:15px;font-size:13px">Lower = better · Average buffering events per video test</p>
+  <div class="chart-row">
+    <div class="chart-label"><span class="dot" style="background:#4A90D9"></span>XL</div>
+    <div class="chart-bar-bg">
+      <div class="chart-bar-fill" style="width:44.6709376820035%;background:#4A90D9">0.0767</div>
+    </div>
+    <div class="chart-value">0.0767</div>
+  </div>
+  <div class="chart-row">
+    <div class="chart-label"><span class="dot" style="background:#F5A623"></span>Indosat</div>
+    <div class="chart-bar-bg">
+      <div class="chart-bar-fill" style="width:45.36983110075713%;background:#F5A623">0.0779</div>
+    </div>
+    <div class="chart-value">0.0779</div>
+  </div>
+  <div class="chart-row">
+    <div class="chart-label"><span class="dot" style="background:#9B59B6"></span>Tri</div>
+    <div class="chart-bar-bg">
+      <div class="chart-bar-fill" style="width:50.90273733255679%;background:#9B59B6">0.0874</div>
+    </div>
+    <div class="chart-value">0.0874</div>
+  </div>
+  <div class="chart-row">
+    <div class="chart-label"><span class="dot" style="background:#E74C3C"></span>Telkomsel</div>
+    <div class="chart-bar-bg">
+      <div class="chart-bar-fill" style="width:55.38730343622598%;background:#E74C3C">0.0951</div>
+    </div>
+    <div class="chart-value">0.0951</div>
+  </div>
+  <div class="chart-row">
+    <div class="chart-label"><span class="dot" style="background:#E67E22"></span>Smartfren</div>
+    <div class="chart-bar-bg">
+      <div class="chart-bar-fill" style="width:100.0%;background:#E67E22">0.1717</div>
+    </div>
+    <div class="chart-value">0.1717</div>
+  </div>
+</div>
+
+<div class="two-col">
+<!-- STALL TIME BAR CHART -->
+<div class="section">
+  <h2>⏱️ Stall Time (s)</h2>
+  <p style="color:#64748b;margin-bottom:15px;font-size:13px">Lower = better</p>
+  <div class="chart-row">
+    <div class="chart-label"><span class="dot" style="background:#4A90D9"></span>XL</div>
+    <div class="chart-bar-bg">
+      <div class="chart-bar-fill" style="width:64.03413217138707%;background:#4A90D9">247s</div>
+    </div>
+    <div class="chart-value">246.9s</div>
+  </div>
+  <div class="chart-row">
+    <div class="chart-label"><span class="dot" style="background:#E74C3C"></span>Telkomsel</div>
+    <div class="chart-bar-bg">
+      <div class="chart-bar-fill" style="width:68.30843448490508%;background:#E74C3C">263s</div>
+    </div>
+    <div class="chart-value">263.4s</div>
+  </div>
+  <div class="chart-row">
+    <div class="chart-label"><span class="dot" style="background:#F5A623"></span>Indosat</div>
+    <div class="chart-bar-bg">
+      <div class="chart-bar-fill" style="width:72.49455337690631%;background:#F5A623">280s</div>
+    </div>
+    <div class="chart-value">279.5s</div>
+  </div>
+  <div class="chart-row">
+    <div class="chart-label"><span class="dot" style="background:#9B59B6"></span>Tri</div>
+    <div class="chart-bar-bg">
+      <div class="chart-bar-fill" style="width:81.90424317875299%;background:#9B59B6">316s</div>
+    </div>
+    <div class="chart-value">315.8s</div>
+  </div>
+  <div class="chart-row">
+    <div class="chart-label"><span class="dot" style="background:#E67E22"></span>Smartfren</div>
+    <div class="chart-bar-bg">
+      <div class="chart-bar-fill" style="width:100.0%;background:#E67E22">386s</div>
+    </div>
+    <div class="chart-value">385.6s</div>
+  </div>
+</div>
+
+<!-- RECORDS -->
+<div class="section">
+  <h2>📦 Sample Size</h2>
+  <p style="color:#64748b;margin-bottom:15px;font-size:13px">Total records per provider</p>
+  <div class="chart-row">
+    <div class="chart-label"><span class="dot" style="background:#E74C3C"></span>Telkomsel</div>
+    <div class="chart-bar-bg">
+      <div class="chart-bar-fill" style="width:100.0%;background:#E74C3C">3574K</div>
+    </div>
+    <div class="chart-value">3,573,876</div>
+  </div>
+  <div class="chart-row">
+    <div class="chart-label"><span class="dot" style="background:#F5A623"></span>Indosat</div>
+    <div class="chart-bar-bg">
+      <div class="chart-bar-fill" style="width:53.08958676797963%;background:#F5A623">1897K</div>
+    </div>
+    <div class="chart-value">1,897,356</div>
+  </div>
+  <div class="chart-row">
+    <div class="chart-label"><span class="dot" style="background:#4A90D9"></span>XL</div>
+    <div class="chart-bar-bg">
+      <div class="chart-bar-fill" style="width:36.730317448059196%;background:#4A90D9">1313K</div>
+    </div>
+    <div class="chart-value">1,312,696</div>
+  </div>
+  <div class="chart-row">
+    <div class="chart-label"><span class="dot" style="background:#9B59B6"></span>Tri</div>
+    <div class="chart-bar-bg">
+      <div class="chart-bar-fill" style="width:29.421222224833766%;background:#9B59B6">1051K</div>
+    </div>
+    <div class="chart-value">1,051,478</div>
+  </div>
+  <div class="chart-row">
+    <div class="chart-label"><span class="dot" style="background:#E67E22"></span>Smartfren</div>
+    <div class="chart-bar-bg">
+      <div class="chart-bar-fill" style="width:12.131086808831643%;background:#E67E22">434K</div>
+    </div>
+    <div class="chart-value">433,550</div>
+  </div>
+</div>
+</div>
+
+<!-- WEEKLY DELTA CHART -->
+<div class="section">
+  <h2>📈 Week-over-Week Score Change</h2>
+  <p style="color:#64748b;margin-bottom:15px;font-size:13px">Negative (green) = improved · Positive (red) = worsened</p>
+  <div class="chart-row">
+    <div class="chart-label"><span class="dot" style="background:#4A90D9"></span>XL</div>
+    <div class="chart-bar-bg" style="display:flex;align-items:center;justify-content:center;position:relative;">
+      <div style="position:absolute;left:50%;width:22.36842105263158%;height:100%;background:#4ade80;border-radius:6px;right:50%"></div>
+      <span style="position:relative;z-index:1;font-weight:700;font-size:13px;color:white;text-shadow:0 1px 2px rgba(0,0,0,0.5);">
+        56.1 → 54.4 (-1.7)
+      </span>
+    </div>
+    <div class="chart-value" style="color:#4ade80">-1.7</div>
+  </div>
+  <div class="chart-row">
+    <div class="chart-label"><span class="dot" style="background:#E67E22"></span>Smartfren</div>
+    <div class="chart-bar-bg" style="display:flex;align-items:center;justify-content:center;position:relative;">
+      <div style="position:absolute;left:50%;width:0.0%;height:100%;background:#64748b;border-radius:6px;left:50%"></div>
+      <span style="position:relative;z-index:1;font-weight:700;font-size:13px;color:white;text-shadow:0 1px 2px rgba(0,0,0,0.5);">
+        100.0 → 100.0 (+0.0)
+      </span>
+    </div>
+    <div class="chart-value" style="color:#64748b">+0.0</div>
+  </div>
+  <div class="chart-row">
+    <div class="chart-label"><span class="dot" style="background:#F5A623"></span>Indosat</div>
+    <div class="chart-bar-bg" style="display:flex;align-items:center;justify-content:center;position:relative;">
+      <div style="position:absolute;left:50%;width:6.578947368421052%;height:100%;background:#f87171;border-radius:6px;left:50%"></div>
+      <span style="position:relative;z-index:1;font-weight:700;font-size:13px;color:white;text-shadow:0 1px 2px rgba(0,0,0,0.5);">
+        58.4 → 58.9 (+0.5)
+      </span>
+    </div>
+    <div class="chart-value" style="color:#f87171">+0.5</div>
+  </div>
+  <div class="chart-row">
+    <div class="chart-label"><span class="dot" style="background:#9B59B6"></span>Tri</div>
+    <div class="chart-bar-bg" style="display:flex;align-items:center;justify-content:center;position:relative;">
+      <div style="position:absolute;left:50%;width:35.52631578947369%;height:100%;background:#f87171;border-radius:6px;left:50%"></div>
+      <span style="position:relative;z-index:1;font-weight:700;font-size:13px;color:white;text-shadow:0 1px 2px rgba(0,0,0,0.5);">
+        63.7 → 66.4 (+2.7)
+      </span>
+    </div>
+    <div class="chart-value" style="color:#f87171">+2.7</div>
+  </div>
+  <div class="chart-row">
+    <div class="chart-label"><span class="dot" style="background:#E74C3C"></span>Telkomsel</div>
+    <div class="chart-bar-bg" style="display:flex;align-items:center;justify-content:center;position:relative;">
+      <div style="position:absolute;left:50%;width:50.0%;height:100%;background:#f87171;border-radius:6px;left:50%"></div>
+      <span style="position:relative;z-index:1;font-weight:700;font-size:13px;color:white;text-shadow:0 1px 2px rgba(0,0,0,0.5);">
+        58.0 → 61.8 (+3.8)
+      </span>
+    </div>
+    <div class="chart-value" style="color:#f87171">+3.8</div>
+  </div>
+</div>
+
+<div class="section">
+  <h2>💡 Key Insights</h2>
+  <div class="insight">
+    <strong>✅ XL #1 Nasional</strong> — Score 54.4, terbaik di Buffer Count (0.0767) dan Stall Time (247s). Minggu ini XL membaik 1.7 point.
+  </div>
+  <div class="insight" style="border-left-color:#f87171">
+    <strong>🔴 Smartfren Terburuk</strong> — Score 100.0, Buffer Count 0.1717 (2.2× XL), Stall Time 386s (1.6× XL).
+  </div>
+  <div class="insight" style="border-left-color:#E74C3C">
+    <strong>⚠️ Telkomsel Turun</strong> — Dari Score 58.0 minggu lalu ke 61.8 minggu ini (+3.8). Rank 2 → 3.
+  </div>
+  <div class="insight" style="border-left-color:#4ade80">
+    <strong>📊 XL Performance</strong> — Buffer 0.0843 → 0.0767 (-9.0%), Stall 280s → 247s (-11.9%). Records: 1,339,699 → 1,312,696.
+  </div>
+</div>
+
+<div style="text-align:center;padding:20px;color:#475569;font-size:12px;">
+  OpenSignal Video Detection · MA7 (13-19 Jun vs 6-12 Jun 2026) · onx_indonesia_performance · Generated 2026-06-21 10:21
+</div>
+
+</div>
+</body>
+</html>

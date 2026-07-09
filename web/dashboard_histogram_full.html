@@ -1,0 +1,1877 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kabupaten Daily — Comprehensive Histograms</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1/dist/chartjs-plugin-annotation.min.js"></script>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  background: #0d1117;
+  color: #c9d1d9;
+  padding: 20px;
+}
+.container { max-width: 1800px; margin: 0 auto; }
+h1 {
+  font-size: 28px;
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: #58a6ff;
+}
+.meta {
+  font-size: 14px;
+  color: #8b949e;
+  margin-bottom: 30px;
+}
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(550px, 1fr));
+  gap: 24px;
+}
+.card {
+  background: #161b22;
+  border: 1px solid #30363d;
+  border-radius: 8px;
+  padding: 20px;
+}
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 16px;
+}
+.card-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #58a6ff;
+}
+.stats-mini {
+  font-size: 11px;
+  color: #8b949e;
+  text-align: right;
+  line-height: 1.4;
+}
+.stats-mini span {
+  color: #c9d1d9;
+  font-family: 'SF Mono', Monaco, monospace;
+}
+.chart-container {
+  position: relative;
+  height: 260px;
+}
+.legend {
+  margin-top: 12px;
+  display: flex;
+  gap: 16px;
+  font-size: 11px;
+  color: #8b949e;
+  flex-wrap: wrap;
+}
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.legend-box {
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+}
+</style>
+</head>
+<body>
+<div class="container">
+<h1>📊 Kabupaten Daily — Comprehensive Histograms</h1>
+<div class="meta">704,988 rows • 2026-01-05 → 2026-07-03 • 16 metrics • 50 bins + percentile markers</div>
+
+<div class="grid">
+
+<div class="card">
+  <div class="card-header">
+    <div class="card-title">UDP Latency (ms)</div>
+    <div class="stats-mini">
+      n = <span>600,815</span> (85.2%)<br>
+      μ = <span>78.86</span> σ = <span>354.56</span><br>
+      range: <span>3.81</span> — <span>7951.98</span>
+    </div>
+  </div>
+  <div class="chart-container">
+    <canvas id="avgudplatavg"></canvas>
+  </div>
+  <div class="legend">
+    <div class="legend-item">
+      <div class="legend-box" style="background: #58a6ff;"></div>
+      <span>Frequency</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-box" style="background: #f85149; border: 1px solid #f85149;"></div>
+      <span>Mean (78.86)</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-box" style="background: #ffa657; border: 1px solid #ffa657;"></div>
+      <span>Median (31.08)</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-box" style="border: 1px dashed #8b949e;"></div>
+      <span>P25/P75 (24.55/40.91)</span>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <div class="card-title">UDP Jitter (ms)</div>
+    <div class="stats-mini">
+      n = <span>600,660</span> (85.2%)<br>
+      μ = <span>8.84</span> σ = <span>20.47</span><br>
+      range: <span>0.0</span> — <span>3158.73</span>
+    </div>
+  </div>
+  <div class="chart-container">
+    <canvas id="avgudpjitteravg"></canvas>
+  </div>
+  <div class="legend">
+    <div class="legend-item">
+      <div class="legend-box" style="background: #58a6ff;"></div>
+      <span>Frequency</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-box" style="background: #f85149; border: 1px solid #f85149;"></div>
+      <span>Mean (8.84)</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-box" style="background: #ffa657; border: 1px solid #ffa657;"></div>
+      <span>Median (6.65)</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-box" style="border: 1px dashed #8b949e;"></div>
+      <span>P25/P75 (5.27/8.31)</span>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <div class="card-title">UDP Lost (%)</div>
+    <div class="stats-mini">
+      n = <span>600,815</span> (85.2%)<br>
+      μ = <span>2.59</span> σ = <span>7.01</span><br>
+      range: <span>0.0</span> — <span>99.5</span>
+    </div>
+  </div>
+  <div class="chart-container">
+    <canvas id="avgudplost"></canvas>
+  </div>
+  <div class="legend">
+    <div class="legend-item">
+      <div class="legend-box" style="background: #58a6ff;"></div>
+      <span>Frequency</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-box" style="background: #f85149; border: 1px solid #f85149;"></div>
+      <span>Mean (2.59)</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-box" style="background: #ffa657; border: 1px solid #ffa657;"></div>
+      <span>Median (1.07)</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-box" style="border: 1px dashed #8b949e;"></div>
+      <span>P25/P75 (0.22/2.3)</span>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <div class="card-title">UDP Discard (%)</div>
+    <div class="stats-mini">
+      n = <span>600,815</span> (85.2%)<br>
+      μ = <span>2.81</span> σ = <span>7.08</span><br>
+      range: <span>0.0</span> — <span>99.5</span>
+    </div>
+  </div>
+  <div class="chart-container">
+    <canvas id="avgudpdiscard"></canvas>
+  </div>
+  <div class="legend">
+    <div class="legend-item">
+      <div class="legend-box" style="background: #58a6ff;"></div>
+      <span>Frequency</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-box" style="background: #f85149; border: 1px solid #f85149;"></div>
+      <span>Mean (2.81)</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-box" style="background: #ffa657; border: 1px solid #ffa657;"></div>
+      <span>Median (1.35)</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-box" style="border: 1px dashed #8b949e;"></div>
+      <span>P25/P75 (0.4/2.64)</span>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <div class="card-title">Video Stall Interval (s)</div>
+    <div class="stats-mini">
+      n = <span>477,913</span> (67.8%)<br>
+      μ = <span>307.58</span> σ = <span>1375.25</span><br>
+      range: <span>0.0</span> — <span>30587.0</span>
+    </div>
+  </div>
+  <div class="chart-container">
+    <canvas id="avgstall"></canvas>
+  </div>
+  <div class="legend">
+    <div class="legend-item">
+      <div class="legend-box" style="background: #58a6ff;"></div>
+      <span>Frequency</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-box" style="background: #f85149; border: 1px solid #f85149;"></div>
+      <span>Mean (307.58)</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-box" style="background: #ffa657; border: 1px solid #ffa657;"></div>
+      <span>Median (0.0)</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-box" style="border: 1px dashed #8b949e;"></div>
+      <span>P25/P75 (0.0/154.12)</span>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <div class="card-title">Video Buffer Count</div>
+    <div class="stats-mini">
+      n = <span>498,325</span> (70.7%)<br>
+      μ = <span>0.14</span> σ = <span>0.53</span><br>
+      range: <span>0.0</span> — <span>98.0</span>
+    </div>
+  </div>
+  <div class="chart-container">
+    <canvas id="avgbuffer"></canvas>
+  </div>
+  <div class="legend">
+    <div class="legend-item">
+      <div class="legend-box" style="background: #58a6ff;"></div>
+      <span>Frequency</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-box" style="background: #f85149; border: 1px solid #f85149;"></div>
+      <span>Mean (0.14)</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-box" style="background: #ffa657; border: 1px solid #ffa657;"></div>
+      <span>Median (0.03)</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-box" style="border: 1px dashed #8b949e;"></div>
+      <span>P25/P75 (0.0/0.15)</span>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <div class="card-title">Video First Frame (s)</div>
+    <div class="stats-mini">
+      n = <span>498,325</span> (70.7%)<br>
+      μ = <span>10.79</span> σ = <span>458.44</span><br>
+      range: <span>0.0</span> — <span>307282.33</span>
+    </div>
+  </div>
+  <div class="chart-container">
+    <canvas id="avgfirstframe"></canvas>
+  </div>
+  <div class="legend">
+    <div class="legend-item">
+      <div class="legend-box" style="background: #58a6ff;"></div>
+      <span>Frequency</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-box" style="background: #f85149; border: 1px solid #f85149;"></div>
+      <span>Mean (10.79)</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-box" style="background: #ffa657; border: 1px solid #ffa657;"></div>
+      <span>Median (6.39)</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-box" style="border: 1px dashed #8b949e;"></div>
+      <span>P25/P75 (3.75/9.58)</span>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <div class="card-title">Video Stall Count</div>
+    <div class="stats-mini">
+      n = <span>498,273</span> (70.7%)<br>
+      μ = <span>1.03</span> σ = <span>0.12</span><br>
+      range: <span>0.0</span> — <span>10.0</span>
+    </div>
+  </div>
+  <div class="chart-container">
+    <canvas id="avgstallcount"></canvas>
+  </div>
+  <div class="legend">
+    <div class="legend-item">
+      <div class="legend-box" style="background: #58a6ff;"></div>
+      <span>Frequency</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-box" style="background: #f85149; border: 1px solid #f85149;"></div>
+      <span>Mean (1.03)</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-box" style="background: #ffa657; border: 1px solid #ffa657;"></div>
+      <span>Median (1.0)</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-box" style="border: 1px dashed #8b949e;"></div>
+      <span>P25/P75 (1.0/1.02)</span>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <div class="card-title">Video Playback Duration (s)</div>
+    <div class="stats-mini">
+      n = <span>498,231</span> (70.7%)<br>
+      μ = <span>21758.97</span> σ = <span>14156.46</span><br>
+      range: <span>93.0</span> — <span>897508.0</span>
+    </div>
+  </div>
+  <div class="chart-container">
+    <canvas id="avgplaybackdur"></canvas>
+  </div>
+  <div class="legend">
+    <div class="legend-item">
+      <div class="legend-box" style="background: #58a6ff;"></div>
+      <span>Frequency</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-box" style="background: #f85149; border: 1px solid #f85149;"></div>
+      <span>Mean (21758.97)</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-box" style="background: #ffa657; border: 1px solid #ffa657;"></div>
+      <span>Median (20192.0)</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-box" style="border: 1px dashed #8b949e;"></div>
+      <span>P25/P75 (19881.08/21215.32)</span>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <div class="card-title">Video Test Duration (s)</div>
+    <div class="stats-mini">
+      n = <span>498,230</span> (70.7%)<br>
+      μ = <span>24813.1</span> σ = <span>14192.55</span><br>
+      range: <span>154.0</span> — <span>896768.0</span>
+    </div>
+  </div>
+  <div class="chart-container">
+    <canvas id="avgtestdur"></canvas>
+  </div>
+  <div class="legend">
+    <div class="legend-item">
+      <div class="legend-box" style="background: #58a6ff;"></div>
+      <span>Frequency</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-box" style="background: #f85149; border: 1px solid #f85149;"></div>
+      <span>Mean (24813.1)</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-box" style="background: #ffa657; border: 1px solid #ffa657;"></div>
+      <span>Median (23270.2)</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-box" style="border: 1px dashed #8b949e;"></div>
+      <span>P25/P75 (21953.38/25341.75)</span>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <div class="card-title">RSRP (dBm)</div>
+    <div class="stats-mini">
+      n = <span>613,485</span> (87.0%)<br>
+      μ = <span>-95.31</span> σ = <span>6.31</span><br>
+      range: <span>-140.0</span> — <span>-44.0</span>
+    </div>
+  </div>
+  <div class="chart-container">
+    <canvas id="avgrsrp"></canvas>
+  </div>
+  <div class="legend">
+    <div class="legend-item">
+      <div class="legend-box" style="background: #58a6ff;"></div>
+      <span>Frequency</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-box" style="background: #f85149; border: 1px solid #f85149;"></div>
+      <span>Mean (-95.31)</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-box" style="background: #ffa657; border: 1px solid #ffa657;"></div>
+      <span>Median (-96.09)</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-box" style="border: 1px dashed #8b949e;"></div>
+      <span>P25/P75 (-98.91/-92.5)</span>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <div class="card-title">RSRQ (dB)</div>
+    <div class="stats-mini">
+      n = <span>612,266</span> (86.8%)<br>
+      μ = <span>-12.48</span> σ = <span>1.85</span><br>
+      range: <span>-20.0</span> — <span>-3.0</span>
+    </div>
+  </div>
+  <div class="chart-container">
+    <canvas id="avgrsrq"></canvas>
+  </div>
+  <div class="legend">
+    <div class="legend-item">
+      <div class="legend-box" style="background: #58a6ff;"></div>
+      <span>Frequency</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-box" style="background: #f85149; border: 1px solid #f85149;"></div>
+      <span>Mean (-12.48)</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-box" style="background: #ffa657; border: 1px solid #ffa657;"></div>
+      <span>Median (-12.36)</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-box" style="border: 1px dashed #8b949e;"></div>
+      <span>P25/P75 (-13.48/-11.26)</span>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <div class="card-title">RSSNR (dB)</div>
+    <div class="stats-mini">
+      n = <span>612,640</span> (86.9%)<br>
+      μ = <span>6.58</span> σ = <span>3.94</span><br>
+      range: <span>-20.0</span> — <span>30.0</span>
+    </div>
+  </div>
+  <div class="chart-container">
+    <canvas id="avgrssnr"></canvas>
+  </div>
+  <div class="legend">
+    <div class="legend-item">
+      <div class="legend-box" style="background: #58a6ff;"></div>
+      <span>Frequency</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-box" style="background: #f85149; border: 1px solid #f85149;"></div>
+      <span>Mean (6.58)</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-box" style="background: #ffa657; border: 1px solid #ffa657;"></div>
+      <span>Median (6.75)</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-box" style="border: 1px dashed #8b949e;"></div>
+      <span>P25/P75 (4.36/8.89)</span>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <div class="card-title">TCP Latency (ms)</div>
+    <div class="stats-mini">
+      n = <span>417,843</span> (59.3%)<br>
+      μ = <span>71.76</span> σ = <span>679.02</span><br>
+      range: <span>2.16</span> — <span>306814.11</span>
+    </div>
+  </div>
+  <div class="chart-container">
+    <canvas id="avgtcplatavg"></canvas>
+  </div>
+  <div class="legend">
+    <div class="legend-item">
+      <div class="legend-box" style="background: #58a6ff;"></div>
+      <span>Frequency</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-box" style="background: #f85149; border: 1px solid #f85149;"></div>
+      <span>Mean (71.76)</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-box" style="background: #ffa657; border: 1px solid #ffa657;"></div>
+      <span>Median (47.44)</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-box" style="border: 1px dashed #8b949e;"></div>
+      <span>P25/P75 (38.19/63.89)</span>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <div class="card-title">Download Throughput (Mbps)</div>
+    <div class="stats-mini">
+      n = <span>569,572</span> (80.8%)<br>
+      μ = <span>28236.63</span> σ = <span>14196.92</span><br>
+      range: <span>0.01</span> — <span>468964.81</span>
+    </div>
+  </div>
+  <div class="chart-container">
+    <canvas id="avgthroughput"></canvas>
+  </div>
+  <div class="legend">
+    <div class="legend-item">
+      <div class="legend-box" style="background: #58a6ff;"></div>
+      <span>Frequency</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-box" style="background: #f85149; border: 1px solid #f85149;"></div>
+      <span>Mean (28236.63)</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-box" style="background: #ffa657; border: 1px solid #ffa657;"></div>
+      <span>Median (25186.03)</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-box" style="border: 1px dashed #8b949e;"></div>
+      <span>P25/P75 (20439.78/31903.46)</span>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <div class="card-title">Completion Rate</div>
+    <div class="stats-mini">
+      n = <span>549,903</span> (78.0%)<br>
+      μ = <span>0.99</span> σ = <span>0.06</span><br>
+      range: <span>0.0</span> — <span>1.0</span>
+    </div>
+  </div>
+  <div class="chart-container">
+    <canvas id="avgcompletionrate"></canvas>
+  </div>
+  <div class="legend">
+    <div class="legend-item">
+      <div class="legend-box" style="background: #58a6ff;"></div>
+      <span>Frequency</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-box" style="background: #f85149; border: 1px solid #f85149;"></div>
+      <span>Mean (0.99)</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-box" style="background: #ffa657; border: 1px solid #ffa657;"></div>
+      <span>Median (1.0)</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-box" style="border: 1px dashed #8b949e;"></div>
+      <span>P25/P75 (1.0/1.0)</span>
+    </div>
+  </div>
+</div>
+
+</div>
+</div>
+
+<script>
+Chart.defaults.color = '#8b949e';
+Chart.defaults.borderColor = '#30363d';
+Chart.defaults.font.size = 11;
+
+const baseConfig = {
+  type: 'bar',
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        backgroundColor: '#161b22',
+        borderColor: '#30363d',
+        borderWidth: 1,
+        titleColor: '#c9d1d9',
+        bodyColor: '#c9d1d9',
+        callbacks: {
+          title: function(items) {
+            return 'Bin: ' + items[0].label;
+          },
+          label: function(context) {
+            return 'Count: ' + context.parsed.y.toLocaleString();
+          }
+        }
+      },
+      annotation: {}
+    },
+    scales: {
+      x: {
+        grid: { display: false },
+        ticks: { 
+          maxRotation: 0,
+          autoSkip: true,
+          maxTicksLimit: 8
+        }
+      },
+      y: {
+        grid: { color: '#21262d' },
+        ticks: {
+          callback: function(value) {
+            if (value >= 1000) return (value/1000).toFixed(0) + 'k';
+            return value.toLocaleString();
+          }
+        }
+      }
+    }
+  }
+};
+
+
+new Chart(document.getElementById('avgudplatavg'), {
+  ...baseConfig,
+  data: {
+    labels: ["3.8", "102.0", "260.9", "431.1", "575.8", "718.4", "877.1", "1012.3", "1124.8", "1268.5", "1438.5", "1609.9", "1780.3", "1935.6", "2081.2", "2238.5", "2393.0", "2526.6", "2665.3", "2819.2", "2976.1", "3150.1", "3330.5", "3515.3", "3702.5", "3882.6", "4061.1", "4219.7", "4357.7", "4516.0", "4712.1", "4881.6", "5004.0", "5138.6", "5300.5", "5477.5", "5656.2", "5837.8", "6003.8", "6155.8", "6323.4", "6474.9", "6617.3", "6789.4", "6954.9", "7111.2", "7304.4", "7522.4", "7704.4", "7849.4"],
+    datasets: [{
+      data: [102.00674203147393, 260.873003513555, 431.1141331850606, 575.8201727410343, 718.3973043480695, 877.1221123773398, 1012.3304226109119, 1124.7916165398678, 1268.5161102135362, 1438.5098321068756, 1609.8747463397422, 1780.3021829719764, 1935.6232453416408, 2081.2273589392175, 2238.5223469670073, 2392.962101687691, 2526.597201594437, 2665.2641868796536, 2819.1982410951646, 2976.125157586145, 3150.0792260124335, 3330.454944443126, 3515.3386072391786, 3702.531434784012, 3882.6000113510936, 4061.06834112493, 4219.726271713325, 4357.705029857605, 4515.999056315935, 4712.057935896976, 4881.565225454477, 5003.955289898497, 5138.579828065815, 5300.521121215821, 5477.472969314287, 5656.2496460008915, 5837.755568549746, 6003.849694211511, 6155.83635834887, 6323.420514054615, 6474.9401661839975, 6617.294858685662, 6789.368168196789, 6954.93014002328, 7111.165088099293, 7304.3785498286625, 7522.416437532322, 7704.4329739040795, 7849.374881998698, 7951.97998046875],
+      backgroundColor: '#58a6ff',
+      borderColor: '#58a6ff',
+      borderWidth: 0,
+      barPercentage: 1.0,
+      categoryPercentage: 1.0
+    }]
+  },
+  options: {
+    ...baseConfig.options,
+    plugins: {
+      ...baseConfig.options.plugins,
+      annotation: {
+        annotations: {
+          mean: {
+            type: 'line',
+            xMin: 78.86,
+            xMax: 78.86,
+            borderColor: '#f85149',
+            borderWidth: 2,
+            borderDash: [5, 5],
+            label: {
+              display: true,
+              content: 'μ',
+              position: 'start',
+              backgroundColor: '#f85149',
+              color: 'white',
+              font: { size: 10, weight: 'bold' },
+              padding: 2
+            }
+          },
+          median: {
+            type: 'line',
+            xMin: 31.08,
+            xMax: 31.08,
+            borderColor: '#ffa657',
+            borderWidth: 2,
+            borderDash: [5, 5],
+            label: {
+              display: true,
+              content: 'P50',
+              position: 'start',
+              backgroundColor: '#ffa657',
+              color: 'white',
+              font: { size: 10, weight: 'bold' },
+              padding: 2
+            }
+          },
+          p25: {
+            type: 'line',
+            xMin: 24.55,
+            xMax: 24.55,
+            borderColor: '#8b949e',
+            borderWidth: 1,
+            borderDash: [3, 3]
+          },
+          p75: {
+            type: 'line',
+            xMin: 40.91,
+            xMax: 40.91,
+            borderColor: '#8b949e',
+            borderWidth: 1,
+            borderDash: [3, 3]
+          }
+        }
+      }
+    }
+  }
+});
+
+
+new Chart(document.getElementById('avgudpjitteravg'), {
+  ...baseConfig,
+  data: {
+    labels: ["0.0", "28.3", "63.6", "93.1", "120.9", "150.0", "185.4", "219.6", "249.6", "284.7", "325.0", "361.3", "391.5", "422.5", "455.8", "488.3", "529.0", "579.2", "619.4", "648.4", "678.3", "711.0", "746.9", "793.4", "837.2", "880.3", "926.3", "958.7", "991.6", "1025.4", "1071.1", "1116.3", "1149.8", "1184.8", "1224.0", "1272.5", "1317.4", "1354.4", "1423.6", "1549.1", "1637.7", "1686.3", "1740.8", "1860.3", "1974.8", "2004.7", "2039.5", "2124.3", "2269.7", "2754.9"],
+    datasets: [{
+      data: [28.279256558576805, 63.61805883634905, 93.08463854007096, 120.86515721713769, 150.04735078595598, 185.40630149596456, 219.5959383096653, 249.62498091748193, 284.7089879695072, 324.95869446498534, 361.26173167815307, 391.48840251069873, 422.53901758397495, 455.83030734294573, 488.33636394682384, 529.0183041761024, 579.2423174646758, 619.4250840518938, 648.3800771077474, 678.2601338704427, 711.0255401611328, 746.877298425745, 793.3787907353153, 837.1909586588541, 880.3053568522135, 926.2725321451824, 958.6580810546875, 991.6326825459798, 1025.4210126241048, 1071.141072591146, 1116.2947591145835, 1149.8257446289062, 1184.7745090060762, 1224.014438205295, 1272.4943786621093, 1317.436181640625, 1354.4302266438804, 1423.5538838704429, 1549.1481628417969, 1637.659912109375, 1686.2864990234375, 1740.759521484375, 1860.3115234375, 1974.78271484375, 2004.6808471679688, 2039.47216796875, 2124.326171875, 2269.6666259765625, 2754.8565673828125, 3158.733154296875],
+      backgroundColor: '#58a6ff',
+      borderColor: '#58a6ff',
+      borderWidth: 0,
+      barPercentage: 1.0,
+      categoryPercentage: 1.0
+    }]
+  },
+  options: {
+    ...baseConfig.options,
+    plugins: {
+      ...baseConfig.options.plugins,
+      annotation: {
+        annotations: {
+          mean: {
+            type: 'line',
+            xMin: 8.84,
+            xMax: 8.84,
+            borderColor: '#f85149',
+            borderWidth: 2,
+            borderDash: [5, 5],
+            label: {
+              display: true,
+              content: 'μ',
+              position: 'start',
+              backgroundColor: '#f85149',
+              color: 'white',
+              font: { size: 10, weight: 'bold' },
+              padding: 2
+            }
+          },
+          median: {
+            type: 'line',
+            xMin: 6.65,
+            xMax: 6.65,
+            borderColor: '#ffa657',
+            borderWidth: 2,
+            borderDash: [5, 5],
+            label: {
+              display: true,
+              content: 'P50',
+              position: 'start',
+              backgroundColor: '#ffa657',
+              color: 'white',
+              font: { size: 10, weight: 'bold' },
+              padding: 2
+            }
+          },
+          p25: {
+            type: 'line',
+            xMin: 5.27,
+            xMax: 5.27,
+            borderColor: '#8b949e',
+            borderWidth: 1,
+            borderDash: [3, 3]
+          },
+          p75: {
+            type: 'line',
+            xMin: 8.31,
+            xMax: 8.31,
+            borderColor: '#8b949e',
+            borderWidth: 1,
+            borderDash: [3, 3]
+          }
+        }
+      }
+    }
+  }
+});
+
+
+new Chart(document.getElementById('avgudplost'), {
+  ...baseConfig,
+  data: {
+    labels: ["0.0", "1.3", "3.1", "5.0", "6.9", "8.9", "10.7", "12.6", "14.5", "16.2", "17.9", "19.8", "21.9", "23.9", "26.0", "27.9", "29.5", "31.6", "33.9", "35.9", "37.6", "39.4", "41.3", "43.3", "45.3", "47.1", "48.9", "51.0", "53.2", "55.3", "57.6", "59.9", "61.9", "63.6", "65.7", "67.7", "69.5", "71.4", "73.9", "76.9", "79.7", "82.0", "84.2", "86.0", "87.7", "89.9", "92.2", "94.2", "96.1", "98.0"],
+    datasets: [{
+      data: [1.3211662092768406, 3.052918197074786, 4.950460729094671, 6.90642273402724, 8.853490901963097, 10.724242138799458, 12.58341053784188, 14.451293524473552, 16.190814522342038, 17.889519873478296, 19.837453045597844, 21.92518938383371, 23.902180879670805, 26.00325775518256, 27.85050777429698, 29.460163542276916, 31.57298931368714, 33.920168731604775, 35.88511857276854, 37.55862723485386, 39.35579256865529, 41.288793480221855, 43.31049125768885, 45.28335365797905, 47.09979829595688, 48.934556577169026, 51.011535802294944, 53.17718415270353, 55.329849125402944, 57.601564139314526, 59.93958581173582, 61.912199717781064, 63.58809308086789, 65.6661330209185, 67.73868340816917, 69.462505201883, 71.35897849797271, 73.87160716945127, 76.87777785862998, 79.68589853332196, 82.0470778455751, 84.17950543159299, 85.96801213196909, 87.6898975063949, 89.94259630512988, 92.2363976542155, 94.17935380364855, 96.11390052319774, 98.03291075900316, 99.5],
+      backgroundColor: '#58a6ff',
+      borderColor: '#58a6ff',
+      borderWidth: 0,
+      barPercentage: 1.0,
+      categoryPercentage: 1.0
+    }]
+  },
+  options: {
+    ...baseConfig.options,
+    plugins: {
+      ...baseConfig.options.plugins,
+      annotation: {
+        annotations: {
+          mean: {
+            type: 'line',
+            xMin: 2.59,
+            xMax: 2.59,
+            borderColor: '#f85149',
+            borderWidth: 2,
+            borderDash: [5, 5],
+            label: {
+              display: true,
+              content: 'μ',
+              position: 'start',
+              backgroundColor: '#f85149',
+              color: 'white',
+              font: { size: 10, weight: 'bold' },
+              padding: 2
+            }
+          },
+          median: {
+            type: 'line',
+            xMin: 1.07,
+            xMax: 1.07,
+            borderColor: '#ffa657',
+            borderWidth: 2,
+            borderDash: [5, 5],
+            label: {
+              display: true,
+              content: 'P50',
+              position: 'start',
+              backgroundColor: '#ffa657',
+              color: 'white',
+              font: { size: 10, weight: 'bold' },
+              padding: 2
+            }
+          },
+          p25: {
+            type: 'line',
+            xMin: 0.22,
+            xMax: 0.22,
+            borderColor: '#8b949e',
+            borderWidth: 1,
+            borderDash: [3, 3]
+          },
+          p75: {
+            type: 'line',
+            xMin: 2.3,
+            xMax: 2.3,
+            borderColor: '#8b949e',
+            borderWidth: 1,
+            borderDash: [3, 3]
+          }
+        }
+      }
+    }
+  }
+});
+
+
+new Chart(document.getElementById('avgudpdiscard'), {
+  ...baseConfig,
+  data: {
+    labels: ["0.0", "1.5", "3.3", "5.1", "6.8", "8.6", "10.5", "12.4", "14.4", "16.4", "18.3", "20.1", "21.9", "23.9", "26.1", "28.7", "30.8", "32.5", "34.6", "37.1", "39.3", "41.3", "43.4", "45.4", "47.4", "49.3", "51.3", "53.7", "55.7", "57.7", "59.7", "62.1", "64.4", "66.5", "68.5", "70.7", "73.4", "75.5", "77.1", "78.8", "80.4", "82.2", "84.3", "86.2", "88.3", "90.3", "92.0", "93.9", "96.1", "98.1"],
+    datasets: [{
+      data: [1.4758018533508732, 3.2630309978189667, 5.107727394325154, 6.826361096272243, 8.6057591984292, 10.48319902384834, 12.392300077228047, 14.390309488165354, 16.367172924096657, 18.283670128443994, 20.118631463177117, 21.93941297298609, 23.892719914476892, 26.14156593347589, 28.681058764859607, 30.77800155686447, 32.45802116924357, 34.614267479460295, 37.11564843649391, 39.31441802088928, 41.28542634847553, 43.351422600126426, 45.391721334786766, 47.40844081857577, 49.276028473078156, 51.326745335777076, 53.660077614080464, 55.74806610823407, 57.67238957956201, 59.744529706263805, 62.13592221649761, 64.43001478053128, 66.47125900794187, 68.51026683698817, 70.74623616444308, 73.38585137551559, 75.53865546713732, 77.1284884382506, 78.75330964721334, 80.36449277728063, 82.23466370829578, 84.28198556721449, 86.21552936883407, 88.27061485545539, 90.31611217437339, 92.02318851284912, 93.91163612815701, 96.075376537062, 98.07856754665596, 99.5],
+      backgroundColor: '#58a6ff',
+      borderColor: '#58a6ff',
+      borderWidth: 0,
+      barPercentage: 1.0,
+      categoryPercentage: 1.0
+    }]
+  },
+  options: {
+    ...baseConfig.options,
+    plugins: {
+      ...baseConfig.options.plugins,
+      annotation: {
+        annotations: {
+          mean: {
+            type: 'line',
+            xMin: 2.81,
+            xMax: 2.81,
+            borderColor: '#f85149',
+            borderWidth: 2,
+            borderDash: [5, 5],
+            label: {
+              display: true,
+              content: 'μ',
+              position: 'start',
+              backgroundColor: '#f85149',
+              color: 'white',
+              font: { size: 10, weight: 'bold' },
+              padding: 2
+            }
+          },
+          median: {
+            type: 'line',
+            xMin: 1.35,
+            xMax: 1.35,
+            borderColor: '#ffa657',
+            borderWidth: 2,
+            borderDash: [5, 5],
+            label: {
+              display: true,
+              content: 'P50',
+              position: 'start',
+              backgroundColor: '#ffa657',
+              color: 'white',
+              font: { size: 10, weight: 'bold' },
+              padding: 2
+            }
+          },
+          p25: {
+            type: 'line',
+            xMin: 0.4,
+            xMax: 0.4,
+            borderColor: '#8b949e',
+            borderWidth: 1,
+            borderDash: [3, 3]
+          },
+          p75: {
+            type: 'line',
+            xMin: 2.64,
+            xMax: 2.64,
+            borderColor: '#8b949e',
+            borderWidth: 1,
+            borderDash: [3, 3]
+          }
+        }
+      }
+    }
+  }
+});
+
+
+new Chart(document.getElementById('avgstall'), {
+  ...baseConfig,
+  data: {
+    labels: ["0.0", "265.9", "807.8", "1508.2", "2213.6", "2816.4", "3393.1", "3998.8", "4658.9", "5262.0", "5774.0", "6274.5", "6766.1", "7255.9", "7856.0", "8554.2", "9198.6", "9750.8", "10397.7", "11183.1", "11837.1", "12377.1", "12975.1", "13512.1", "14028.8", "14659.2", "15300.9", "15894.1", "16457.3", "17137.3", "17865.9", "18517.3", "19271.6", "19934.3", "20502.4", "21151.6", "21912.6", "22678.1", "23270.6", "23777.2", "24341.4", "24957.9", "25607.2", "26300.8", "27054.7", "27905.4", "28607.8", "29168.7", "29727.2", "30293.3"],
+    datasets: [{
+      data: [265.8930341662853, 807.8337635393697, 1508.2167324338743, 2213.5559677071046, 2816.3827146443464, 3393.06781533462, 3998.768784608704, 4658.894188804847, 5262.011656417141, 5774.030058374722, 6274.454670477628, 6766.061792347323, 7255.94057350092, 7856.009448611883, 8554.241394093304, 9198.584707622758, 9750.81294725486, 10397.74787124427, 11183.097213209316, 11837.071562616129, 12377.121555296555, 12975.0615507178, 13512.14977949682, 14028.834861775651, 14659.215525626634, 15300.85351263962, 15894.126357560566, 16457.328421052633, 17137.305679012345, 17865.93496472663, 18517.313923395446, 19271.63463768116, 19934.33857142857, 20502.428571428572, 21151.56818181818, 21912.56818181818, 22678.0625, 23270.5625, 23777.192307692305, 24341.358974358973, 24957.916666666664, 25607.25, 26300.777777777777, 27054.730902777777, 27905.353125, 28607.8, 29168.733333333334, 29727.175438596492, 30293.34210526316, 30587],
+      backgroundColor: '#58a6ff',
+      borderColor: '#58a6ff',
+      borderWidth: 0,
+      barPercentage: 1.0,
+      categoryPercentage: 1.0
+    }]
+  },
+  options: {
+    ...baseConfig.options,
+    plugins: {
+      ...baseConfig.options.plugins,
+      annotation: {
+        annotations: {
+          mean: {
+            type: 'line',
+            xMin: 307.58,
+            xMax: 307.58,
+            borderColor: '#f85149',
+            borderWidth: 2,
+            borderDash: [5, 5],
+            label: {
+              display: true,
+              content: 'μ',
+              position: 'start',
+              backgroundColor: '#f85149',
+              color: 'white',
+              font: { size: 10, weight: 'bold' },
+              padding: 2
+            }
+          },
+          median: {
+            type: 'line',
+            xMin: 0.0,
+            xMax: 0.0,
+            borderColor: '#ffa657',
+            borderWidth: 2,
+            borderDash: [5, 5],
+            label: {
+              display: true,
+              content: 'P50',
+              position: 'start',
+              backgroundColor: '#ffa657',
+              color: 'white',
+              font: { size: 10, weight: 'bold' },
+              padding: 2
+            }
+          },
+          p25: {
+            type: 'line',
+            xMin: 0.0,
+            xMax: 0.0,
+            borderColor: '#8b949e',
+            borderWidth: 1,
+            borderDash: [3, 3]
+          },
+          p75: {
+            type: 'line',
+            xMin: 154.12,
+            xMax: 154.12,
+            borderColor: '#8b949e',
+            borderWidth: 1,
+            borderDash: [3, 3]
+          }
+        }
+      }
+    }
+  }
+});
+
+
+new Chart(document.getElementById('avgbuffer'), {
+  ...baseConfig,
+  data: {
+    labels: ["0.0", "0.5", "1.5", "2.5", "3.1", "3.7", "4.4", "5.3", "6.2", "7.0", "7.7", "8.6", "9.4", "10.3", "11.4", "12.6", "13.5", "14.4", "15.3", "16.1", "16.9", "17.8", "18.7", "19.6", "20.7", "22.0", "23.2", "24.3", "25.6", "27.1", "28.3", "29.3", "31.0", "32.9", "34.3", "35.4", "36.9", "38.4", "39.5", "41.1", "42.6", "44.1", "48.1", "54.0", "60.5", "65.0", "68.0", "76.5", "85.5", "93.0"],
+    datasets: [{
+      data: [0.5465465555038, 1.5141504812169382, 2.450268572645171, 3.146042642415688, 3.6942083109992945, 4.37468266670094, 5.298030201352107, 6.218132620715341, 6.95832888486161, 7.732429176930651, 8.57077182077182, 9.381139144420395, 10.337602588383838, 11.438005050505051, 12.57962962962963, 13.527777777777779, 14.383321308321309, 15.285024350649351, 16.1484623015873, 16.925462962962964, 17.81851851851852, 18.725, 19.62777777777778, 20.741666666666667, 21.97222222222222, 23.229166666666668, 24.34375, 25.572916666666668, 27.125, 28.333333333333336, 29.333333333333336, 31, 32.9375, 34.298611111111114, 35.361111111111114, 36.94444444444444, 38.44444444444444, 39.5, 41.125, 42.625, 44.125, 48.125, 54, 60.5, 65, 68, 76.5, 85.5, 93, 98],
+      backgroundColor: '#58a6ff',
+      borderColor: '#58a6ff',
+      borderWidth: 0,
+      barPercentage: 1.0,
+      categoryPercentage: 1.0
+    }]
+  },
+  options: {
+    ...baseConfig.options,
+    plugins: {
+      ...baseConfig.options.plugins,
+      annotation: {
+        annotations: {
+          mean: {
+            type: 'line',
+            xMin: 0.14,
+            xMax: 0.14,
+            borderColor: '#f85149',
+            borderWidth: 2,
+            borderDash: [5, 5],
+            label: {
+              display: true,
+              content: 'μ',
+              position: 'start',
+              backgroundColor: '#f85149',
+              color: 'white',
+              font: { size: 10, weight: 'bold' },
+              padding: 2
+            }
+          },
+          median: {
+            type: 'line',
+            xMin: 0.03,
+            xMax: 0.03,
+            borderColor: '#ffa657',
+            borderWidth: 2,
+            borderDash: [5, 5],
+            label: {
+              display: true,
+              content: 'P50',
+              position: 'start',
+              backgroundColor: '#ffa657',
+              color: 'white',
+              font: { size: 10, weight: 'bold' },
+              padding: 2
+            }
+          },
+          p25: {
+            type: 'line',
+            xMin: 0.0,
+            xMax: 0.0,
+            borderColor: '#8b949e',
+            borderWidth: 1,
+            borderDash: [3, 3]
+          },
+          p75: {
+            type: 'line',
+            xMin: 0.15,
+            xMax: 0.15,
+            borderColor: '#8b949e',
+            borderWidth: 1,
+            borderDash: [3, 3]
+          }
+        }
+      }
+    }
+  }
+});
+
+
+new Chart(document.getElementById('avgfirstframe'), {
+  ...baseConfig,
+  data: {
+    labels: ["0.0", "75.7", "230.6", "388.8", "525.2", "654.5", "786.6", "943.0", "1103.9", "1223.9", "1341.2", "1476.1", "1613.7", "1748.3", "1911.7", "2088.8", "2262.0", "2406.0", "2532.3", "2723.6", "2905.2", "3027.6", "3153.8", "3302.3", "3483.2", "3650.6", "3769.5", "3872.9", "3999.6", "4169.0", "4394.2", "4998.0", "5998.4", "7149.7", "8138.6", "9106.1", "9960.8", "10524.8", "11023.6", "11588.2", "12360.8", "12997.8", "13320.5", "14254.3", "15150.3", "15513.1", "21600.9", "39460.5", "57301.4", "185169.8"],
+    datasets: [{
+      data: [75.68567044004004, 230.5972551850021, 388.79372933707157, 525.2411104975226, 654.5258290389612, 786.6299874762994, 942.9715002954599, 1103.9494393897148, 1223.891714441008, 1341.2323917524025, 1476.07687724775, 1613.7472632731253, 1748.2888106416276, 1911.7451598479768, 2088.8303298383576, 2262.0039620195084, 2406.0002553072536, 2532.2592929153298, 2723.5787464588884, 2905.2175052410903, 3027.590909090909, 3153.8489516534637, 3302.2844696238653, 3483.2084446051704, 3650.5570175438597, 3769.46388042345, 3872.9388804234504, 3999.627298850575, 4168.975318652555, 4394.19801980198, 4997.989534883721, 5998.389534883721, 7149.711702127659, 8138.582535460992, 9106.058333333334, 9960.7875, 10524.829545454544, 11023.579545454544, 11588.25, 12360.766666666666, 12997.803703703703, 13320.530156303092, 14254.340058041565, 15150.34693877551, 15513.125, 21600.885869565216, 39460.538647343, 57301.43719806764, 185169.8260869565, 307282.3333333333],
+      backgroundColor: '#58a6ff',
+      borderColor: '#58a6ff',
+      borderWidth: 0,
+      barPercentage: 1.0,
+      categoryPercentage: 1.0
+    }]
+  },
+  options: {
+    ...baseConfig.options,
+    plugins: {
+      ...baseConfig.options.plugins,
+      annotation: {
+        annotations: {
+          mean: {
+            type: 'line',
+            xMin: 10.79,
+            xMax: 10.79,
+            borderColor: '#f85149',
+            borderWidth: 2,
+            borderDash: [5, 5],
+            label: {
+              display: true,
+              content: 'μ',
+              position: 'start',
+              backgroundColor: '#f85149',
+              color: 'white',
+              font: { size: 10, weight: 'bold' },
+              padding: 2
+            }
+          },
+          median: {
+            type: 'line',
+            xMin: 6.39,
+            xMax: 6.39,
+            borderColor: '#ffa657',
+            borderWidth: 2,
+            borderDash: [5, 5],
+            label: {
+              display: true,
+              content: 'P50',
+              position: 'start',
+              backgroundColor: '#ffa657',
+              color: 'white',
+              font: { size: 10, weight: 'bold' },
+              padding: 2
+            }
+          },
+          p25: {
+            type: 'line',
+            xMin: 3.75,
+            xMax: 3.75,
+            borderColor: '#8b949e',
+            borderWidth: 1,
+            borderDash: [3, 3]
+          },
+          p75: {
+            type: 'line',
+            xMin: 9.58,
+            xMax: 9.58,
+            borderColor: '#8b949e',
+            borderWidth: 1,
+            borderDash: [3, 3]
+          }
+        }
+      }
+    }
+  }
+});
+
+
+new Chart(document.getElementById('avgstallcount'), {
+  ...baseConfig,
+  data: {
+    labels: ["0.0", "0.1", "0.2", "0.3", "0.4", "0.4", "0.5", "0.5", "0.6", "0.7", "0.8", "0.8", "0.9", "0.9", "1.0", "1.0", "1.1", "1.2", "1.2", "1.3", "1.4", "1.5", "1.5", "1.6", "1.7", "1.8", "1.8", "1.9", "2.1", "2.1", "2.2", "2.3", "2.4", "2.5", "2.6", "2.8", "2.9", "3.1", "3.2", "3.3", "3.4", "3.4", "3.8", "4.2", "4.8", "5.5", "6.5", "7.5", "8.5", "9.5"],
+    datasets: [{
+      data: [0.08675213675213675, 0.2153235653235653, 0.2952380952380952, 0.3666666666666667, 0.42613636363636365, 0.47613636363636364, 0.549692205942206, 0.6330255392755393, 0.706070779268386, 0.7713686332861037, 0.8190779361769209, 0.8621333094230356, 0.916850269881469, 0.9773885191849099, 1.0390887847320367, 1.10535594519037, 1.1700069874638568, 1.2302129625571618, 1.2953298318728683, 1.367180799714633, 1.450561023664466, 1.546642910126256, 1.6299236210165355, 1.707165377276149, 1.776256162746846, 1.8398836067314328, 1.9375, 2.059573112073112, 2.142906445406445, 2.2142857142857144, 2.2976190476190474, 2.3666666666666667, 2.45, 2.583333333333333, 2.761904761904762, 2.9285714285714284, 3.1, 3.225, 3.291666666666667, 3.354166666666667, 3.4375, 3.75, 4.25, 4.75, 5.5, 6.5, 7.5, 8.5, 9.5, 10],
+      backgroundColor: '#58a6ff',
+      borderColor: '#58a6ff',
+      borderWidth: 0,
+      barPercentage: 1.0,
+      categoryPercentage: 1.0
+    }]
+  },
+  options: {
+    ...baseConfig.options,
+    plugins: {
+      ...baseConfig.options.plugins,
+      annotation: {
+        annotations: {
+          mean: {
+            type: 'line',
+            xMin: 1.03,
+            xMax: 1.03,
+            borderColor: '#f85149',
+            borderWidth: 2,
+            borderDash: [5, 5],
+            label: {
+              display: true,
+              content: 'μ',
+              position: 'start',
+              backgroundColor: '#f85149',
+              color: 'white',
+              font: { size: 10, weight: 'bold' },
+              padding: 2
+            }
+          },
+          median: {
+            type: 'line',
+            xMin: 1.0,
+            xMax: 1.0,
+            borderColor: '#ffa657',
+            borderWidth: 2,
+            borderDash: [5, 5],
+            label: {
+              display: true,
+              content: 'P50',
+              position: 'start',
+              backgroundColor: '#ffa657',
+              color: 'white',
+              font: { size: 10, weight: 'bold' },
+              padding: 2
+            }
+          },
+          p25: {
+            type: 'line',
+            xMin: 1.0,
+            xMax: 1.0,
+            borderColor: '#8b949e',
+            borderWidth: 1,
+            borderDash: [3, 3]
+          },
+          p75: {
+            type: 'line',
+            xMin: 1.02,
+            xMax: 1.02,
+            borderColor: '#8b949e',
+            borderWidth: 1,
+            borderDash: [3, 3]
+          }
+        }
+      }
+    }
+  }
+});
+
+
+new Chart(document.getElementById('avgplaybackdur'), {
+  ...baseConfig,
+  data: {
+    labels: ["93.0", "13495.1", "29990.1", "47224.5", "66174.6", "86449.0", "105448.3", "123595.5", "142427.4", "161259.9", "178414.7", "196497.8", "213046.4", "226315.9", "241264.9", "259004.7", "274998.2", "288908.3", "302015.7", "316446.5", "330329.0", "344630.5", "363527.2", "380427.8", "392646.3", "404924.9", "418264.3", "434340.9", "452846.6", "468863.2", "486959.7", "512875.0", "537249.7", "554483.6", "570902.9", "589584.4", "609794.7", "630425.7", "650244.9", "668005.9", "683873.3", "700331.8", "721590.3", "747472.0", "769119.2", "786235.0", "811508.7", "837852.2", "859386.0", "881109.0"],
+    datasets: [{
+      data: [13495.104687560337, 29990.06061676128, 47224.46359592113, 66174.56916159482, 86449.04773673968, 105448.32599082365, 123595.51732067254, 142427.42034414806, 161259.88951351563, 178414.72197577328, 196497.8221567289, 213046.3877840909, 226315.90029761905, 241264.86649659864, 259004.70057397962, 274998.1559027778, 288908.2583333333, 302015.67460317456, 316446.5044642857, 330328.9791666667, 344630.4725378788, 363527.15795454546, 380427.8, 392646.28472222225, 404924.8722222223, 418264.3411764706, 434340.92034313723, 452846.59027777775, 468863.1736111111, 486959.6875, 512874.9702380952, 537249.6785714285, 554483.5833333333, 570902.9166666667, 589584.4166666667, 609794.6666666667, 630425.6666666667, 650244.9375, 668005.9375, 683873.3, 700331.8, 721590.3333333333, 747472, 769119.1666666667, 786235, 811508.6666666667, 837852.1666666667, 859386, 881109, 897508],
+      backgroundColor: '#58a6ff',
+      borderColor: '#58a6ff',
+      borderWidth: 0,
+      barPercentage: 1.0,
+      categoryPercentage: 1.0
+    }]
+  },
+  options: {
+    ...baseConfig.options,
+    plugins: {
+      ...baseConfig.options.plugins,
+      annotation: {
+        annotations: {
+          mean: {
+            type: 'line',
+            xMin: 21758.97,
+            xMax: 21758.97,
+            borderColor: '#f85149',
+            borderWidth: 2,
+            borderDash: [5, 5],
+            label: {
+              display: true,
+              content: 'μ',
+              position: 'start',
+              backgroundColor: '#f85149',
+              color: 'white',
+              font: { size: 10, weight: 'bold' },
+              padding: 2
+            }
+          },
+          median: {
+            type: 'line',
+            xMin: 20192.0,
+            xMax: 20192.0,
+            borderColor: '#ffa657',
+            borderWidth: 2,
+            borderDash: [5, 5],
+            label: {
+              display: true,
+              content: 'P50',
+              position: 'start',
+              backgroundColor: '#ffa657',
+              color: 'white',
+              font: { size: 10, weight: 'bold' },
+              padding: 2
+            }
+          },
+          p25: {
+            type: 'line',
+            xMin: 19881.08,
+            xMax: 19881.08,
+            borderColor: '#8b949e',
+            borderWidth: 1,
+            borderDash: [3, 3]
+          },
+          p75: {
+            type: 'line',
+            xMin: 21215.32,
+            xMax: 21215.32,
+            borderColor: '#8b949e',
+            borderWidth: 1,
+            borderDash: [3, 3]
+          }
+        }
+      }
+    }
+  }
+});
+
+
+new Chart(document.getElementById('avgtestdur'), {
+  ...baseConfig,
+  data: {
+    labels: ["154.0", "14268.3", "32469.3", "48057.3", "62582.5", "78401.4", "92741.8", "105978.3", "119500.0", "132166.7", "146478.0", "163393.7", "179648.1", "195493.6", "214128.8", "231938.4", "245832.3", "258872.2", "274076.5", "291143.3", "313165.3", "335827.7", "352298.6", "367285.7", "386064.6", "404530.6", "418952.8", "433591.9", "447496.9", "462658.3", "484837.9", "513324.0", "538368.3", "555153.2", "570953.8", "589784.7", "610212.0", "631810.8", "652373.0", "669016.8", "683873.3", "700331.8", "721590.3", "748922.3", "770569.5", "786235.0", "811508.7", "837852.2", "859386.0", "880329.2"],
+    datasets: [{
+      data: [14268.254017754378, 32469.298211317444, 48057.312625373044, 62582.52519993556, 78401.43056361984, 92741.84172713423, 105978.31590044004, 119500.04309352484, 132166.6757815506, 146478.0302143303, 163393.67074524466, 179648.11632149311, 195493.61805290298, 214128.82325138175, 231938.44722080574, 245832.30731177607, 258872.15401785713, 274076.49949596776, 291143.333077317, 313165.2804563492, 335827.7201388889, 352298.64603174606, 367285.67797619046, 386064.5708333333, 404530.6083333333, 418952.7888888889, 433591.875, 447496.8611111111, 462658.2857142857, 484837.9107142857, 513324.00833333336, 538368.3333333334, 555153.2, 570953.7777777778, 589784.7323232323, 610211.9545454546, 631810.75, 652373.0357142857, 669016.7857142857, 683873.3, 700331.8, 721590.3333333333, 748922.3333333333, 770569.5, 786235, 811508.6666666667, 837852.1666666667, 859386, 880329.25, 896768],
+      backgroundColor: '#58a6ff',
+      borderColor: '#58a6ff',
+      borderWidth: 0,
+      barPercentage: 1.0,
+      categoryPercentage: 1.0
+    }]
+  },
+  options: {
+    ...baseConfig.options,
+    plugins: {
+      ...baseConfig.options.plugins,
+      annotation: {
+        annotations: {
+          mean: {
+            type: 'line',
+            xMin: 24813.1,
+            xMax: 24813.1,
+            borderColor: '#f85149',
+            borderWidth: 2,
+            borderDash: [5, 5],
+            label: {
+              display: true,
+              content: 'μ',
+              position: 'start',
+              backgroundColor: '#f85149',
+              color: 'white',
+              font: { size: 10, weight: 'bold' },
+              padding: 2
+            }
+          },
+          median: {
+            type: 'line',
+            xMin: 23270.2,
+            xMax: 23270.2,
+            borderColor: '#ffa657',
+            borderWidth: 2,
+            borderDash: [5, 5],
+            label: {
+              display: true,
+              content: 'P50',
+              position: 'start',
+              backgroundColor: '#ffa657',
+              color: 'white',
+              font: { size: 10, weight: 'bold' },
+              padding: 2
+            }
+          },
+          p25: {
+            type: 'line',
+            xMin: 21953.38,
+            xMax: 21953.38,
+            borderColor: '#8b949e',
+            borderWidth: 1,
+            borderDash: [3, 3]
+          },
+          p75: {
+            type: 'line',
+            xMin: 25341.75,
+            xMax: 25341.75,
+            borderColor: '#8b949e',
+            borderWidth: 1,
+            borderDash: [3, 3]
+          }
+        }
+      }
+    }
+  }
+});
+
+
+new Chart(document.getElementById('avgrsrp'), {
+  ...baseConfig,
+  data: {
+    labels: ["-140.0", "-138.5", "-136.3", "-134.3", "-131.6", "-128.9", "-126.2", "-124.1", "-122.6", "-121.0", "-119.2", "-117.2", "-115.4", "-113.8", "-112.1", "-110.1", "-108.2", "-106.6", "-105.1", "-103.6", "-101.8", "-99.8", "-97.9", "-96.1", "-94.2", "-92.2", "-90.2", "-88.4", "-86.3", "-84.0", "-82.0", "-80.1", "-78.3", "-76.6", "-74.9", "-73.2", "-71.4", "-69.4", "-67.5", "-65.6", "-63.7", "-61.6", "-59.7", "-57.5", "-55.0", "-52.9", "-51.1", "-49.6", "-47.3", "-44.9"],
+    datasets: [{
+      data: [-138.5, -136.33333333333331, -134.30208333333331, -131.62401315789475, -128.89722222222224, -126.21164770901613, -124.14888056388057, -122.62249944670191, -121.0276754294126, -119.21495116691571, -117.2310281864443, -115.42562421109923, -113.82808458575605, -112.06985878078808, -110.07917435633891, -108.1678287753191, -106.58442694208375, -105.0679164324176, -103.56769829961482, -101.79022661271887, -99.76754982949609, -97.89481753416361, -96.06864679067664, -94.18974615252668, -92.18746836033591, -90.23309913848044, -88.36519772376, -86.28190082209812, -84.0319471198415, -81.98945428666201, -80.1326365317982, -78.32029019571891, -76.60773516089351, -74.93435566075259, -73.21018091942415, -71.36030051920272, -69.40401322944473, -67.49501325062647, -65.63783176834563, -63.67452404572941, -61.64078561980348, -59.723237325440195, -57.45437158469946, -55, -52.916666666666664, -51.099999999999994, -49.57083333333333, -47.3125, -44.875, -44],
+      backgroundColor: '#58a6ff',
+      borderColor: '#58a6ff',
+      borderWidth: 0,
+      barPercentage: 1.0,
+      categoryPercentage: 1.0
+    }]
+  },
+  options: {
+    ...baseConfig.options,
+    plugins: {
+      ...baseConfig.options.plugins,
+      annotation: {
+        annotations: {
+          mean: {
+            type: 'line',
+            xMin: -95.31,
+            xMax: -95.31,
+            borderColor: '#f85149',
+            borderWidth: 2,
+            borderDash: [5, 5],
+            label: {
+              display: true,
+              content: 'μ',
+              position: 'start',
+              backgroundColor: '#f85149',
+              color: 'white',
+              font: { size: 10, weight: 'bold' },
+              padding: 2
+            }
+          },
+          median: {
+            type: 'line',
+            xMin: -96.09,
+            xMax: -96.09,
+            borderColor: '#ffa657',
+            borderWidth: 2,
+            borderDash: [5, 5],
+            label: {
+              display: true,
+              content: 'P50',
+              position: 'start',
+              backgroundColor: '#ffa657',
+              color: 'white',
+              font: { size: 10, weight: 'bold' },
+              padding: 2
+            }
+          },
+          p25: {
+            type: 'line',
+            xMin: -98.91,
+            xMax: -98.91,
+            borderColor: '#8b949e',
+            borderWidth: 1,
+            borderDash: [3, 3]
+          },
+          p75: {
+            type: 'line',
+            xMin: -92.5,
+            xMax: -92.5,
+            borderColor: '#8b949e',
+            borderWidth: 1,
+            borderDash: [3, 3]
+          }
+        }
+      }
+    }
+  }
+});
+
+
+new Chart(document.getElementById('avgrsrq'), {
+  ...baseConfig,
+  data: {
+    labels: ["-20.0", "-19.7", "-19.2", "-18.7", "-18.2", "-17.8", "-17.5", "-17.2", "-16.8", "-16.5", "-16.2", "-15.8", "-15.5", "-15.2", "-14.8", "-14.5", "-14.1", "-13.8", "-13.5", "-13.2", "-12.9", "-12.7", "-12.4", "-12.1", "-11.8", "-11.5", "-11.2", "-10.8", "-10.5", "-10.2", "-9.8", "-9.5", "-9.2", "-8.8", "-8.5", "-8.2", "-7.8", "-7.4", "-7.2", "-6.8", "-6.3", "-5.8", "-5.4", "-5.2", "-4.9", "-4.6", "-4.2", "-3.9", "-3.6", "-3.2"],
+    datasets: [{
+      data: [-19.73385650623885, -19.234488394479442, -18.733300064245892, -18.231022070225805, -17.793859953123402, -17.461617039356078, -17.163721748081166, -16.80720846629589, -16.480250784199704, -16.167424482841774, -15.803606361965393, -15.46464179584687, -15.150388282453552, -14.808725629750189, -14.462883143123806, -14.133849937440043, -13.807768611263189, -13.498154666264131, -13.211346127044806, -12.940797238534316, -12.671799553930754, -12.396585729472362, -12.125010108995145, -11.841530794447316, -11.535230562080143, -11.19981432546248, -10.848777371225939, -10.514902806994648, -10.181175688412388, -9.82401113268086, -9.500413681386629, -9.183471857890108, -8.824591603419329, -8.498249923359044, -8.177071801128482, -7.777184358526847, -7.434847289118478, -7.157727036170131, -6.771121522923256, -6.271799271120244, -5.777843989711494, -5.422082039337474, -5.151903073286052, -4.866967175850155, -4.570667550839964, -4.21125159642401, -3.8764814814814814, -3.6157407407407405, -3.2447089947089944, -3],
+      backgroundColor: '#58a6ff',
+      borderColor: '#58a6ff',
+      borderWidth: 0,
+      barPercentage: 1.0,
+      categoryPercentage: 1.0
+    }]
+  },
+  options: {
+    ...baseConfig.options,
+    plugins: {
+      ...baseConfig.options.plugins,
+      annotation: {
+        annotations: {
+          mean: {
+            type: 'line',
+            xMin: -12.48,
+            xMax: -12.48,
+            borderColor: '#f85149',
+            borderWidth: 2,
+            borderDash: [5, 5],
+            label: {
+              display: true,
+              content: 'μ',
+              position: 'start',
+              backgroundColor: '#f85149',
+              color: 'white',
+              font: { size: 10, weight: 'bold' },
+              padding: 2
+            }
+          },
+          median: {
+            type: 'line',
+            xMin: -12.36,
+            xMax: -12.36,
+            borderColor: '#ffa657',
+            borderWidth: 2,
+            borderDash: [5, 5],
+            label: {
+              display: true,
+              content: 'P50',
+              position: 'start',
+              backgroundColor: '#ffa657',
+              color: 'white',
+              font: { size: 10, weight: 'bold' },
+              padding: 2
+            }
+          },
+          p25: {
+            type: 'line',
+            xMin: -13.48,
+            xMax: -13.48,
+            borderColor: '#8b949e',
+            borderWidth: 1,
+            borderDash: [3, 3]
+          },
+          p75: {
+            type: 'line',
+            xMin: -11.26,
+            xMax: -11.26,
+            borderColor: '#8b949e',
+            borderWidth: 1,
+            borderDash: [3, 3]
+          }
+        }
+      }
+    }
+  }
+});
+
+
+new Chart(document.getElementById('avgrssnr'), {
+  ...baseConfig,
+  data: {
+    labels: ["-20.0", "-19.5", "-18.0", "-16.5", "-15.5", "-14.4", "-13.5", "-12.5", "-11.5", "-10.5", "-9.5", "-8.4", "-7.4", "-6.4", "-5.4", "-4.4", "-3.4", "-2.4", "-1.4", "-0.4", "0.6", "1.6", "2.6", "3.6", "4.4", "5.4", "6.5", "7.5", "8.3", "9.4", "10.6", "11.6", "12.5", "13.4", "14.4", "15.4", "16.4", "17.5", "18.4", "19.4", "20.4", "21.4", "22.4", "23.4", "24.5", "25.5", "26.5", "27.4", "28.5", "29.5"],
+    datasets: [{
+      data: [-19.5, -18, -16.5, -15.458333333333334, -14.445512820512821, -13.484203296703296, -12.483134920634921, -11.468803418803418, -10.466127890514395, -9.45233495389127, -8.428255013732752, -7.4191515222026005, -6.413216725697519, -5.400392296021399, -4.390356077702533, -3.38662583200815, -2.385883185409248, -1.395421455761116, -0.4127375764869279, 0.5571179643913563, 1.5712979320617786, 2.604021832915133, 3.556183875699131, 4.425127495991712, 5.416645258702626, 6.54713826281478, 7.481364472590905, 8.34453712937892, 9.420931010077446, 10.597200049475655, 11.598816438180613, 12.478080432198226, 13.40279590709915, 14.371084962673688, 15.40367453008551, 16.44770909590781, 17.462089245653967, 18.44501106531092, 19.430017407389606, 20.444776671107185, 21.441978403285905, 22.422960766337724, 23.425807008487517, 24.46452669908077, 25.49739482396641, 26.46307634851421, 27.433779873539812, 28.455611910381773, 29.46260421521412, 30],
+      backgroundColor: '#58a6ff',
+      borderColor: '#58a6ff',
+      borderWidth: 0,
+      barPercentage: 1.0,
+      categoryPercentage: 1.0
+    }]
+  },
+  options: {
+    ...baseConfig.options,
+    plugins: {
+      ...baseConfig.options.plugins,
+      annotation: {
+        annotations: {
+          mean: {
+            type: 'line',
+            xMin: 6.58,
+            xMax: 6.58,
+            borderColor: '#f85149',
+            borderWidth: 2,
+            borderDash: [5, 5],
+            label: {
+              display: true,
+              content: 'μ',
+              position: 'start',
+              backgroundColor: '#f85149',
+              color: 'white',
+              font: { size: 10, weight: 'bold' },
+              padding: 2
+            }
+          },
+          median: {
+            type: 'line',
+            xMin: 6.75,
+            xMax: 6.75,
+            borderColor: '#ffa657',
+            borderWidth: 2,
+            borderDash: [5, 5],
+            label: {
+              display: true,
+              content: 'P50',
+              position: 'start',
+              backgroundColor: '#ffa657',
+              color: 'white',
+              font: { size: 10, weight: 'bold' },
+              padding: 2
+            }
+          },
+          p25: {
+            type: 'line',
+            xMin: 4.36,
+            xMax: 4.36,
+            borderColor: '#8b949e',
+            borderWidth: 1,
+            borderDash: [3, 3]
+          },
+          p75: {
+            type: 'line',
+            xMin: 8.89,
+            xMax: 8.89,
+            borderColor: '#8b949e',
+            borderWidth: 1,
+            borderDash: [3, 3]
+          }
+        }
+      }
+    }
+  }
+});
+
+
+new Chart(document.getElementById('avgtcplatavg'), {
+  ...baseConfig,
+  data: {
+    labels: ["2.2", "399.4", "993.2", "1508.4", "1961.5", "2352.0", "2823.9", "3453.5", "4104.6", "4697.9", "5383.7", "6142.4", "6729.3", "7238.3", "7760.6", "8291.1", "8807.4", "9349.0", "10009.2", "10685.6", "11437.4", "12197.8", "12816.7", "13381.4", "14422.2", "15480.7", "17088.3", "19777.8", "22903.0", "25166.5", "26545.1", "27659.5", "28700.7", "30250.8", "33583.0", "36640.4", "37419.7", "38278.5", "43564.8", "48529.2", "52875.6", "58872.4", "61589.7", "62593.2", "70871.5", "79594.8", "84332.1", "97916.6", "123452.0", "223155.0"],
+    datasets: [{
+      data: [399.3670125582856, 993.2202275194948, 1508.4490081477516, 1961.4698937347007, 2351.9895953615887, 2823.8917956428695, 3453.4751475103258, 4104.635027107399, 4697.893338667223, 5383.692251552467, 6142.428385435211, 6729.2898109704565, 7238.349695355807, 7760.644060615199, 8291.059009627883, 8807.441895220913, 9348.97184313758, 10009.18359375, 10685.567093063186, 11437.42353375837, 12197.844647963175, 12816.653832267992, 13381.3990234375, 14422.174727006393, 15480.655521277225, 17088.32778234649, 19777.823625695848, 22903.01960637019, 25166.5361328125, 26545.0556640625, 27659.453125, 28700.734415132705, 30250.848672945205, 33582.983289930555, 36640.391493055555, 37419.669921875, 38278.490234375, 43564.808268229164, 48529.177408854164, 52875.615234375, 58872.43359375, 61589.65793372845, 62593.17160560345, 70871.47135416666, 79594.79479166667, 84332.05240384616, 97916.55240384616, 123452.034375, 223155.00669642858, 306814.10714285716],
+      backgroundColor: '#58a6ff',
+      borderColor: '#58a6ff',
+      borderWidth: 0,
+      barPercentage: 1.0,
+      categoryPercentage: 1.0
+    }]
+  },
+  options: {
+    ...baseConfig.options,
+    plugins: {
+      ...baseConfig.options.plugins,
+      annotation: {
+        annotations: {
+          mean: {
+            type: 'line',
+            xMin: 71.76,
+            xMax: 71.76,
+            borderColor: '#f85149',
+            borderWidth: 2,
+            borderDash: [5, 5],
+            label: {
+              display: true,
+              content: 'μ',
+              position: 'start',
+              backgroundColor: '#f85149',
+              color: 'white',
+              font: { size: 10, weight: 'bold' },
+              padding: 2
+            }
+          },
+          median: {
+            type: 'line',
+            xMin: 47.44,
+            xMax: 47.44,
+            borderColor: '#ffa657',
+            borderWidth: 2,
+            borderDash: [5, 5],
+            label: {
+              display: true,
+              content: 'P50',
+              position: 'start',
+              backgroundColor: '#ffa657',
+              color: 'white',
+              font: { size: 10, weight: 'bold' },
+              padding: 2
+            }
+          },
+          p25: {
+            type: 'line',
+            xMin: 38.19,
+            xMax: 38.19,
+            borderColor: '#8b949e',
+            borderWidth: 1,
+            borderDash: [3, 3]
+          },
+          p75: {
+            type: 'line',
+            xMin: 63.89,
+            xMax: 63.89,
+            borderColor: '#8b949e',
+            borderWidth: 1,
+            borderDash: [3, 3]
+          }
+        }
+      }
+    }
+  }
+});
+
+
+new Chart(document.getElementById('avgthroughput'), {
+  ...baseConfig,
+  data: {
+    labels: ["0.0", "3298.1", "7341.7", "11351.0", "15649.6", "19828.8", "23830.5", "27722.9", "31828.3", "36526.9", "40886.2", "45091.2", "50195.2", "55548.6", "59903.8", "64041.9", "69466.8", "75516.0", "81542.1", "87898.2", "93734.9", "98488.5", "102966.5", "107615.1", "111978.3", "116143.7", "120430.7", "124739.1", "129649.9", "135102.9", "140460.7", "145165.5", "149576.5", "154526.8", "159679.2", "163940.8", "167830.5", "173349.5", "179105.7", "186457.9", "196297.3", "204268.8", "211561.6", "220749.6", "251457.8", "305702.6", "343442.6", "361318.6", "406360.5", "455842.4"],
+    datasets: [{
+      data: [3298.125846704453, 7341.720314398548, 11350.96234778972, 15649.618528524144, 19828.768863563186, 23830.480756177574, 27722.854812286776, 31828.296983132714, 36526.86105574394, 40886.174383943755, 45091.22819380682, 50195.21923946527, 55548.58937713284, 59903.82326670841, 64041.88524773355, 69466.79679373052, 75516.00778659066, 81542.10915150685, 87898.15655470581, 93734.90106355272, 98488.52126036948, 102966.45544389219, 107615.11273138667, 111978.28730143356, 116143.67090801212, 120430.67450894776, 124739.14058709281, 129649.8741621291, 135102.85213955963, 140460.6997974537, 145165.5330037545, 149576.51410504113, 154526.7541746024, 159679.2355154454, 163940.821875, 167830.53333333333, 173349.5359002976, 179105.72418154762, 186457.85104166667, 196297.3489583333, 204268.796875, 211561.5598958333, 220749.5833333333, 251457.84375, 305702.578125, 343442.6015625, 361318.6484375, 406360.546875, 455842.421875, 468964.8125],
+      backgroundColor: '#58a6ff',
+      borderColor: '#58a6ff',
+      borderWidth: 0,
+      barPercentage: 1.0,
+      categoryPercentage: 1.0
+    }]
+  },
+  options: {
+    ...baseConfig.options,
+    plugins: {
+      ...baseConfig.options.plugins,
+      annotation: {
+        annotations: {
+          mean: {
+            type: 'line',
+            xMin: 28236.63,
+            xMax: 28236.63,
+            borderColor: '#f85149',
+            borderWidth: 2,
+            borderDash: [5, 5],
+            label: {
+              display: true,
+              content: 'μ',
+              position: 'start',
+              backgroundColor: '#f85149',
+              color: 'white',
+              font: { size: 10, weight: 'bold' },
+              padding: 2
+            }
+          },
+          median: {
+            type: 'line',
+            xMin: 25186.03,
+            xMax: 25186.03,
+            borderColor: '#ffa657',
+            borderWidth: 2,
+            borderDash: [5, 5],
+            label: {
+              display: true,
+              content: 'P50',
+              position: 'start',
+              backgroundColor: '#ffa657',
+              color: 'white',
+              font: { size: 10, weight: 'bold' },
+              padding: 2
+            }
+          },
+          p25: {
+            type: 'line',
+            xMin: 20439.78,
+            xMax: 20439.78,
+            borderColor: '#8b949e',
+            borderWidth: 1,
+            borderDash: [3, 3]
+          },
+          p75: {
+            type: 'line',
+            xMin: 31903.46,
+            xMax: 31903.46,
+            borderColor: '#8b949e',
+            borderWidth: 1,
+            borderDash: [3, 3]
+          }
+        }
+      }
+    }
+  }
+});
+
+
+new Chart(document.getElementById('avgcompletionrate'), {
+  ...baseConfig,
+  data: {
+    labels: ["0.0", "0.1", "0.2", "0.3", "0.4", "0.5", "0.5", "0.6", "0.6", "0.6", "0.6", "0.7", "0.7", "0.7", "0.7", "0.7", "0.7", "0.7", "0.8", "0.8", "0.8", "0.8", "0.8", "0.8", "0.8", "0.8", "0.8", "0.8", "0.9", "0.9", "0.9", "0.9", "0.9", "0.9", "0.9", "0.9", "0.9", "0.9", "0.9", "0.9", "0.9", "0.9", "1.0", "1.0", "1.0", "1.0", "1.0", "1.0", "1.0", "1.0"],
+    datasets: [{
+      data: [0.1, 0.225, 0.29164999999999996, 0.36665000000000003, 0.45, 0.5278, 0.5635, 0.5857, 0.6125, 0.64585, 0.6833499999999999, 0.70295, 0.7101, 0.71825, 0.72475, 0.7313, 0.74265, 0.7596, 0.7735000000000001, 0.7889, 0.80385, 0.8101, 0.81535, 0.821175, 0.828725, 0.8394725806451613, 0.8482975806451613, 0.854025, 0.8617189189189189, 0.8706764392441223, 0.8788416666666667, 0.8857885835709006, 0.8917434372294373, 0.8972928551401869, 0.9043923686537004, 0.9125648701026607, 0.9195878584902879, 0.9256017504671062, 0.9317930263437433, 0.939300864096996, 0.9463688535149855, 0.9523515955687831, 0.9588527354981489, 0.9653181401102549, 0.9708192321656739, 0.9762827016618817, 0.9822397953402333, 0.987912660426471, 0.9950968395355877, 1],
+      backgroundColor: '#58a6ff',
+      borderColor: '#58a6ff',
+      borderWidth: 0,
+      barPercentage: 1.0,
+      categoryPercentage: 1.0
+    }]
+  },
+  options: {
+    ...baseConfig.options,
+    plugins: {
+      ...baseConfig.options.plugins,
+      annotation: {
+        annotations: {
+          mean: {
+            type: 'line',
+            xMin: 0.99,
+            xMax: 0.99,
+            borderColor: '#f85149',
+            borderWidth: 2,
+            borderDash: [5, 5],
+            label: {
+              display: true,
+              content: 'μ',
+              position: 'start',
+              backgroundColor: '#f85149',
+              color: 'white',
+              font: { size: 10, weight: 'bold' },
+              padding: 2
+            }
+          },
+          median: {
+            type: 'line',
+            xMin: 1.0,
+            xMax: 1.0,
+            borderColor: '#ffa657',
+            borderWidth: 2,
+            borderDash: [5, 5],
+            label: {
+              display: true,
+              content: 'P50',
+              position: 'start',
+              backgroundColor: '#ffa657',
+              color: 'white',
+              font: { size: 10, weight: 'bold' },
+              padding: 2
+            }
+          },
+          p25: {
+            type: 'line',
+            xMin: 1.0,
+            xMax: 1.0,
+            borderColor: '#8b949e',
+            borderWidth: 1,
+            borderDash: [3, 3]
+          },
+          p75: {
+            type: 'line',
+            xMin: 1.0,
+            xMax: 1.0,
+            borderColor: '#8b949e',
+            borderWidth: 1,
+            borderDash: [3, 3]
+          }
+        }
+      }
+    }
+  }
+});
+
+
+</script>
+</body>
+</html>

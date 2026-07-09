@@ -1,0 +1,151 @@
+<!DOCTYPE html><html><head><meta charset="utf-8">
+<title>Gaming Dashboard — All Kecamatan + Platform</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0a1a;color:#e0e0e0;font-family:'Segoe UI',sans-serif;padding:16px}
+.header{text-align:center;margin-bottom:16px}
+.header h1{color:#fff;font-size:20px;margin-bottom:3px}
+.header .sub{color:#666;font-size:11px}
+.cards{display:flex;gap:10px;justify-content:center;margin-bottom:14px;flex-wrap:wrap}
+.card{background:linear-gradient(135deg,#1a1a2e,#16213e);border-radius:8px;padding:12px;min-width:180px;flex:1;max-width:240px;border:1px solid #2a2a4a}
+.card .top{display:flex;align-items:center;gap:6px;margin-bottom:6px}
+.card .dot{width:8px;height:8px;border-radius:50%}
+.card .name{font-size:12px;font-weight:700}
+.card .tests{font-size:18px;font-weight:800}
+.card .tests-label{font-size:8px;color:#666}
+.card .metrics{display:grid;grid-template-columns:1fr 1fr;gap:3px;margin-top:6px}
+.card .metric{background:#0d0d1a;border-radius:4px;padding:3px 5px}
+.card .metric .label{font-size:7px;color:#666;text-transform:uppercase}
+.card .metric .val{font-size:11px;font-weight:700}
+.good{color:#4caf50}.warn{color:#ffeb3b}.bad{color:#f44336}
+.section{background:#1a1a2e;border-radius:8px;padding:12px;margin-bottom:12px;border:1px solid #2a2a4a}
+.section h2{color:#fff;font-size:13px;margin-bottom:8px;display:flex;align-items:center;gap:6px}
+table{width:100%;border-collapse:collapse;font-size:10px}
+th{background:#252540;color:#999;padding:4px 5px;text-align:left;font-weight:600;border-bottom:2px solid #3a3a5a;position:sticky;top:0}
+td{padding:3px 5px;border-bottom:1px solid #1e1e35}
+tr:hover{background:#1e1e38}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.badge{padding:1px 5px;border-radius:3px;font-size:8px;font-weight:700}
+.badge-up{background:#0d2b0d;color:#4caf50}
+.badge-down{background:#2b0d0d;color:#f44336}
+.badge-flat{background:#1a1a1a;color:#888}
+.badge-ec2{background:#2b1a0d;color:#ff9800}
+.badge-gce{background:#0d1b2a;color:#3498db}
+.st{max-height:320px;overflow-y:auto}
+</style>
+</head><body>
+
+<div class="header">
+<h1>🎮 Gaming Performance Dashboard — All Kecamatan</h1>
+<div class="sub">Data: 1–14 Juni 2026 | 987,870 UDP tests | 5,748 kecamatan | 4 operator | 2 platform (EC2 + GCE)</div>
+</div>
+
+<!-- GAMING CARDS -->
+<div class="cards">
+<div class="card">
+<div class="top"><div class="dot" style="background:#e74c3c"></div><div class="name" style="color:#e74c3c">Telkomsel</div></div>
+<div class="tests">250,000</div><div class="tests-label">UDP Tests</div>
+<div class="metrics">
+<div class="metric"><div class="label">UDP Latency</div><div class="val bad">33.6 ms</div></div>
+<div class="metric"><div class="label">Packet Loss</div><div class="val bad">1.58%</div></div>
+<div class="metric"><div class="label">With Loss</div><div class="val warn">26.3%</div></div>
+<div class="metric"><div class="label">SNR</div><div class="val good">9.0 dB</div></div>
+<div class="metric"><div class="label">RSRP</div><div class="val">-89.9 dBm</div></div>
+<div class="metric"><div class="label">Max Loss</div><div class="val bad">99.5%</div></div>
+</div></div>
+
+<div class="card">
+<div class="top"><div class="dot" style="background:#3498db"></div><div class="name" style="color:#3498db">XL</div></div>
+<div class="tests">250,014</div><div class="tests-label">UDP Tests</div>
+<div class="metrics">
+<div class="metric"><div class="label">UDP Latency</div><div class="val bad">34.7 ms</div></div>
+<div class="metric"><div class="label">Packet Loss</div><div class="val bad">1.35%</div></div>
+<div class="metric"><div class="label">With Loss</div><div class="val warn">20.0%</div></div>
+<div class="metric"><div class="label">SNR</div><div class="val warn">5.8 dB</div></div>
+<div class="metric"><div class="label">RSRP</div><div class="val">-93.5 dBm</div></div>
+<div class="metric"><div class="label">Max Loss</div><div class="val bad">99.5%</div></div>
+</div></div>
+
+<div class="card">
+<div class="top"><div class="dot" style="background:#f39c12"></div><div class="name" style="color:#f39c12">Indosat</div></div>
+<div class="tests">250,000</div><div class="tests-label">UDP Tests</div>
+<div class="metrics">
+<div class="metric"><div class="label">UDP Latency</div><div class="val warn">29.9 ms</div></div>
+<div class="metric"><div class="label">Packet Loss</div><div class="val bad">1.73%</div></div>
+<div class="metric"><div class="label">With Loss</div><div class="val bad">36.5%</div></div>
+<div class="metric"><div class="label">SNR</div><div class="val warn">4.4 dB</div></div>
+<div class="metric"><div class="label">RSRP</div><div class="val">-92.8 dBm</div></div>
+<div class="metric"><div class="label">Max Loss</div><div class="val bad">99.5%</div></div>
+</div></div>
+
+<div class="card">
+<div class="top"><div class="dot" style="background:#9b59b6"></div><div class="name" style="color:#9b59b6">Smartfren</div></div>
+<div class="tests">237,856</div><div class="tests-label">UDP Tests</div>
+<div class="metrics">
+<div class="metric"><div class="label">UDP Latency</div><div class="val bad">33.1 ms</div></div>
+<div class="metric"><div class="label">Packet Loss</div><div class="val bad">1.81%</div></div>
+<div class="metric"><div class="label">With Loss</div><div class="val bad">24.2%</div></div>
+<div class="metric"><div class="label">SNR</div><div class="val warn">5.4 dB</div></div>
+<div class="metric"><div class="label">RSRP</div><div class="val">-93.9 dBm</div></div>
+<div class="metric"><div class="label">Max Loss</div><div class="val bad">99.5%</div></div>
+</div></div>
+</div>
+
+<!-- PLATFORM BREAKDOWN -->
+<div class="section"><h2>🌐 UDP Server Platform Breakdown (EC2 vs Google Compute Engine)</h2>
+<table>
+<tr><th>Operator</th><th>Platform</th><th>Server IP</th><th>Tests</th><th>Latency</th><th>Loss</th><th>SNR</th><th>RSRP</th><th>vs Other</th></tr>
+<tr><td style="color:#e74c3c;font-weight:700">Telkomsel</td><td><span class="badge badge-ec2">EC2</span></td><td>15.232.76.121</td><td>25,870</td><td class="bad">36.4 ms</td><td class="bad">1.58%</td><td class="good">9.2 dB</td><td>-93.6</td><td class="bad">+4.7ms vs GCE</td></tr>
+<tr><td style="color:#e74c3c;font-weight:700">Telkomsel</td><td><span class="badge badge-gce">GCE</span></td><td>34.101.118.163</td><td>24,130</td><td class="warn">31.7 ms</td><td class="warn">1.51%</td><td class="good">9.2 dB</td><td>-93.5</td><td class="good">baseline</td></tr>
+<tr><td style="color:#3498db;font-weight:700">XL</td><td><span class="badge badge-ec2">EC2</span></td><td>15.232.76.121</td><td>26,825</td><td class="bad">32.1 ms</td><td class="good">1.09%</td><td class="warn">6.0 dB</td><td>-94.8</td><td class="bad">+2.5ms vs GCE</td></tr>
+<tr><td style="color:#3498db;font-weight:700">XL</td><td><span class="badge badge-gce">GCE</span></td><td>34.101.118.163</td><td>23,175</td><td class="good">29.6 ms</td><td class="good">1.15%</td><td class="warn">6.1 dB</td><td>-94.9</td><td class="good">baseline</td></tr>
+<tr><td style="color:#f39c12;font-weight:700">Indosat</td><td><span class="badge badge-ec2">EC2</span></td><td>15.232.76.121</td><td>24,852</td><td class="warn">29.7 ms</td><td class="bad">1.74%</td><td class="warn">4.6 dB</td><td>-95.8</td><td class="bad">+1.1ms vs GCE</td></tr>
+<tr><td style="color:#f39c12;font-weight:700">Indosat</td><td><span class="badge badge-gce">GCE</span></td><td>34.101.118.163</td><td>25,148</td><td class="good">28.6 ms</td><td class="warn">1.69%</td><td class="warn">4.6 dB</td><td>-95.8</td><td class="good">baseline</td></tr>
+<tr><td style="color:#9b59b6;font-weight:700">Smartfren</td><td><span class="badge badge-ec2">EC2</span></td><td>15.232.76.121</td><td>27,604</td><td class="warn">30.4 ms</td><td class="bad">1.69%</td><td class="warn">5.8 dB</td><td>-95.0</td><td class="bad">-0.9ms vs GCE</td></tr>
+<tr><td style="color:#9b59b6;font-weight:700">Smartfren</td><td><span class="badge badge-gce">GCE</span></td><td>34.101.118.163</td><td>22,396</td><td class="bad">31.3 ms</td><td class="warn">1.65%</td><td class="warn">5.4 dB</td><td>-94.8</td><td class="good">baseline</td></tr>
+</table>
+
+<div style="margin-top:10px;font-size:10px;color:#888">
+<b>Platform Details:</b><br>
+• <span class="badge badge-ec2">EC2</span> = Amazon EC2 (ap-southeast-1) | Server: blue4.nmbdn.com, vurtek.nmbdn.com | IP: 15.232.76.121<br>
+• <span class="badge badge-gce">GCE</span> = Google Compute Engine (asia-southeast2) | Server: flores.nmbdn.com | IP: 34.101.118.163<br><br>
+<b>Insight:</b> GCE latency lebih rendah di 3 dari 4 operator (kecuali Smartfren). EC2 lebih stabil untuk XL (loss 1.09% vs 1.15%).
+</div>
+</div>
+
+<!-- D-7 vs D-1 -->
+<div class="section"><h2>📊 D-7 (7 Jun) vs D-1 (14 Jun)</h2>
+<table>
+<tr><th>Op</th><th>Metric</th><th>D-7</th><th>D-1</th><th>Δ</th><th>%</th><th>Trend</th></tr>
+<tr><td style="color:#e74c3c;font-weight:700">Telkomsel</td><td>UDP Latency</td><td>34.02</td><td>29.14</td><td style="font-weight:700">-4.88</td><td>-14.3%</td><td><span class="badge badge-up">▼ better</span></td></tr>
+<tr><td style="color:#e74c3c;font-weight:700">Telkomsel</td><td>Packet Loss</td><td>1.59</td><td>1.36</td><td style="font-weight:700">-0.23</td><td>-14.5%</td><td><span class="badge badge-up">▼ better</span></td></tr>
+<tr><td style="color:#e74c3c;font-weight:700">Telkomsel</td><td>SNR</td><td>9.05</td><td>9.85</td><td style="font-weight:700">+0.80</td><td>+8.8%</td><td><span class="badge badge-up">▲ better</span></td></tr>
+<tr><td style="color:#3498db;font-weight:700">XL</td><td>UDP Latency</td><td>43.52</td><td>30.65</td><td style="font-weight:700">-12.87</td><td>-29.6%</td><td><span class="badge badge-up">▼ better</span></td></tr>
+<tr><td style="color:#3498db;font-weight:700">XL</td><td>Packet Loss</td><td>1.47</td><td>0.97</td><td style="font-weight:700">-0.50</td><td>-34.0%</td><td><span class="badge badge-up">▼ better</span></td></tr>
+<tr><td style="color:#3498db;font-weight:700">XL</td><td>SNR</td><td>5.62</td><td>7.41</td><td style="font-weight:700">+1.79</td><td>+31.9%</td><td><span class="badge badge-up">▲ better</span></td></tr>
+<tr><td style="color:#f39c12;font-weight:700">Indosat</td><td>UDP Latency</td><td>30.04</td><td>30.47</td><td style="font-weight:700">+0.43</td><td>+1.4%</td><td><span class="badge badge-down">▲ worse</span></td></tr>
+<tr><td style="color:#f39c12;font-weight:700">Indosat</td><td>Packet Loss</td><td>1.66</td><td>1.37</td><td style="font-weight:700">-0.29</td><td>-17.5%</td><td><span class="badge badge-up">▼ better</span></td></tr>
+<tr><td style="color:#f39c12;font-weight:700">Indosat</td><td>SNR</td><td>4.16</td><td>6.05</td><td style="font-weight:700">+1.89</td><td>+45.4%</td><td><span class="badge badge-up">▲ better</span></td></tr>
+<tr><td style="color:#9b59b6;font-weight:700">Smartfren</td><td>UDP Latency</td><td>33.59</td><td>33.71</td><td style="font-weight:700">+0.12</td><td>+0.4%</td><td><span class="badge badge-flat">— flat</span></td></tr>
+<tr><td style="color:#9b59b6;font-weight:700">Smartfren</td><td>Packet Loss</td><td>1.80</td><td>1.78</td><td style="font-weight:700">-0.02</td><td>-1.1%</td><td><span class="badge badge-flat">— flat</span></td></tr>
+<tr><td style="color:#9b59b6;font-weight:700">Smartfren</td><td>SNR</td><td>5.27</td><td>5.15</td><td style="font-weight:700">-0.12</td><td>-2.3%</td><td><span class="badge badge-down">▼ worse</span></td></tr>
+</table></div>
+
+<!-- TOP LOSS KECAMATAN XL -->
+<div class="section"><h2>🔴 XL — Top 15 Kecamatan dengan Packet Loss Tertinggi</h2>
+<div class="st"><table>
+<tr><th>#</th><th>Kecamatan</th><th>Kabupaten</th><th>Tests</th><th>Avg Loss</th><th>Max Loss</th><th>Latency</th><th>SNR</th></tr>
+<tr><td>1</td><td><b>NAGREG</b></td><td>Kab. Bandung</td><td>12</td><td class="bad" style="font-weight:700">46.28%</td><td class="bad">99.0%</td><td class="bad">86.9 ms</td><td class="warn">5.0 dB</td></tr>
+<tr><td>2</td><td><b>BERMANI ILIR</b></td><td>Kab. Kepahiang</td><td>8</td><td class="bad" style="font-weight:700">41.25%</td><td class="bad">95.5%</td><td class="bad">1225.9 ms</td><td class="bad">1.25 dB</td></tr>
+<tr><td>3</td><td><b>MUARA KAMAN</b></td><td>Kab. Kutai Kartanegara</td><td>11</td><td class="bad" style="font-weight:700">37.04%</td><td class="bad">98.5%</td><td class="bad">483.6 ms</td><td class="warn">2.67 dB</td></tr>
+<tr><td>4</td><td><b>BANDA MULIA</b></td><td>Kab. Aceh Tamiang</td><td>9</td><td class="bad" style="font-weight:700">35.56%</td><td class="bad">91.9%</td><td class="bad">251.9 ms</td><td class="warn">6.4 dB</td></tr>
+<tr><td>5</td><td><b>TANJUNG PALAS TIMUR</b></td><td>Kab. Bulungan</td><td>10</td><td class="bad" style="font-weight:700">35.50%</td><td class="bad">97.0%</td><td class="bad">321.2 ms</td><td class="good">9.4 dB</td></tr>
+<tr><td>6</td><td><b>BULU TABA</b></td><td>Kab. Mamuju Utara</td><td>8</td><td class="bad" style="font-weight:700">32.50%</td><td class="bad">84.7%</td><td class="warn">54.4 ms</td><td class="warn">7.14 dB</td></tr>
+<tr><td>7</td><td><b>PASEKAN</b></td><td>Kab. Indramayu</td><td>12</td><td class="bad" style="font-weight:700">32.02%</td><td class="bad">84.0%</td><td class="warn">49.9 ms</td><td class="bad">-1.2 dB</td></tr>
+<tr><td>8</td><td><b>WARUNG KIARA</b></td><td>Kab. Sukabumi</td><td>10</td><td class="bad" style="font-weight:700">29.81%</td><td class="bad">53.5%</td><td class="bad">131.9 ms</td><td class="bad">1.4 dB</td></tr>
+<tr><td>9</td><td><b>CEPIRING</b></td><td>Kab. Kendal</td><td>11</td><td class="bad" style="font-weight:700">29.73%</td><td class="bad">92.5%</td><td class="bad">228.4 ms</td><td class="bad">0.9 dB</td></tr>
+<tr><td>10</td><td><b>PURWOSARI</b></td><td>Kab. Gunung Kidul</td><td>13</td><td class="bad" style="font-weight:700">28.85%</td><td class="bad">66.0%</td><td class="warn">30.7 ms</td><td class="good">11.4 dB</td></tr>
+</table></div></div>
+
+<div style="text-align:center;color:#444;font-size:9px;margin-top:12px">Data: OpenSignal ONX | ClickHouse udp_signal_tests | EC2=15.232.76.121 | GCE=34.101.118.163 | Generated by Hermes Agent</div>
+</body></html>

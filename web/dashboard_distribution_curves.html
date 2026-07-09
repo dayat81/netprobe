@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kabupaten Daily — Distribution Curves</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  background: #0d1117;
+  color: #c9d1d9;
+  padding: 20px;
+}
+.container { max-width: 1600px; margin: 0 auto; }
+h1 {
+  font-size: 28px;
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: #58a6ff;
+}
+.meta {
+  font-size: 14px;
+  color: #8b949e;
+  margin-bottom: 30px;
+}
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
+  gap: 24px;
+}
+.card {
+  background: #161b22;
+  border: 1px solid #30363d;
+  border-radius: 8px;
+  padding: 20px;
+}
+.card-title {
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 16px;
+  color: #58a6ff;
+}
+.chart-container {
+  position: relative;
+  height: 220px;
+}
+</style>
+</head>
+<body>
+<div class="container">
+<h1>📈 Kabupaten Daily — Distribution Curves</h1>
+<div class="meta">704,988 rows • 2026-01-05 → 2026-07-03 • 16 metrics • 20 bins per histogram</div>
+
+<div class="grid">
+
+<div class="card">
+  <div class="card-title">UDP Latency (ms)</div>
+  <div class="chart-container">
+    <canvas id="avgudplatavg"></canvas>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-title">UDP Jitter (ms)</div>
+  <div class="chart-container">
+    <canvas id="avgudpjitteravg"></canvas>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-title">UDP Lost (%)</div>
+  <div class="chart-container">
+    <canvas id="avgudplost"></canvas>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-title">UDP Discard (%)</div>
+  <div class="chart-container">
+    <canvas id="avgudpdiscard"></canvas>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-title">Video Stall Interval (s)</div>
+  <div class="chart-container">
+    <canvas id="avgstall"></canvas>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-title">Video Buffer Count</div>
+  <div class="chart-container">
+    <canvas id="avgbuffer"></canvas>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-title">Video First Frame (s)</div>
+  <div class="chart-container">
+    <canvas id="avgfirstframe"></canvas>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-title">Video Stall Count</div>
+  <div class="chart-container">
+    <canvas id="avgstallcount"></canvas>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-title">Video Playback Duration (s)</div>
+  <div class="chart-container">
+    <canvas id="avgplaybackdur"></canvas>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-title">Video Test Duration (s)</div>
+  <div class="chart-container">
+    <canvas id="avgtestdur"></canvas>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-title">RSRP (dBm)</div>
+  <div class="chart-container">
+    <canvas id="avgrsrp"></canvas>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-title">RSRQ (dB)</div>
+  <div class="chart-container">
+    <canvas id="avgrsrq"></canvas>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-title">RSSNR (dB)</div>
+  <div class="chart-container">
+    <canvas id="avgrssnr"></canvas>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-title">TCP Latency (ms)</div>
+  <div class="chart-container">
+    <canvas id="avgtcplatavg"></canvas>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-title">Download Throughput (Mbps)</div>
+  <div class="chart-container">
+    <canvas id="avgthroughput"></canvas>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-title">Completion Rate</div>
+  <div class="chart-container">
+    <canvas id="avgcompletionrate"></canvas>
+  </div>
+</div>
+
+</div>
+</div>
+
+<script>
+Chart.defaults.color = '#8b949e';
+Chart.defaults.borderColor = '#30363d';
+Chart.defaults.font.size = 11;
+
+const chartConfig = {
+  type: 'line',
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        backgroundColor: '#161b22',
+        borderColor: '#30363d',
+        borderWidth: 1,
+        titleColor: '#c9d1d9',
+        bodyColor: '#c9d1d9',
+        callbacks: {
+          label: function(context) {
+            return 'Count: ' + context.parsed.y.toLocaleString();
+          }
+        }
+      }
+    },
+    scales: {
+      x: {
+        grid: { color: '#21262d' },
+        ticks: { 
+          maxRotation: 45,
+          minRotation: 45,
+          autoSkip: true,
+          maxTicksLimit: 10
+        }
+      },
+      y: {
+        grid: { color: '#21262d' },
+        ticks: {
+          callback: function(value) {
+            return value.toLocaleString();
+          }
+        }
+      }
+    }
+  }
+};
+
+
+new Chart(document.getElementById('avgudplatavg'), {
+  ...chartConfig,
+  data: {
+    labels: ["3.8", "197.8", "555.0", "943.9", "1320.0", "1693.4", "2073.1", "2455.8", "2877.5", "3328.4", "3794.4", "4175.8", "4457.8", "4860.9", "5377.0", "5867.6", "6321.3", "6740.0", "7138.4", "7539.7"],
+    datasets: [{
+      data: [197.84242553335395, 554.9587299765168, 943.9237166432309, 1320.0320685153142, 1693.3764894616695, 2073.1260635721296, 2455.8080744917434, 2877.48566762449, 3328.3755968349924, 3794.382570681397, 4175.76807984434, 4457.762248179438, 4860.884921662004, 5376.990075610776, 5867.6028578329015, 6321.266537233383, 6740.011957958492, 7138.448424012511, 7539.668359273092, 7951.97998046875],
+      borderColor: '#58a6ff',
+      backgroundColor: 'rgba(88, 166, 255, 0.1)',
+      fill: true,
+      tension: 0.4,
+      borderWidth: 2,
+      pointRadius: 0,
+      pointHoverRadius: 4,
+      pointHoverBackgroundColor: '#58a6ff',
+      pointHoverBorderColor: '#fff',
+      pointHoverBorderWidth: 2
+    }]
+  }
+});
+
+
+new Chart(document.getElementById('avgudpjitteravg'), {
+  ...chartConfig,
+  data: {
+    labels: ["0.0", "40.8", "106.4", "180.8", "273.5", "384.2", "516.8", "666.4", "798.4", "923.7", "1073.0", "1209.9", "1312.7", "1416.8", "1556.7", "1689.2", "1873.9", "2097.7", "2269.7", "2754.9"],
+    datasets: [{
+      data: [40.838224904985786, 106.37957760237703, 180.78601619932036, 273.46888067501766, 384.1951113138829, 516.8103285856837, 666.411777852845, 798.4124060606345, 923.7216186732104, 1073.0286771400529, 1209.9450119111034, 1312.6675268554686, 1416.804669189453, 1556.7322082519531, 1689.209716796875, 1873.9434814453125, 2097.7403564453125, 2269.6666259765625, 2754.8565673828125, 3158.733154296875],
+      borderColor: '#58a6ff',
+      backgroundColor: 'rgba(88, 166, 255, 0.1)',
+      fill: true,
+      tension: 0.4,
+      borderWidth: 2,
+      pointRadius: 0,
+      pointHoverRadius: 4,
+      pointHoverBackgroundColor: '#58a6ff',
+      pointHoverBorderColor: '#fff',
+      pointHoverBorderWidth: 2
+    }]
+  }
+});
+
+
+new Chart(document.getElementById('avgudplost'), {
+  ...chartConfig,
+  data: {
+    labels: ["0.0", "3.0", "7.5", "12.7", "18.1", "23.1", "28.7", "34.1", "38.3", "43.3", "48.8", "53.7", "58.5", "63.4", "68.4", "73.7", "79.5", "85.6", "91.0", "95.7"],
+    datasets: [{
+      data: [2.990322351567136, 7.469676086989742, 12.743760725194434, 18.07730630400412, 23.057295264995503, 28.653451671988606, 34.07467436927266, 38.266765387675036, 43.31996820500972, 48.817713715281535, 53.677273539167345, 58.482905898270786, 63.368219161895, 68.38522201543049, 73.65014823516313, 79.49019429493535, 85.60700157872084, 91.0118370230476, 95.68844246230199, 99.5],
+      borderColor: '#58a6ff',
+      backgroundColor: 'rgba(88, 166, 255, 0.1)',
+      fill: true,
+      tension: 0.4,
+      borderWidth: 2,
+      pointRadius: 0,
+      pointHoverRadius: 4,
+      pointHoverBackgroundColor: '#58a6ff',
+      pointHoverBorderColor: '#fff',
+      pointHoverBorderWidth: 2
+    }]
+  }
+});
+
+
+new Chart(document.getElementById('avgudpdiscard'), {
+  ...chartConfig,
+  data: {
+    labels: ["0.0", "4.0", "9.2", "15.1", "21.5", "27.2", "32.1", "37.0", "42.5", "47.6", "52.6", "57.5", "62.6", "68.1", "73.0", "76.5", "80.4", "85.5", "90.7", "95.8"],
+    datasets: [{
+      data: [3.965408022588361, 9.18892571910079, 15.09870662718711, 21.45275697949046, 27.212716507714667, 32.06032458383831, 37.02220465592331, 42.47941051392825, 47.58511234540748, 52.551169261639984, 57.51579992662809, 62.57023001200231, 68.08805531588123, 73.01733906919253, 76.54558307749835, 80.42242305953481, 85.49258451599093, 90.73815980883117, 95.75244917426875, 99.5],
+      borderColor: '#58a6ff',
+      backgroundColor: 'rgba(88, 166, 255, 0.1)',
+      fill: true,
+      tension: 0.4,
+      borderWidth: 2,
+      pointRadius: 0,
+      pointHoverRadius: 4,
+      pointHoverBackgroundColor: '#58a6ff',
+      pointHoverBorderColor: '#fff',
+      pointHoverBorderWidth: 2
+    }]
+  }
+});
+
+
+new Chart(document.getElementById('avgstall'), {
+  ...chartConfig,
+  data: {
+    labels: ["0.0", "710.1", "1937.9", "3378.2", "5001.0", "6681.7", "8153.9", "9391.9", "10860.3", "12312.7", "13957.5", "15733.6", "17304.4", "19035.4", "21013.8", "22947.5", "24760.1", "26367.1", "27483.9", "28962.6"],
+    datasets: [{
+      data: [710.1299613337618, 1937.8812981369415, 3378.1933477552257, 5001.003909745821, 6681.749022191778, 8153.916058022231, 9391.949014321453, 10860.323961564322, 12312.746229696171, 13957.479373584132, 15733.605211212001, 17304.351120448177, 19035.411367127497, 21013.849462365593, 22947.5, 24760.11, 26367.11, 27483.92, 28962.62, 30587.0],
+      borderColor: '#58a6ff',
+      backgroundColor: 'rgba(88, 166, 255, 0.1)',
+      fill: true,
+      tension: 0.4,
+      borderWidth: 2,
+      pointRadius: 0,
+      pointHoverRadius: 4,
+      pointHoverBackgroundColor: '#58a6ff',
+      pointHoverBorderColor: '#fff',
+      pointHoverBorderWidth: 2
+    }]
+  }
+});
+
+
+new Chart(document.getElementById('avgbuffer'), {
+  ...chartConfig,
+  data: {
+    labels: ["0.0", "3.2", "7.7", "10.7", "14.2", "18.2", "22.5", "26.9", "30.6", "33.3", "36.6", "40.5", "43.8", "48.1", "54.0", "61.0", "67.5", "76.5", "85.5", "93.0"],
+    datasets: [{
+      data: [3.168805687851748, 7.748563038085507, 10.718944383484313, 14.162468998015873, 18.230742694805194, 22.50297619047619, 26.945833333333333, 30.583333333333336, 33.326388888888886, 36.63194444444444, 40.52430555555556, 43.84375, 48.125, 54.0, 61.0, 67.5, 76.5, 85.5, 93.0, 98.0],
+      borderColor: '#58a6ff',
+      backgroundColor: 'rgba(88, 166, 255, 0.1)',
+      fill: true,
+      tension: 0.4,
+      borderWidth: 2,
+      pointRadius: 0,
+      pointHoverRadius: 4,
+      pointHoverBackgroundColor: '#58a6ff',
+      pointHoverBorderColor: '#fff',
+      pointHoverBorderWidth: 2
+    }]
+  }
+});
+
+
+new Chart(document.getElementById('avgfirstframe'), {
+  ...chartConfig,
+  data: {
+    labels: ["0.0", "482.0", "1280.2", "1964.1", "2703.9", "3503.5", "4693.0", "5998.4", "7149.7", "8138.6", "9192.5", "10449.0", "11491.3", "12546.8", "14142.4", "15488.3", "21600.9", "39460.5", "57301.4", "185169.8"],
+    datasets: [{
+      data: [481.9803926669494, 1280.1572568969991, 1964.095090995665, 2703.88920778136, 3503.4965612648048, 4693.017904475481, 5998.389534883721, 7149.711702127659, 8138.582535460992, 9192.4625, 10448.981439393938, 11491.289772727272, 12546.765607656587, 14142.439077044342, 15488.298469387755, 21600.885869565216, 39460.538647343, 57301.43719806764, 185169.8260869565, 307282.3333333333],
+      borderColor: '#58a6ff',
+      backgroundColor: 'rgba(88, 166, 255, 0.1)',
+      fill: true,
+      tension: 0.4,
+      borderWidth: 2,
+      pointRadius: 0,
+      pointHoverRadius: 4,
+      pointHoverBackgroundColor: '#58a6ff',
+      pointHoverBorderColor: '#fff',
+      pointHoverBorderWidth: 2
+    }]
+  }
+});
+
+
+new Chart(document.getElementById('avgstallcount'), {
+  ...chartConfig,
+  data: {
+    labels: ["0.0", "0.2", "0.6", "0.9", "1.1", "1.4", "1.8", "2.2", "2.6", "2.8", "3.2", "3.4", "3.8", "4.2", "4.8", "5.5", "6.5", "7.5", "8.5", "9.5"],
+    datasets: [{
+      data: [0.24007794140475713, 0.6191451877297407, 0.8844303951978469, 1.1110328315407418, 1.3672836366048395, 1.761760741676881, 2.227216384809517, 2.5604029304029305, 2.8330144557823127, 3.151764455782313, 3.4020833333333336, 3.75, 4.25, 4.75, 5.5, 6.5, 7.5, 8.5, 9.5, 10.0],
+      borderColor: '#58a6ff',
+      backgroundColor: 'rgba(88, 166, 255, 0.1)',
+      fill: true,
+      tension: 0.4,
+      borderWidth: 2,
+      pointRadius: 0,
+      pointHoverRadius: 4,
+      pointHoverBackgroundColor: '#58a6ff',
+      pointHoverBorderColor: '#fff',
+      pointHoverBorderWidth: 2
+    }]
+  }
+});
+
+
+new Chart(document.getElementById('avgplaybackdur'), {
+  ...chartConfig,
+  data: {
+    labels: ["93.0", "40725.1", "83847.5", "128893.5", "173099.4", "218213.2", "264626.0", "310732.2", "351815.1", "393154.4", "438090.5", "481581.3", "518787.9", "564960.0", "623622.7", "673049.9", "714026.6", "752537.9", "799458.8", "855020.3"],
+    datasets: [{
+      data: [40725.132749846, 83847.524038145, 128893.46117793673, 173099.36918083156, 218213.1851429782, 264625.957524007, 310732.2125527426, 351815.0843495935, 393154.413895048, 438090.5271260997, 481581.32258064515, 518787.89682539686, 564960.0020885547, 623622.7302631579, 673049.9375, 714026.6458333333, 752537.9333333333, 799458.7666666666, 855020.3095238095, 897508.0],
+      borderColor: '#58a6ff',
+      backgroundColor: 'rgba(88, 166, 255, 0.1)',
+      fill: true,
+      tension: 0.4,
+      borderWidth: 2,
+      pointRadius: 0,
+      pointHoverRadius: 4,
+      pointHoverBackgroundColor: '#58a6ff',
+      pointHoverBorderColor: '#fff',
+      pointHoverBorderWidth: 2
+    }]
+  }
+});
+
+
+new Chart(document.getElementById('avgtestdur'), {
+  ...chartConfig,
+  data: {
+    labels: ["154.0", "51593.5", "99655.5", "139382.5", "178068.0", "220705.2", "266469.8", "310710.7", "350804.6", "395536.0", "442823.4", "478334.8", "513102.1", "564390.3", "617361.9", "656809.7", "697893.2", "743930.8", "799643.5", "859412.1"],
+    datasets: [{
+      data: [51593.511773534585, 99655.49605303953, 139382.4775561179, 178067.9564595979, 220705.2331602846, 266469.76500427816, 310710.6895342312, 350804.6078517736, 395536.023255814, 442823.4166666666, 478334.75, 513102.1060606061, 564390.2551834132, 617361.8824561404, 656809.7076923077, 697893.1826923077, 743930.7916666666, 799643.5416666666, 859412.125, 896768.0],
+      borderColor: '#58a6ff',
+      backgroundColor: 'rgba(88, 166, 255, 0.1)',
+      fill: true,
+      tension: 0.4,
+      borderWidth: 2,
+      pointRadius: 0,
+      pointHoverRadius: 4,
+      pointHoverBackgroundColor: '#58a6ff',
+      pointHoverBorderColor: '#fff',
+      pointHoverBorderWidth: 2
+    }]
+  }
+});
+
+
+new Chart(document.getElementById('avgrsrp'), {
+  ...chartConfig,
+  data: {
+    labels: ["-140.0", "-134.6", "-129.9", "-125.0", "-120.2", "-115.5", "-111.1", "-105.3", "-99.3", "-94.6", "-90.0", "-85.6", "-81.3", "-76.1", "-71.1", "-66.9", "-62.8", "-58.7", "-53.9", "-48.7"],
+    datasets: [{
+      data: [-134.625, -129.93703703703704, -125.02661125692623, -120.17510374015504, -115.47640318320816, -111.0597781050255, -105.34679643649721, -99.30033690721726, -94.60641242919343, -89.96009530708352, -85.61591548894101, -81.34424669492935, -76.06205734027623, -71.05182630045778, -66.86417299176995, -62.805990008451715, -58.694378306878306, -53.92222222222222, -48.701388888888886, -44.0],
+      borderColor: '#58a6ff',
+      backgroundColor: 'rgba(88, 166, 255, 0.1)',
+      fill: true,
+      tension: 0.4,
+      borderWidth: 2,
+      pointRadius: 0,
+      pointHoverRadius: 4,
+      pointHoverBackgroundColor: '#58a6ff',
+      pointHoverBorderColor: '#fff',
+      pointHoverBorderWidth: 2
+    }]
+  }
+});
+
+
+new Chart(document.getElementById('avgrsrq'), {
+  ...chartConfig,
+  data: {
+    labels: ["-20.0", "-19.4", "-18.4", "-17.4", "-16.4", "-15.4", "-14.4", "-13.7", "-13.2", "-12.6", "-11.7", "-10.9", "-10.2", "-9.6", "-8.7", "-7.6", "-6.6", "-5.6", "-4.6", "-3.6"],
+    datasets: [{
+      data: [-19.419139829257688, -18.400010100444284, -17.42604336313499, -16.40934961945114, -15.358791619505414, -14.392984442959927, -13.69842573105801, -13.209032461454054, -12.567642319476803, -11.741940449853246, -10.873583763481523, -10.164335460063011, -9.56063541429484, -8.672063580687531, -7.615137597721322, -6.606154367975521, -5.581554950069108, -4.565203202594507, -3.591291486291486, -3.0],
+      borderColor: '#58a6ff',
+      backgroundColor: 'rgba(88, 166, 255, 0.1)',
+      fill: true,
+      tension: 0.4,
+      borderWidth: 2,
+      pointRadius: 0,
+      pointHoverRadius: 4,
+      pointHoverBackgroundColor: '#58a6ff',
+      pointHoverBorderColor: '#fff',
+      pointHoverBorderWidth: 2
+    }]
+  }
+});
+
+
+new Chart(document.getElementById('avgrssnr'), {
+  ...chartConfig,
+  data: {
+    labels: ["-20.0", "-17.6", "-14.8", "-12.8", "-10.3", "-7.7", "-5.3", "-3.0", "-0.8", "1.5", "3.9", "6.3", "8.6", "10.9", "13.5", "16.1", "19.0", "22.0", "25.0", "28.0"],
+    datasets: [{
+      data: [-17.583333333333332, -14.807291666666664, -12.753619350282484, -10.297406775432187, -7.682531618032729, -5.33224085677808, -3.0156519156700177, -0.75547524244707, 1.5020426214788434, 3.8845384432426915, 6.317511462400898, 8.573310768744607, 10.915249892626266, 13.484611088518175, 16.127883814619036, 18.9881778747562, 22.01518714872976, 24.97067343733547, 27.950892523531323, 30.0],
+      borderColor: '#58a6ff',
+      backgroundColor: 'rgba(88, 166, 255, 0.1)',
+      fill: true,
+      tension: 0.4,
+      borderWidth: 2,
+      pointRadius: 0,
+      pointHoverRadius: 4,
+      pointHoverBackgroundColor: '#58a6ff',
+      pointHoverBorderColor: '#fff',
+      pointHoverBorderWidth: 2
+    }]
+  }
+});
+
+
+new Chart(document.getElementById('avgtcplatavg'), {
+  ...chartConfig,
+  data: {
+    labels: ["2.2", "1671.9", "5201.3", "8191.6", "10839.5", "13897.4", "16878.4", "19777.8", "23259.8", "26547.3", "29000.3", "33722.7", "42818.1", "52700.5", "59475.0", "70792.7", "84009.9", "97916.6", "123452.0", "223155.0"],
+    datasets: [{
+      data: [1671.9269092478153, 5201.257467736757, 8191.617789973201, 10839.53992887159, 13897.448735644906, 16878.359414586863, 19777.823625695848, 23259.75072616186, 26547.33984375, 29000.313333868435, 33722.73171494482, 42818.11705729166, 52700.49913194444, 59474.99470186782, 70792.70264457616, 84009.8685496795, 97916.55240384616, 123452.034375, 223155.00669642858, 306814.10714285716],
+      borderColor: '#58a6ff',
+      backgroundColor: 'rgba(88, 166, 255, 0.1)',
+      fill: true,
+      tension: 0.4,
+      borderWidth: 2,
+      pointRadius: 0,
+      pointHoverRadius: 4,
+      pointHoverBackgroundColor: '#58a6ff',
+      pointHoverBorderColor: '#fff',
+      pointHoverBorderWidth: 2
+    }]
+  }
+});
+
+
+new Chart(document.getElementById('avgthroughput'), {
+  ...chartConfig,
+  data: {
+    labels: ["0.0", "13938.7", "31343.4", "47385.5", "67089.1", "85990.9", "101472.4", "116387.5", "130322.6", "144675.5", "160838.1", "181719.0", "202018.9", "217964.2", "251457.8", "305702.6", "343442.6", "361318.6", "406360.5", "455842.4"],
+    datasets: [{
+      data: [13938.65586491265, 31343.435126298944, 47385.52885086559, 67089.08040703235, 85990.91727294005, 101472.41690595816, 116387.50353459839, 130322.63764733663, 144675.53350031344, 160838.09429796005, 181719.01614583333, 202018.90538194444, 217964.17881944444, 251457.84375, 305702.578125, 343442.6015625, 361318.6484375, 406360.546875, 455842.421875, 468964.8125],
+      borderColor: '#58a6ff',
+      backgroundColor: 'rgba(88, 166, 255, 0.1)',
+      fill: true,
+      tension: 0.4,
+      borderWidth: 2,
+      pointRadius: 0,
+      pointHoverRadius: 4,
+      pointHoverBackgroundColor: '#58a6ff',
+      pointHoverBorderColor: '#fff',
+      pointHoverBorderWidth: 2
+    }]
+  }
+});
+
+
+new Chart(document.getElementById('avgcompletionrate'), {
+  ...chartConfig,
+  data: {
+    labels: ["0.0", "0.1", "0.2", "0.3", "0.4", "0.5", "0.5", "0.6", "0.6", "0.6", "0.7", "0.7", "0.8", "0.8", "0.8", "0.8", "0.9", "0.9", "0.9", "1.0"],
+    datasets: [{
+      data: [0.1, 0.225, 0.29164999999999996, 0.36665000000000003, 0.45, 0.5345714285714286, 0.5845714285714285, 0.6125, 0.64585, 0.6901983870967743, 0.7318359715562337, 0.7635136714159813, 0.7885776969744109, 0.816549321285495, 0.8475511825626658, 0.8758640146851656, 0.9069334143982456, 0.9411095973740433, 0.9781640178555583, 1.0],
+      borderColor: '#58a6ff',
+      backgroundColor: 'rgba(88, 166, 255, 0.1)',
+      fill: true,
+      tension: 0.4,
+      borderWidth: 2,
+      pointRadius: 0,
+      pointHoverRadius: 4,
+      pointHoverBackgroundColor: '#58a6ff',
+      pointHoverBorderColor: '#fff',
+      pointHoverBorderWidth: 2
+    }]
+  }
+});
+
+
+</script>
+</body>
+</html>

@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>KNN Cluster Analysis — UDP Latency</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:#0D1117; color:#c9d1d9; font-family:'Segoe UI',system-ui,sans-serif; padding:20px; }
+.header { text-align:center; margin-bottom:24px; }
+.header h1 { color:#58a6ff; font-size:1.8em; }
+.header .sub { color:#8b949e; font-size:0.95em; margin-top:4px; }
+.grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; max-width:1400px; margin:0 auto; }
+.card { background:#161b22; border:1px solid #30363d; border-radius:12px; padding:16px; }
+.card h3 { color:#58a6ff; margin-bottom:12px; font-size:1em; }
+.full { grid-column: 1 / -1; }
+.stats { display:flex; gap:12px; flex-wrap:wrap; margin-bottom:16px; justify-content:center; }
+.stat { background:#161b22; border:1px solid #30363d; border-radius:10px; padding:12px 20px; text-align:center; min-width:140px; }
+.stat .val { font-size:1.6em; font-weight:700; color:#58a6ff; }
+.stat .lbl { font-size:0.8em; color:#8b949e; margin-top:2px; }
+.cluster-cards { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-bottom:16px; max-width:1400px; margin:0 auto 16px; }
+.cc { background:#161b22; border:1px solid #30363d; border-radius:10px; padding:14px; }
+.cc .badge { display:inline-block; padding:2px 10px; border-radius:12px; font-weight:600; font-size:0.85em; margin-bottom:8px; }
+.cc .detail { font-size:0.85em; color:#8b949e; line-height:1.7; }
+.cc .detail b { color:#c9d1d9; }
+.outlier-table { width:100%; border-collapse:collapse; font-size:0.8em; }
+.outlier-table th { text-align:left; color:#8b949e; padding:5px 6px; border-bottom:1px solid #30363d; font-size:0.85em; }
+.outlier-table td { padding:4px 6px; border-bottom:1px solid #21262d; }
+.outlier-table .high { color:#f85149; font-weight:600; }
+canvas { max-height:400px; }
+.legend-note { color:#8b949e; font-size:0.8em; text-align:center; margin-top:6px; }
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>📊 KNN Cluster Analysis — UDP Latency</h1>
+  <div class="sub">251 test points &bull; 3 clusters (k=3) &bull; Silhouette: 0.285 &bull; PCA variance: 28.7%</div>
+</div>
+
+<div class="stats">
+  <div class="stat"><div class="val">251</div><div class="lbl">Test Points</div></div>
+  <div class="stat"><div class="val">3</div><div class="lbl">Optimal Clusters</div></div>
+  <div class="stat"><div class="val">0.285</div><div class="lbl">Silhouette Score</div></div>
+  <div class="stat"><div class="val">28.7%</div><div class="lbl">PCA Variance</div></div>
+</div>
+
+<div class="cluster-cards">
+<div class="cc">
+  <div class="badge" style="background:#ff6b6b; color:#0D1117;">Cluster 0</div>
+  <div class="detail">
+    <b>42 titik</b> (17%)<br>
+    Avg Latency: <b>151.8ms</b><br>
+    Median: <b>27.0ms</b><br>
+    Avg RSRP: <b>-96.3 dBm</b><br>
+    Dominan: restoran_cafe(35%), pertokoan(30%), ibadah(13%), hotel(6%)...
+  </div>
+</div><div class="cc">
+  <div class="badge" style="background:#4ecdc4; color:#0D1117;">Cluster 1</div>
+  <div class="detail">
+    <b>202 titik</b> (80%)<br>
+    Avg Latency: <b>98.5ms</b><br>
+    Median: <b>24.2ms</b><br>
+    Avg RSRP: <b>-94.0 dBm</b><br>
+    Dominan: pertokoan(39%), restoran_cafe(22%), perkantoran(17%), pendid...
+  </div>
+</div><div class="cc">
+  <div class="badge" style="background:#ffd93d; color:#0D1117;">Cluster 2</div>
+  <div class="detail">
+    <b>7 titik</b> (3%)<br>
+    Avg Latency: <b>102.1ms</b><br>
+    Median: <b>17.4ms</b><br>
+    Avg RSRP: <b>-94.8 dBm</b><br>
+    Dominan: perumahan(53%), perkantoran(42%), restoran_cafe(3%), transpo...
+  </div>
+</div>
+</div>
+
+<div class="grid">
+  <div class="card full">
+    <h3>🔵 PCA Scatter Plot — Cluster Distribution</h3>
+    <canvas id="scatterChart"></canvas>
+  </div>
+
+  <div class="card">
+    <h3>📊 Avg UDP Latency per Cluster</h3>
+    <canvas id="latencyChart"></canvas>
+  </div>
+
+  <div class="card">
+    <h3>📶 Avg RSRP per Cluster</h3>
+    <canvas id="rsrpChart"></canvas>
+  </div>
+
+  <div class="card full">
+    <h3>🕐 Hourly Latency Pattern — Outlier Kecamatan (Jun 8-14 vs Jun 22-28)</h3>
+    <canvas id="hourlyChart"></canvas>
+    <div class="legend-note">━━ Solid = Jun 22-28 (latest) &nbsp;&nbsp; ┅┅ Dashed = Jun 8-14 (baseline)</div>
+  </div>
+
+  <div class="card full">
+    <h3>⚠️ Top Outliers — Highest Latency per Cluster</h3>
+    <table class="outlier-table">
+      <tr>
+        <th>Cluster</th><th>Kecamatan</th><th>UDP Lat</th><th>RSRP</th><th>n</th>
+        <th>⏰ Peak (22-28)</th><th>Lat</th>
+        <th>⏰ Peak (8-14)</th><th>Lat</th>
+      </tr>
+      <tr>
+  <td style="color:#ff6b6b">C0</td>
+  <td>RANCABUNGUR</td>
+  <td class="high">1071ms</td>
+  <td>-102.3</td>
+  <td>3</td>
+  <td style="color:#f0883e; font-weight:600">19:00</td>
+  <td>378ms</td>
+  <td style="color:#a371f7; font-weight:600">12:00</td>
+  <td>242ms</td>
+</tr>
+<tr>
+  <td style="color:#ff6b6b">C0</td>
+  <td>WIYUNG</td>
+  <td class="high">1037ms</td>
+  <td>-97.0</td>
+  <td>6</td>
+  <td style="color:#f0883e; font-weight:600">16:00</td>
+  <td>131ms</td>
+  <td style="color:#a371f7; font-weight:600">21:00</td>
+  <td>50ms</td>
+</tr>
+<tr>
+  <td style="color:#ff6b6b">C0</td>
+  <td>BLAHBATUH</td>
+  <td class="high">837ms</td>
+  <td>-94.5</td>
+  <td>4</td>
+  <td style="color:#f0883e; font-weight:600">15:00</td>
+  <td>166ms</td>
+  <td style="color:#a371f7; font-weight:600">05:00</td>
+  <td>53ms</td>
+</tr>
+<tr>
+  <td style="color:#ff6b6b">C0</td>
+  <td>MANYAR</td>
+  <td class="high">801ms</td>
+  <td>-97.1</td>
+  <td>14</td>
+  <td style="color:#f0883e; font-weight:600">03:00</td>
+  <td>149ms</td>
+  <td style="color:#a371f7; font-weight:600">07:00</td>
+  <td>106ms</td>
+</tr>
+<tr>
+  <td style="color:#ff6b6b">C0</td>
+  <td>PEGANTENAN</td>
+  <td class="high">739ms</td>
+  <td>-93.6</td>
+  <td>10</td>
+  <td style="color:#f0883e; font-weight:600">13:00</td>
+  <td>133ms</td>
+  <td style="color:#a371f7; font-weight:600">19:00</td>
+  <td>633ms</td>
+</tr>
+<tr>
+  <td style="color:#4ecdc4">C1</td>
+  <td>TELUKNAGA</td>
+  <td class="high">3066ms</td>
+  <td>-102.3</td>
+  <td>4</td>
+  <td style="color:#f0883e; font-weight:600">08:00</td>
+  <td>316ms</td>
+  <td style="color:#a371f7; font-weight:600">16:00</td>
+  <td>140ms</td>
+</tr>
+<tr>
+  <td style="color:#4ecdc4">C1</td>
+  <td>TELUKNAGA</td>
+  <td class="high">1341ms</td>
+  <td>-97.4</td>
+  <td>9</td>
+  <td style="color:#f0883e; font-weight:600">08:00</td>
+  <td>316ms</td>
+  <td style="color:#a371f7; font-weight:600">16:00</td>
+  <td>140ms</td>
+</tr>
+<tr>
+  <td style="color:#4ecdc4">C1</td>
+  <td>ILIR TIMUR I</td>
+  <td class="high">799ms</td>
+  <td>-112.5</td>
+  <td>2</td>
+  <td style="color:#f0883e; font-weight:600">08:00</td>
+  <td>185ms</td>
+  <td style="color:#a371f7; font-weight:600">22:00</td>
+  <td>59ms</td>
+</tr>
+<tr>
+  <td style="color:#4ecdc4">C1</td>
+  <td>SAWAH BESAR</td>
+  <td class="high">766ms</td>
+  <td>-93.7</td>
+  <td>11</td>
+  <td style="color:#f0883e; font-weight:600">20:00</td>
+  <td>289ms</td>
+  <td style="color:#a371f7; font-weight:600">13:00</td>
+  <td>78ms</td>
+</tr>
+<tr>
+  <td style="color:#4ecdc4">C1</td>
+  <td>LAMONGAN</td>
+  <td class="high">693ms</td>
+  <td>-104.2</td>
+  <td>5</td>
+  <td style="color:#f0883e; font-weight:600">11:00</td>
+  <td>159ms</td>
+  <td style="color:#a371f7; font-weight:600">06:00</td>
+  <td>171ms</td>
+</tr>
+<tr>
+  <td style="color:#ffd93d">C2</td>
+  <td>BENDA</td>
+  <td class="high">602ms</td>
+  <td>-97.6</td>
+  <td>14</td>
+  <td style="color:#f0883e; font-weight:600">15:00</td>
+  <td>135ms</td>
+  <td style="color:#a371f7; font-weight:600">16:00</td>
+  <td>80ms</td>
+</tr>
+<tr>
+  <td style="color:#ffd93d">C2</td>
+  <td>BENDA</td>
+  <td class="">32ms</td>
+  <td>-97.9</td>
+  <td>11</td>
+  <td style="color:#f0883e; font-weight:600">15:00</td>
+  <td>135ms</td>
+  <td style="color:#a371f7; font-weight:600">16:00</td>
+  <td>80ms</td>
+</tr>
+<tr>
+  <td style="color:#ffd93d">C2</td>
+  <td>BENDA</td>
+  <td class="">19ms</td>
+  <td>-98.2</td>
+  <td>32</td>
+  <td style="color:#f0883e; font-weight:600">15:00</td>
+  <td>135ms</td>
+  <td style="color:#a371f7; font-weight:600">16:00</td>
+  <td>80ms</td>
+</tr>
+<tr>
+  <td style="color:#ffd93d">C2</td>
+  <td>BENDA</td>
+  <td class="">17ms</td>
+  <td>-88.8</td>
+  <td>9</td>
+  <td style="color:#f0883e; font-weight:600">15:00</td>
+  <td>135ms</td>
+  <td style="color:#a371f7; font-weight:600">16:00</td>
+  <td>80ms</td>
+</tr>
+<tr>
+  <td style="color:#ffd93d">C2</td>
+  <td>BENDA</td>
+  <td class="">16ms</td>
+  <td>-94.5</td>
+  <td>11</td>
+  <td style="color:#f0883e; font-weight:600">15:00</td>
+  <td>135ms</td>
+  <td style="color:#a371f7; font-weight:600">16:00</td>
+  <td>80ms</td>
+</tr>
+
+    </table>
+  </div>
+</div>
+
+<script>
+const scatterDatasets = [{
+      label: 'Cluster 0: Ibadah/Resto',
+      data: [{"x": -1.202, "y": -1.868, "kec": "BALIKPAPAN BARAT", "lat": 323.1, "rsrp": -99.5}, {"x": -8.74, "y": -3.005, "kec": "BALIKPAPAN BARAT", "lat": 30.3, "rsrp": -95.7}, {"x": -0.411, "y": -2.047, "kec": "BALIKPAPAN BARAT", "lat": 27.5, "rsrp": -93.0}, {"x": -1.097, "y": -2.129, "kec": "BALIKPAPAN BARAT", "lat": 26.6, "rsrp": -94.0}, {"x": -1.246, "y": -0.715, "kec": "BLAHBATUH", "lat": 837.4, "rsrp": -94.5}, {"x": -0.618, "y": -1.733, "kec": "BLAHBATUH", "lat": 32.9, "rsrp": -92.2}, {"x": -1.408, "y": -1.527, "kec": "BLAHBATUH", "lat": 29.4, "rsrp": -95.0}, {"x": -0.864, "y": -0.983, "kec": "BLAHBATUH", "lat": 26.3, "rsrp": -97.1}, {"x": -1.557, "y": -1.666, "kec": "BOJONEGARA", "lat": 21.3, "rsrp": -100.0}, {"x": -0.675, "y": -1.32, "kec": "BOJONEGARA", "lat": 20.7, "rsrp": -81.2}, {"x": -1.608, "y": -1.548, "kec": "BOJONEGARA", "lat": 19.5, "rsrp": -96.0}, {"x": -1.062, "y": -2.108, "kec": "KLAPANUNGGAL", "lat": 31.7, "rsrp": -95.1}, {"x": -0.112, "y": -1.593, "kec": "LAMONGAN", "lat": 31.1, "rsrp": -89.5}, {"x": -0.784, "y": -1.719, "kec": "LAMONGAN", "lat": 22.6, "rsrp": -92.2}, {"x": -1.234, "y": -0.208, "kec": "LAMONGAN", "lat": 13.4, "rsrp": -95.7}, {"x": -1.883, "y": -1.284, "kec": "LARANGAN", "lat": 683.9, "rsrp": -95.8}, {"x": -5.373, "y": -0.905, "kec": "LARANGAN", "lat": 36.0, "rsrp": -94.0}, {"x": -2.169, "y": -1.242, "kec": "LARANGAN", "lat": 31.0, "rsrp": -94.3}, {"x": -1.447, "y": -1.626, "kec": "LARANGAN", "lat": 29.5, "rsrp": -91.4}, {"x": -2.4, "y": -2.508, "kec": "LARANGAN", "lat": 28.8, "rsrp": -92.0}, {"x": -0.465, "y": -1.576, "kec": "LARANGAN", "lat": 27.4, "rsrp": -103.0}, {"x": -2.606, "y": -2.095, "kec": "LARANGAN", "lat": 18.7, "rsrp": -97.9}, {"x": -5.38, "y": -0.901, "kec": "LARANGAN", "lat": 14.2, "rsrp": -94.2}, {"x": -2.387, "y": -1.619, "kec": "LARANGAN", "lat": 14.0, "rsrp": -95.2}, {"x": -0.779, "y": -1.675, "kec": "MANYAR", "lat": 801.3, "rsrp": -97.1}, {"x": -1.399, "y": -0.561, "kec": "MANYAR", "lat": 24.4, "rsrp": -100.6}, {"x": -2.091, "y": 1.079, "kec": "MANYAR", "lat": 19.2, "rsrp": -87.4}, {"x": -1.563, "y": 0.407, "kec": "MANYAR", "lat": 14.2, "rsrp": -95.0}, {"x": -1.425, "y": -1.576, "kec": "PALLANGGA", "lat": 27.4, "rsrp": -103.2}, {"x": -2.95, "y": 0.428, "kec": "PEGANTENAN", "lat": 738.6, "rsrp": -93.6}, {"x": -6.561, "y": -1.522, "kec": "PEGANTENAN", "lat": 26.6, "rsrp": -104.9}, {"x": -3.026, "y": -1.465, "kec": "PEGANTENAN", "lat": 23.5, "rsrp": -100.0}, {"x": -1.126, "y": -0.434, "kec": "PEGANTENAN", "lat": 23.1, "rsrp": -97.3}, {"x": -4.093, "y": -1.097, "kec": "PEGANTENAN", "lat": 19.6, "rsrp": -107.5}, {"x": -1.46, "y": -1.062, "kec": "PEGANTENAN", "lat": 16.6, "rsrp": -94.5}, {"x": -1.233, "y": -1.796, "kec": "RANCABUNGUR", "lat": 1071.1, "rsrp": -102.3}, {"x": -1.452, "y": -1.792, "kec": "TELUKNAGA", "lat": 53.4, "rsrp": -97.5}, {"x": -4.806, "y": -0.883, "kec": "TELUKNAGA", "lat": 51.5, "rsrp": -104.8}, {"x": -1.291, "y": -1.979, "kec": "TELUKNAGA", "lat": 16.4, "rsrp": -108.8}, {"x": -4.829, "y": -0.693, "kec": "TELUKNAGA", "lat": 14.9, "rsrp": -92.0}, {"x": -0.063, "y": -2.128, "kec": "WIYUNG", "lat": 1037.2, "rsrp": -97.0}, {"x": -0.583, "y": -1.409, "kec": "WIYUNG", "lat": 19.3, "rsrp": -92.0}],
+      backgroundColor: '#ff6b6b',
+      borderColor: '#ff6b6b',
+      pointRadius: 5,
+      pointHoverRadius: 8,
+    },{
+      label: 'Cluster 1: Pertokoan/Perkantoran',
+      data: [{"x": -0.459, "y": -1.063, "kec": "BALIKPAPAN BARAT", "lat": 47.2, "rsrp": -108.5}, {"x": 1.111, "y": -0.792, "kec": "BALIKPAPAN BARAT", "lat": 38.4, "rsrp": -101.3}, {"x": 0.711, "y": -1.208, "kec": "BALIKPAPAN BARAT", "lat": 35.5, "rsrp": -98.5}, {"x": 0.202, "y": 2.976, "kec": "BALIKPAPAN BARAT", "lat": 33.1, "rsrp": -95.7}, {"x": 0.671, "y": -1.252, "kec": "BALIKPAPAN BARAT", "lat": 29.2, "rsrp": -92.7}, {"x": 1.521, "y": -0.718, "kec": "BALIKPAPAN BARAT", "lat": 28.9, "rsrp": -92.0}, {"x": -0.195, "y": -1.412, "kec": "BALIKPAPAN BARAT", "lat": 20.0, "rsrp": -96.3}, {"x": -0.211, "y": -0.646, "kec": "BENDA", "lat": 20.2, "rsrp": -87.2}, {"x": 0.112, "y": 3.727, "kec": "BENDA", "lat": 19.5, "rsrp": -88.0}, {"x": 0.125, "y": 1.554, "kec": "BENDA", "lat": 15.9, "rsrp": -97.5}, {"x": -0.567, "y": 0.915, "kec": "BLAHBATUH", "lat": 40.5, "rsrp": -96.9}, {"x": 1.464, "y": -1.365, "kec": "BLAHBATUH", "lat": 35.8, "rsrp": -87.3}, {"x": -0.499, "y": 0.631, "kec": "BLAHBATUH", "lat": 35.0, "rsrp": -90.1}, {"x": -0.593, "y": 0.336, "kec": "BLAHBATUH", "lat": 29.5, "rsrp": -102.2}, {"x": 0.502, "y": -1.111, "kec": "BLAHBATUH", "lat": 25.6, "rsrp": -91.9}, {"x": 0.56, "y": -0.898, "kec": "BLAHBATUH", "lat": 25.4, "rsrp": -90.0}, {"x": 0.778, "y": -0.693, "kec": "BLAHBATUH", "lat": 23.5, "rsrp": -94.4}, {"x": 0.472, "y": -1.084, "kec": "BOJONEGARA", "lat": 507.1, "rsrp": -96.1}, {"x": 0.957, "y": 0.543, "kec": "GAMBIR", "lat": 218.0, "rsrp": -92.1}, {"x": -0.33, "y": 1.122, "kec": "GAMBIR", "lat": 199.4, "rsrp": -96.9}, {"x": -0.674, "y": 3.607, "kec": "GAMBIR", "lat": 144.5, "rsrp": -90.9}, {"x": 1.873, "y": -0.608, "kec": "GAMBIR", "lat": 142.1, "rsrp": -89.0}, {"x": -0.071, "y": 3.233, "kec": "GAMBIR", "lat": 134.4, "rsrp": -95.8}, {"x": 0.752, "y": 1.199, "kec": "GAMBIR", "lat": 129.9, "rsrp": -93.2}, {"x": 0.308, "y": 0.659, "kec": "GAMBIR", "lat": 77.9, "rsrp": -100.7}, {"x": 0.885, "y": 0.623, "kec": "GAMBIR", "lat": 57.3, "rsrp": -95.2}, {"x": 0.723, "y": 1.357, "kec": "GAMBIR", "lat": 54.5, "rsrp": -92.3}, {"x": 0.606, "y": 2.121, "kec": "GAMBIR", "lat": 41.3, "rsrp": -92.0}, {"x": 1.477, "y": -0.747, "kec": "GAMBIR", "lat": 26.2, "rsrp": -93.0}, {"x": 1.409, "y": -0.043, "kec": "GAMBIR", "lat": 25.8, "rsrp": -91.9}, {"x": 0.969, "y": 0.676, "kec": "GAMBIR", "lat": 25.6, "rsrp": -94.0}, {"x": 0.135, "y": 3.23, "kec": "GAMBIR", "lat": 24.8, "rsrp": -91.8}, {"x": 1.004, "y": 1.272, "kec": "GAMBIR", "lat": 22.6, "rsrp": -93.1}, {"x": 0.141, "y": 0.905, "kec": "GAMBIR", "lat": 22.2, "rsrp": -95.1}, {"x": -0.267, "y": 1.233, "kec": "GAMBIR", "lat": 21.6, "rsrp": -95.3}, {"x": 1.145, "y": 1.078, "kec": "GAMBIR", "lat": 17.9, "rsrp": -83.2}, {"x": 1.0, "y": 0.042, "kec": "GAMBIR", "lat": 17.5, "rsrp": -97.2}, {"x": 0.579, "y": -0.863, "kec": "ILIR TIMUR I", "lat": 798.8, "rsrp": -112.5}, {"x": 0.939, "y": 0.601, "kec": "ILIR TIMUR I", "lat": 28.5, "rsrp": -84.2}, {"x": 1.419, "y": 1.353, "kec": "ILIR TIMUR I", "lat": 24.4, "rsrp": -84.5}, {"x": 0.898, "y": 0.534, "kec": "ILIR TIMUR I", "lat": 23.6, "rsrp": -100.7}, {"x": 0.39, "y": 1.379, "kec": "ILIR TIMUR I", "lat": 22.7, "rsrp": -81.2}, {"x": 0.361, "y": -1.621, "kec": "KLAPANUNGGAL", "lat": 416.8, "rsrp": -98.7}, {"x": 1.395, "y": -0.756, "kec": "KLAPANUNGGAL", "lat": 21.8, "rsrp": -76.0}, {"x": -1.382, "y": -0.573, "kec": "KLAPANUNGGAL", "lat": 20.5, "rsrp": -91.5}, {"x": 0.861, "y": 0.203, "kec": "KLAPANUNGGAL", "lat": 16.1, "rsrp": -94.7}, {"x": 0.95, "y": -0.236, "kec": "KLAPANUNGGAL", "lat": 15.1, "rsrp": -88.0}, {"x": 0.58, "y": -1.283, "kec": "KOTA BOGOR UTARA", "lat": 669.3, "rsrp": -94.9}, {"x": 0.268, "y": -0.13, "kec": "KOTA BOGOR UTARA", "lat": 203.7, "rsrp": -94.6}, {"x": 0.995, "y": -0.239, "kec": "KOTA BOGOR UTARA", "lat": 143.8, "rsrp": -94.3}, {"x": -0.969, "y": 0.124, "kec": "KOTA BOGOR UTARA", "lat": 49.9, "rsrp": -103.0}, {"x": 0.939, "y": -0.852, "kec": "KOTA BOGOR UTARA", "lat": 31.0, "rsrp": -95.3}, {"x": 0.78, "y": 0.946, "kec": "KOTA BOGOR UTARA", "lat": 28.5, "rsrp": -96.4}, {"x": 1.486, "y": -0.289, "kec": "KOTA BOGOR UTARA", "lat": 22.2, "rsrp": -93.5}, {"x": 1.185, "y": -0.45, "kec": "KOTA BOGOR UTARA", "lat": 19.1, "rsrp": -90.5}, {"x": 0.721, "y": 0.393, "kec": "KOTA BOGOR UTARA", "lat": 19.1, "rsrp": -92.0}, {"x": 0.993, "y": 0.53, "kec": "KOTA BOGOR UTARA", "lat": 18.7, "rsrp": -93.4}, {"x": 2.036, "y": -0.162, "kec": "KOTA BOGOR UTARA", "lat": 18.3, "rsrp": -89.6}, {"x": 1.027, "y": 0.136, "kec": "KOTA BOGOR UTARA", "lat": 17.4, "rsrp": -96.1}, {"x": -0.003, "y": -0.467, "kec": "KOTA BOGOR UTARA", "lat": 17.0, "rsrp": -94.0}, {"x": 1.391, "y": -0.041, "kec": "KOTA BOGOR UTARA", "lat": 15.7, "rsrp": -90.0}, {"x": 0.554, "y": -0.002, "kec": "KOTA BOGOR UTARA", "lat": 13.2, "rsrp": -92.5}, {"x": -0.244, "y": 1.097, "kec": "LAMONGAN", "lat": 693.0, "rsrp": -104.2}, {"x": 0.56, "y": 0.51, "kec": "LAMONGAN", "lat": 95.9, "rsrp": -93.7}, {"x": 0.212, "y": -1.357, "kec": "LAMONGAN", "lat": 29.2, "rsrp": -101.3}, {"x": 1.207, "y": -1.229, "kec": "LAMONGAN", "lat": 21.0, "rsrp": -92.0}, {"x": -1.236, "y": 0.342, "kec": "LARANGAN", "lat": 25.5, "rsrp": -97.3}, {"x": 0.787, "y": -0.764, "kec": "LARANGAN", "lat": 23.9, "rsrp": -90.4}, {"x": 0.577, "y": -1.044, "kec": "LARANGAN", "lat": 21.4, "rsrp": -88.7}, {"x": 0.88, "y": 0.16, "kec": "LARANGAN", "lat": 20.4, "rsrp": -91.1}, {"x": 0.566, "y": -1.553, "kec": "LARANGAN", "lat": 20.2, "rsrp": -105.7}, {"x": 0.77, "y": 0.698, "kec": "LARANGAN", "lat": 18.3, "rsrp": -90.6}, {"x": 0.995, "y": -1.327, "kec": "LARANGAN", "lat": 18.0, "rsrp": -92.1}, {"x": 1.663, "y": -0.443, "kec": "LARANGAN", "lat": 17.4, "rsrp": -90.9}, {"x": 1.299, "y": -0.119, "kec": "LARANGAN", "lat": 17.0, "rsrp": -84.5}, {"x": 1.538, "y": -0.488, "kec": "LARANGAN", "lat": 16.8, "rsrp": -85.0}, {"x": 0.41, "y": 0.448, "kec": "LARANGAN", "lat": 16.6, "rsrp": -100.2}, {"x": 0.447, "y": -0.802, "kec": "LARANGAN", "lat": 16.1, "rsrp": -93.9}, {"x": 0.449, "y": -0.772, "kec": "LARANGAN", "lat": 16.0, "rsrp": -95.1}, {"x": 0.228, "y": 0.799, "kec": "LARANGAN", "lat": 15.8, "rsrp": -90.3}, {"x": 0.558, "y": 0.273, "kec": "MANYAR", "lat": 26.5, "rsrp": -91.8}, {"x": 0.922, "y": -0.757, "kec": "MANYAR", "lat": 22.1, "rsrp": -89.2}, {"x": 0.799, "y": -1.163, "kec": "MANYAR", "lat": 19.5, "rsrp": -93.0}, {"x": 0.202, "y": 0.404, "kec": "MANYAR", "lat": 18.1, "rsrp": -89.4}, {"x": -0.99, "y": 1.668, "kec": "MANYAR", "lat": 17.3, "rsrp": -94.4}, {"x": 0.735, "y": -1.416, "kec": "MANYAR", "lat": 16.2, "rsrp": -96.9}, {"x": -0.047, "y": -0.763, "kec": "MEDAN DENAI", "lat": 286.3, "rsrp": -93.0}, {"x": 0.819, "y": 0.233, "kec": "MEDAN DENAI", "lat": 40.2, "rsrp": -92.3}, {"x": 0.367, "y": -0.146, "kec": "MEDAN DENAI", "lat": 29.4, "rsrp": -97.2}, {"x": -0.014, "y": 0.503, "kec": "MEDAN DENAI", "lat": 13.0, "rsrp": -88.4}, {"x": -0.184, "y": -1.551, "kec": "MOJOROTO", "lat": 499.4, "rsrp": -97.3}, {"x": -0.538, "y": 0.613, "kec": "MOJOROTO", "lat": 378.2, "rsrp": -98.8}, {"x": 1.133, "y": -0.485, "kec": "MOJOROTO", "lat": 98.5, "rsrp": -95.7}, {"x": 0.461, "y": 1.173, "kec": "MOJOROTO", "lat": 24.4, "rsrp": -94.0}, {"x": -0.1, "y": -1.132, "kec": "MOJOROTO", "lat": 23.0, "rsrp": -93.8}, {"x": 0.695, "y": -1.27, "kec": "MOJOROTO", "lat": 22.0, "rsrp": -98.5}, {"x": -0.248, "y": 0.772, "kec": "MOJOROTO", "lat": 21.6, "rsrp": -93.3}, {"x": -0.719, "y": 1.178, "kec": "MOJOROTO", "lat": 21.5, "rsrp": -93.3}, {"x": 0.762, "y": 0.315, "kec": "MOJOROTO", "lat": 20.3, "rsrp": -96.6}, {"x": 0.564, "y": 0.553, "kec": "MOJOROTO", "lat": 20.3, "rsrp": -95.0}, {"x": 1.009, "y": -0.056, "kec": "MOJOROTO", "lat": 20.0, "rsrp": -95.6}, {"x": 0.548, "y": 1.243, "kec": "MOJOROTO", "lat": 19.8, "rsrp": -85.2}, {"x": 0.207, "y": 0.823, "kec": "MOJOROTO", "lat": 18.0, "rsrp": -95.8}, {"x": 0.231, "y": 1.089, "kec": "MOJOROTO", "lat": 14.2, "rsrp": -97.3}, {"x": 1.543, "y": -0.823, "kec": "NGALIYAN", "lat": 614.0, "rsrp": -90.8}, {"x": 0.326, "y": 0.865, "kec": "NGALIYAN", "lat": 45.0, "rsrp": -94.0}, {"x": 0.517, "y": -1.189, "kec": "NGALIYAN", "lat": 21.2, "rsrp": -97.0}, {"x": 0.123, "y": 0.453, "kec": "NGALIYAN", "lat": 19.9, "rsrp": -95.3}, {"x": 1.049, "y": 0.637, "kec": "NGALIYAN", "lat": 19.2, "rsrp": -94.5}, {"x": 0.258, "y": -0.56, "kec": "PALLANGGA", "lat": 388.7, "rsrp": -94.7}, {"x": 0.964, "y": -0.696, "kec": "PALLANGGA", "lat": 37.1, "rsrp": -90.0}, {"x": 0.118, "y": 0.709, "kec": "PALLANGGA", "lat": 32.2, "rsrp": -103.0}, {"x": 0.31, "y": 0.918, "kec": "PALLANGGA", "lat": 16.0, "rsrp": -97.6}, {"x": 0.562, "y": 0.032, "kec": "PARUNG", "lat": 424.9, "rsrp": -95.7}, {"x": 0.64, "y": -1.31, "kec": "PARUNG", "lat": 29.5, "rsrp": -102.1}, {"x": 0.875, "y": -1.152, "kec": "PARUNG", "lat": 27.0, "rsrp": -101.4}, {"x": -0.045, "y": -0.964, "kec": "PARUNG", "lat": 22.2, "rsrp": -96.5}, {"x": 0.4, "y": -1.272, "kec": "PARUNG", "lat": 19.9, "rsrp": -99.2}, {"x": 1.165, "y": -0.683, "kec": "PARUNG", "lat": 19.5, "rsrp": -89.9}, {"x": 0.707, "y": 0.257, "kec": "PARUNG", "lat": 18.1, "rsrp": -83.1}, {"x": -0.069, "y": 0.181, "kec": "RANCABUNGUR", "lat": 50.0, "rsrp": -92.2}, {"x": 0.153, "y": 0.504, "kec": "RANCABUNGUR", "lat": 24.0, "rsrp": -89.4}, {"x": -0.561, "y": 0.199, "kec": "RANCABUNGUR", "lat": 20.4, "rsrp": -87.4}, {"x": 0.183, "y": 1.159, "kec": "RANCABUNGUR", "lat": 18.2, "rsrp": -98.5}, {"x": -0.14, "y": 0.956, "kec": "RANCABUNGUR", "lat": 15.2, "rsrp": -103.5}, {"x": 0.883, "y": 0.345, "kec": "SAWAH BESAR", "lat": 766.2, "rsrp": -93.7}, {"x": -0.182, "y": -0.687, "kec": "SAWAH BESAR", "lat": 648.7, "rsrp": -95.4}, {"x": -0.516, "y": -0.325, "kec": "SAWAH BESAR", "lat": 235.9, "rsrp": -98.1}, {"x": -0.273, "y": -0.982, "kec": "SAWAH BESAR", "lat": 135.6, "rsrp": -88.9}, {"x": 0.19, "y": 2.051, "kec": "SAWAH BESAR", "lat": 103.2, "rsrp": -92.2}, {"x": -1.25, "y": 0.422, "kec": "SAWAH BESAR", "lat": 40.7, "rsrp": -91.4}, {"x": -0.146, "y": 1.91, "kec": "SAWAH BESAR", "lat": 35.5, "rsrp": -95.4}, {"x": 0.225, "y": -0.929, "kec": "SAWAH BESAR", "lat": 32.4, "rsrp": -93.2}, {"x": 0.282, "y": 2.053, "kec": "SAWAH BESAR", "lat": 30.3, "rsrp": -94.9}, {"x": 1.2, "y": -0.736, "kec": "SAWAH BESAR", "lat": 25.7, "rsrp": -95.5}, {"x": 0.027, "y": 2.336, "kec": "SAWAH BESAR", "lat": 25.5, "rsrp": -86.0}, {"x": -0.917, "y": 1.822, "kec": "SAWAH BESAR", "lat": 23.8, "rsrp": -94.5}, {"x": 0.446, "y": 1.769, "kec": "SAWAH BESAR", "lat": 22.8, "rsrp": -92.9}, {"x": -0.163, "y": 2.458, "kec": "SAWAH BESAR", "lat": 21.0, "rsrp": -98.8}, {"x": -0.047, "y": 2.073, "kec": "SAWAH BESAR", "lat": 20.5, "rsrp": -95.3}, {"x": 0.098, "y": 1.097, "kec": "SAWAH BESAR", "lat": 20.3, "rsrp": -90.9}, {"x": -0.056, "y": 1.497, "kec": "SAWAH BESAR", "lat": 19.9, "rsrp": -100.9}, {"x": -0.387, "y": 0.865, "kec": "SAWAH BESAR", "lat": 19.4, "rsrp": -99.1}, {"x": 0.409, "y": 2.144, "kec": "SAWAH BESAR", "lat": 17.1, "rsrp": -97.8}, {"x": -0.034, "y": 1.513, "kec": "SAWAH BESAR", "lat": 16.1, "rsrp": -100.3}, {"x": 0.836, "y": -0.603, "kec": "SAWAH BESAR", "lat": 15.4, "rsrp": -96.8}, {"x": 0.661, "y": 0.574, "kec": "SERPONG", "lat": 303.9, "rsrp": -91.4}, {"x": 0.893, "y": 1.13, "kec": "SERPONG", "lat": 254.4, "rsrp": -91.8}, {"x": -0.276, "y": 1.374, "kec": "SERPONG", "lat": 245.1, "rsrp": -94.8}, {"x": -0.709, "y": 0.676, "kec": "SERPONG", "lat": 193.9, "rsrp": -97.5}, {"x": 0.449, "y": -0.753, "kec": "SERPONG", "lat": 62.4, "rsrp": -101.5}, {"x": 0.387, "y": 0.852, "kec": "SERPONG", "lat": 43.5, "rsrp": -98.3}, {"x": 1.708, "y": -0.995, "kec": "SERPONG", "lat": 43.3, "rsrp": -94.7}, {"x": 1.027, "y": 0.536, "kec": "SERPONG", "lat": 35.3, "rsrp": -93.3}, {"x": 1.734, "y": -1.092, "kec": "SERPONG", "lat": 28.6, "rsrp": -93.1}, {"x": 0.152, "y": 0.294, "kec": "SERPONG", "lat": 28.4, "rsrp": -90.4}, {"x": 1.469, "y": -0.783, "kec": "SERPONG", "lat": 24.0, "rsrp": -93.1}, {"x": 0.776, "y": -0.26, "kec": "SERPONG", "lat": 23.9, "rsrp": -92.6}, {"x": 0.682, "y": 1.071, "kec": "SERPONG", "lat": 23.9, "rsrp": -93.7}, {"x": 1.052, "y": -0.081, "kec": "SERPONG", "lat": 20.7, "rsrp": -90.1}, {"x": 1.23, "y": -0.625, "kec": "SERPONG", "lat": 20.0, "rsrp": -100.0}, {"x": 1.476, "y": -0.376, "kec": "SERPONG", "lat": 19.7, "rsrp": -92.6}, {"x": 1.23, "y": 0.061, "kec": "SERPONG", "lat": 19.5, "rsrp": -89.6}, {"x": 1.836, "y": -1.208, "kec": "SERPONG", "lat": 18.8, "rsrp": -91.4}, {"x": 0.508, "y": -0.373, "kec": "SERPONG", "lat": 18.5, "rsrp": -96.5}, {"x": 0.919, "y": -0.115, "kec": "SUKAJADI", "lat": 284.6, "rsrp": -92.7}, {"x": 1.004, "y": -0.275, "kec": "SUKAJADI", "lat": 93.1, "rsrp": -95.3}, {"x": 1.217, "y": -0.212, "kec": "SUKAJADI", "lat": 71.7, "rsrp": -91.3}, {"x": 1.264, "y": -0.876, "kec": "SUKAJADI", "lat": 43.4, "rsrp": -93.3}, {"x": 1.549, "y": -1.016, "kec": "SUKAJADI", "lat": 38.7, "rsrp": -97.5}, {"x": 0.948, "y": 0.434, "kec": "SUKAJADI", "lat": 31.8, "rsrp": -94.1}, {"x": 0.338, "y": 0.359, "kec": "SUKAJADI", "lat": 27.8, "rsrp": -102.4}, {"x": 0.554, "y": 2.331, "kec": "SUKAJADI", "lat": 27.3, "rsrp": -81.8}, {"x": 1.83, "y": -1.033, "kec": "SUKAJADI", "lat": 20.3, "rsrp": -90.6}, {"x": 1.8, "y": -0.797, "kec": "SUKAJADI", "lat": 19.9, "rsrp": -90.5}, {"x": -0.145, "y": 0.664, "kec": "SUKAJADI", "lat": 19.5, "rsrp": -104.3}, {"x": 1.387, "y": -1.016, "kec": "SUKAJADI", "lat": 18.8, "rsrp": -99.8}, {"x": 0.532, "y": 1.069, "kec": "TAMALANREA", "lat": 211.6, "rsrp": -89.7}, {"x": -0.975, "y": 2.547, "kec": "TAMALANREA", "lat": 31.9, "rsrp": -93.6}, {"x": 0.8, "y": 0.802, "kec": "TAMALANREA", "lat": 29.2, "rsrp": -92.8}, {"x": -0.54, "y": 0.275, "kec": "TAMALANREA", "lat": 29.0, "rsrp": -105.2}, {"x": 0.382, "y": 0.953, "kec": "TEGAL TIMUR", "lat": 389.8, "rsrp": -95.2}, {"x": 1.714, "y": 0.454, "kec": "TEGAL TIMUR", "lat": 29.6, "rsrp": -89.4}, {"x": 0.688, "y": -0.15, "kec": "TEGAL TIMUR", "lat": 28.1, "rsrp": -94.5}, {"x": 0.415, "y": -0.434, "kec": "TEGAL TIMUR", "lat": 25.5, "rsrp": -94.7}, {"x": 0.407, "y": -1.074, "kec": "TEGAL TIMUR", "lat": 21.5, "rsrp": -95.6}, {"x": 0.497, "y": 0.327, "kec": "TEGAL TIMUR", "lat": 19.5, "rsrp": -91.1}, {"x": 1.299, "y": 0.837, "kec": "TEGAL TIMUR", "lat": 17.4, "rsrp": -91.0}, {"x": 0.831, "y": -0.815, "kec": "TEGAL TIMUR", "lat": 17.2, "rsrp": -96.7}, {"x": 1.458, "y": 0.156, "kec": "TEGAL TIMUR", "lat": 16.8, "rsrp": -85.9}, {"x": 0.64, "y": -2.568, "kec": "TELUKNAGA", "lat": 3066.5, "rsrp": -102.3}, {"x": 0.816, "y": -0.768, "kec": "TELUKNAGA", "lat": 1341.2, "rsrp": -97.4}, {"x": -0.082, "y": -1.507, "kec": "TELUKNAGA", "lat": 19.7, "rsrp": -96.7}, {"x": -0.032, "y": -1.239, "kec": "TELUKNAGA", "lat": 17.8, "rsrp": -88.2}, {"x": 0.79, "y": -0.418, "kec": "TELUKNAGA", "lat": 17.4, "rsrp": -93.6}, {"x": 0.664, "y": -1.187, "kec": "TELUKNAGA", "lat": 16.9, "rsrp": -96.4}, {"x": -0.134, "y": 0.117, "kec": "WIYUNG", "lat": 217.4, "rsrp": -101.8}, {"x": 0.119, "y": -1.064, "kec": "WIYUNG", "lat": 70.0, "rsrp": -96.2}, {"x": 1.571, "y": 0.369, "kec": "WIYUNG", "lat": 38.1, "rsrp": -83.5}, {"x": 1.028, "y": 0.646, "kec": "WIYUNG", "lat": 27.4, "rsrp": -87.3}, {"x": 1.411, "y": -1.225, "kec": "WIYUNG", "lat": 20.6, "rsrp": -95.6}, {"x": 1.132, "y": 1.359, "kec": "WIYUNG", "lat": 15.8, "rsrp": -81.0}],
+      backgroundColor: '#4ecdc4',
+      borderColor: '#4ecdc4',
+      pointRadius: 5,
+      pointHoverRadius: 8,
+    },{
+      label: 'Cluster 2: Perumahan',
+      data: [{"x": -1.815, "y": 5.168, "kec": "BENDA", "lat": 601.7, "rsrp": -97.6}, {"x": -2.787, "y": 4.121, "kec": "BENDA", "lat": 32.1, "rsrp": -97.9}, {"x": -3.892, "y": 2.213, "kec": "BENDA", "lat": 18.8, "rsrp": -98.2}, {"x": -2.928, "y": 4.249, "kec": "BENDA", "lat": 17.4, "rsrp": -88.8}, {"x": -3.445, "y": 3.992, "kec": "BENDA", "lat": 16.5, "rsrp": -94.5}, {"x": -3.224, "y": 4.074, "kec": "BENDA", "lat": 14.7, "rsrp": -94.8}, {"x": -2.95, "y": 4.13, "kec": "BENDA", "lat": 13.8, "rsrp": -91.8}],
+      backgroundColor: '#ffd93d',
+      borderColor: '#ffd93d',
+      pointRadius: 5,
+      pointHoverRadius: 8,
+    },];
+
+new Chart(document.getElementById('scatterChart'), {
+  type: 'scatter',
+  data: { datasets: scatterDatasets },
+  options: {
+    responsive: true,
+    plugins: {
+      tooltip: {
+        callbacks: {
+          label: function(ctx) {
+            const p = ctx.raw;
+            return p.kec + ': ' + p.lat.toFixed(0) + 'ms, RSRP=' + p.rsrp.toFixed(1);
+          }
+        }
+      },
+      legend: { labels: { color: '#c9d1d9' } }
+    },
+    scales: {
+      x: { title: { display:true, text:'PCA 1', color:'#8b949e' }, grid:{color:'#21262d'}, ticks:{color:'#8b949e'} },
+      y: { title: { display:true, text:'PCA 2', color:'#8b949e' }, grid:{color:'#21262d'}, ticks:{color:'#8b949e'} }
+    }
+  }
+});
+
+new Chart(document.getElementById('latencyChart'), {
+  type: 'bar',
+  data: {
+    labels: ['C0: Ibadah/Resto', 'C1: Pertokoan/Ktr', 'C2: Perumahan'],
+    datasets: [{
+      label: 'Avg UDP Latency (ms)',
+      data: [151.8,98.5,102.1],
+      backgroundColor: ["#ff6b6b", "#4ecdc4", "#ffd93d"],
+      borderRadius: 6
+    }]
+  },
+  options: {
+    responsive: true,
+    plugins: { legend:{display:false} },
+    scales: {
+      y: { grid:{color:'#21262d'}, ticks:{color:'#8b949e'}, title:{display:true,text:'ms',color:'#8b949e'} },
+      x: { grid:{display:false}, ticks:{color:'#8b949e'} }
+    }
+  }
+});
+
+new Chart(document.getElementById('rsrpChart'), {
+  type: 'bar',
+  data: {
+    labels: ['C0: Ibadah/Resto', 'C1: Pertokoan/Ktr', 'C2: Perumahan'],
+    datasets: [{
+      label: 'Avg RSRP (dBm)',
+      data: [-96.3,-94.0,-94.8],
+      backgroundColor: ["#ff6b6b", "#4ecdc4", "#ffd93d"],
+      borderRadius: 6
+    }]
+  },
+  options: {
+    responsive: true,
+    plugins: { legend:{display:false} },
+    scales: {
+      y: { grid:{color:'#21262d'}, ticks:{color:'#8b949e'}, title:{display:true,text:'dBm',color:'#8b949e'} },
+      x: { grid:{display:false}, ticks:{color:'#8b949e'} }
+    }
+  }
+});
+
+new Chart(document.getElementById('hourlyChart'), {
+  type: 'line',
+  data: {
+    labels: ["00:00", "01:00", "02:00", "03:00", "04:00", "05:00", "06:00", "07:00", "08:00", "09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00", "18:00", "19:00", "20:00", "21:00", "22:00", "23:00"],
+    datasets: [{
+      label: 'BENDA (Jun 22-28)',
+      data: [23.9, 24.3, 23.4, 18.9, 30.0, 26.1, 31.3, 27.3, 27.5, 32.0, 30.5, 41.4, 31.5, 29.8, 22.3, 134.9, 44.5, 34.4, 35.4, 30.3, 78.7, 36.4, 37.1, 19.3],
+      borderColor: '#ff6b6b',
+      backgroundColor: '#ff6b6b33',
+      tension: 0.3,
+      pointRadius: 3,
+      borderWidth: 2.5,
+    },{
+      label: 'BENDA (Jun 8-14)',
+      data: [36.6, 19.8, 22.3, 15.4, 52.5, 20.0, 20.2, 31.5, 23.8, 23.0, 27.0, 22.3, 30.6, 22.3, 46.7, 24.2, 79.6, 29.3, 22.4, 54.9, 23.8, 39.3, 28.4, 27.1],
+      borderColor: '#ff6b6b88',
+      backgroundColor: 'transparent',
+      tension: 0.3,
+      pointRadius: 1,
+      borderWidth: 1.5,
+      borderDash: [5, 5],
+    },{
+      label: 'BLAHBATUH (Jun 22-28)',
+      data: [32.5, 29.7, 0, 61.8, 29.1, 26.4, 28.8, 36.2, 28.5, 31.2, 30.4, 31.1, 32.5, 28.2, 31.9, 166.1, 45.6, 26.4, 33.1, 38.2, 30.3, 46.9, 32.0, 37.9],
+      borderColor: '#4ecdc4',
+      backgroundColor: '#4ecdc433',
+      tension: 0.3,
+      pointRadius: 3,
+      borderWidth: 2.5,
+    },{
+      label: 'BLAHBATUH (Jun 8-14)',
+      data: [29.5, 27.8, 40.9, 29.3, 29.8, 52.9, 30.3, 29.6, 28.7, 29.8, 34.1, 33.0, 37.5, 32.9, 27.2, 29.0, 43.6, 27.7, 25.8, 39.4, 29.9, 48.1, 30.2, 25.5],
+      borderColor: '#4ecdc488',
+      backgroundColor: 'transparent',
+      tension: 0.3,
+      pointRadius: 1,
+      borderWidth: 1.5,
+      borderDash: [5, 5],
+    },{
+      label: 'ILIR TIMUR I (Jun 22-28)',
+      data: [24.0, 23.2, 23.1, 28.9, 24.7, 23.9, 26.4, 24.0, 184.8, 26.9, 25.0, 28.5, 27.9, 23.8, 26.6, 79.2, 33.2, 58.0, 29.2, 26.7, 29.2, 49.5, 30.9, 26.5],
+      borderColor: '#ffd93d',
+      backgroundColor: '#ffd93d33',
+      tension: 0.3,
+      pointRadius: 3,
+      borderWidth: 2.5,
+    },{
+      label: 'ILIR TIMUR I (Jun 8-14)',
+      data: [42.3, 27.6, 17.1, 24.1, 31.8, 22.7, 29.3, 35.6, 35.4, 30.7, 19.9, 27.0, 35.9, 31.1, 31.8, 25.1, 37.8, 31.1, 26.5, 25.6, 31.7, 25.8, 58.6, 32.1],
+      borderColor: '#ffd93d88',
+      backgroundColor: 'transparent',
+      tension: 0.3,
+      pointRadius: 1,
+      borderWidth: 1.5,
+      borderDash: [5, 5],
+    },{
+      label: 'LAMONGAN (Jun 22-28)',
+      data: [0, 0, 24.5, 24.2, 0, 0, 30.6, 31.1, 25.5, 18.7, 35.6, 158.7, 32.2, 27.1, 23.3, 20.0, 19.7, 29.1, 27.4, 22.1, 33.9, 32.4, 26.8, 21.1],
+      borderColor: '#a371f7',
+      backgroundColor: '#a371f733',
+      tension: 0.3,
+      pointRadius: 3,
+      borderWidth: 2.5,
+    },{
+      label: 'LAMONGAN (Jun 8-14)',
+      data: [22.4, 18.4, 17.3, 20.4, 18.2, 29.8, 171.2, 96.6, 29.1, 23.1, 83.1, 37.9, 21.3, 24.5, 20.2, 21.8, 23.6, 24.8, 47.5, 22.4, 46.0, 23.1, 22.4, 20.0],
+      borderColor: '#a371f788',
+      backgroundColor: 'transparent',
+      tension: 0.3,
+      pointRadius: 1,
+      borderWidth: 1.5,
+      borderDash: [5, 5],
+    },{
+      label: 'MANYAR (Jun 22-28)',
+      data: [18.7, 18.9, 25.4, 148.8, 43.5, 100.3, 23.7, 26.1, 22.8, 31.0, 23.2, 88.3, 23.4, 26.2, 24.0, 25.7, 24.9, 32.3, 21.1, 26.1, 31.0, 32.6, 25.5, 22.8],
+      borderColor: '#7ee787',
+      backgroundColor: '#7ee78733',
+      tension: 0.3,
+      pointRadius: 3,
+      borderWidth: 2.5,
+    },{
+      label: 'MANYAR (Jun 8-14)',
+      data: [22.2, 25.3, 19.4, 19.9, 21.4, 20.4, 30.1, 105.6, 21.6, 34.3, 20.0, 21.2, 32.0, 58.1, 31.9, 23.2, 37.0, 33.6, 37.8, 31.1, 22.3, 25.2, 24.7, 33.8],
+      borderColor: '#7ee78788',
+      backgroundColor: 'transparent',
+      tension: 0.3,
+      pointRadius: 1,
+      borderWidth: 1.5,
+      borderDash: [5, 5],
+    },{
+      label: 'PEGANTENAN (Jun 22-28)',
+      data: [16.4, 0, 35.7, 36.5, 27.9, 34.0, 23.8, 32.5, 47.2, 24.8, 41.8, 26.4, 22.4, 133.2, 29.2, 26.5, 30.6, 35.0, 24.7, 43.0, 125.1, 24.7, 12.8, 23.7],
+      borderColor: '#f0883e',
+      backgroundColor: '#f0883e33',
+      tension: 0.3,
+      pointRadius: 3,
+      borderWidth: 2.5,
+    },{
+      label: 'PEGANTENAN (Jun 8-14)',
+      data: [150.2, 18.9, 17.2, 65.7, 27.1, 34.9, 51.4, 34.2, 45.0, 50.2, 23.3, 43.1, 68.9, 20.3, 16.8, 27.5, 177.3, 27.7, 36.8, 632.9, 97.4, 19.3, 44.0, 128.2],
+      borderColor: '#f0883e88',
+      backgroundColor: 'transparent',
+      tension: 0.3,
+      pointRadius: 1,
+      borderWidth: 1.5,
+      borderDash: [5, 5],
+    },{
+      label: 'RANCABUNGUR (Jun 22-28)',
+      data: [19.0, 19.6, 28.3, 28.3, 18.3, 19.8, 19.8, 28.4, 16.3, 23.2, 29.1, 29.6, 21.1, 22.7, 24.5, 28.3, 23.0, 40.6, 26.5, 378.1, 40.1, 26.5, 20.5, 21.8],
+      borderColor: '#79c0ff',
+      backgroundColor: '#79c0ff33',
+      tension: 0.3,
+      pointRadius: 3,
+      borderWidth: 2.5,
+    },{
+      label: 'RANCABUNGUR (Jun 8-14)',
+      data: [22.8, 23.2, 0, 17.7, 15.3, 14.2, 21.4, 17.1, 19.9, 20.3, 19.8, 25.4, 242.5, 36.1, 47.0, 130.6, 24.2, 19.7, 20.4, 21.4, 18.3, 21.4, 107.3, 17.8],
+      borderColor: '#79c0ff88',
+      backgroundColor: 'transparent',
+      tension: 0.3,
+      pointRadius: 1,
+      borderWidth: 1.5,
+      borderDash: [5, 5],
+    },{
+      label: 'SAWAH BESAR (Jun 22-28)',
+      data: [26.5, 32.7, 23.6, 18.0, 22.2, 24.2, 20.9, 23.2, 28.9, 47.8, 26.6, 25.4, 28.8, 32.1, 93.9, 28.4, 26.9, 38.0, 103.9, 58.8, 289.0, 32.6, 20.5, 20.0],
+      borderColor: '#d2a8ff',
+      backgroundColor: '#d2a8ff33',
+      tension: 0.3,
+      pointRadius: 3,
+      borderWidth: 2.5,
+    },{
+      label: 'SAWAH BESAR (Jun 8-14)',
+      data: [24.5, 15.6, 16.9, 33.1, 30.4, 23.5, 20.7, 22.0, 30.6, 29.7, 22.0, 22.7, 24.8, 78.5, 30.7, 29.5, 34.5, 22.9, 26.4, 35.7, 29.7, 27.4, 19.8, 18.7],
+      borderColor: '#d2a8ff88',
+      backgroundColor: 'transparent',
+      tension: 0.3,
+      pointRadius: 1,
+      borderWidth: 1.5,
+      borderDash: [5, 5],
+    },{
+      label: 'TELUKNAGA (Jun 22-28)',
+      data: [16.6, 15.9, 226.4, 26.6, 22.4, 25.4, 22.6, 20.2, 316.3, 24.6, 32.4, 30.5, 124.0, 45.1, 139.1, 24.5, 36.5, 23.2, 46.8, 65.8, 29.1, 40.5, 33.8, 22.5],
+      borderColor: '#ffa657',
+      backgroundColor: '#ffa65733',
+      tension: 0.3,
+      pointRadius: 3,
+      borderWidth: 2.5,
+    },{
+      label: 'TELUKNAGA (Jun 8-14)',
+      data: [59.6, 20.8, 32.7, 14.6, 24.1, 20.5, 21.0, 25.0, 21.4, 27.1, 23.1, 26.0, 23.2, 33.4, 20.6, 23.9, 139.5, 22.0, 27.5, 22.2, 31.5, 39.7, 33.2, 26.0],
+      borderColor: '#ffa65788',
+      backgroundColor: 'transparent',
+      tension: 0.3,
+      pointRadius: 1,
+      borderWidth: 1.5,
+      borderDash: [5, 5],
+    },{
+      label: 'WIYUNG (Jun 22-28)',
+      data: [19.5, 19.2, 23.2, 21.3, 23.5, 32.0, 23.9, 22.4, 25.0, 40.9, 87.8, 26.6, 22.7, 21.0, 28.0, 26.0, 130.8, 26.9, 22.6, 20.1, 27.9, 37.5, 31.4, 121.1],
+      borderColor: '#ff7b72',
+      backgroundColor: '#ff7b7233',
+      tension: 0.3,
+      pointRadius: 3,
+      borderWidth: 2.5,
+    },{
+      label: 'WIYUNG (Jun 8-14)',
+      data: [20.0, 20.0, 21.0, 24.0, 20.5, 19.9, 20.5, 31.8, 40.9, 26.8, 17.7, 22.7, 26.8, 30.7, 20.9, 40.5, 20.9, 45.9, 24.1, 19.3, 20.7, 49.5, 19.8, 18.7],
+      borderColor: '#ff7b7288',
+      backgroundColor: 'transparent',
+      tension: 0.3,
+      pointRadius: 1,
+      borderWidth: 1.5,
+      borderDash: [5, 5],
+    },]
+  },
+  options: {
+    responsive: true,
+    interaction: { mode: 'index', intersect: false },
+    plugins: {
+      legend: { labels: { color: '#c9d1d9', boxWidth: 10, font:{size:9} } },
+      tooltip: { callbacks: { label: (ctx) => ctx.dataset.label + ': ' + ctx.parsed.y.toFixed(0) + 'ms' } }
+    },
+    scales: {
+      x: { title: { display:true, text:'Hour of Day', color:'#8b949e' }, grid:{color:'#21262d'}, ticks:{color:'#8b949e'} },
+      y: { title: { display:true, text:'UDP Latency (ms)', color:'#8b949e' }, grid:{color:'#21262d'}, ticks:{color:'#8b949e'} }
+    }
+  }
+});
+</script>
+</body>
+</html>

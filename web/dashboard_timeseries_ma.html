@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>KAUDITAN — Timeseries Moving Average</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3"></script>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:#0d1117; color:#c9d1d9; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif; padding:20px; }
+h1 { color:#58a6ff; font-size:1.5em; margin-bottom:4px; }
+.subtitle { color:#8b949e; font-size:.85em; margin-bottom:20px; }
+.grid { display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-bottom:20px; }
+@media(max-width:900px) { .grid { grid-template-columns:1fr; } }
+.card { background:#161b22; border:1px solid #30363d; border-radius:8px; padding:16px; }
+.card h2 { color:#58a6ff; font-size:1em; margin-bottom:4px; }
+.card .note { color:#8b949e; font-size:.75em; margin-bottom:12px; }
+.full { grid-column: 1 / -1; }
+.legend-custom { display:flex; gap:20px; margin-bottom:16px; justify-content:center; flex-wrap:wrap; }
+.legend-item { display:flex; align-items:center; gap:6px; font-size:.85em; }
+.legend-dot { width:12px; height:12px; border-radius:50%; }
+.chart-wrap { position:relative; height:280px; }
+.info-box { background:#1c2333; border-left:3px solid #58a6ff; padding:12px 16px; border-radius:4px; margin-bottom:20px; }
+.info-box p { font-size:.85em; line-height:1.6; }
+.info-box strong { color:#58a6ff; }
+.nav { display:flex; gap:12px; margin-bottom:20px; flex-wrap:wrap; }
+.nav a { color:#58a6ff; text-decoration:none; font-size:.85em; padding:4px 12px; border:1px solid #30363d; border-radius:4px; }
+.nav a:hover { background:#1f2937; }
+</style>
+</head>
+<body>
+
+<h1>📊 KAUDITAN — Timeseries + Moving Average (MA7)</h1>
+<p class="subtitle">Video Quality &amp; Signal Trend · Apr 1 – Jun 15, 2026 · Data: OpenSignal ONX</p>
+
+<div class="nav">
+  <a href="/">← Dashboard Utama</a>
+  <a href="/dashboard_kauditan.html">KAUDITAN Detail</a>
+  <a href="/dashboard_cdn_analysis.html">CDN Analysis</a>
+</div>
+
+<div class="info-box">
+  <p><strong>Moving Average 7-hari (MA7):</strong> Garis solid = rata-rata bergerak 7 hari. Titik = data harian aktual. MA7 menghaluskan noise dan menunjukkan tren. <strong>Perhatikan:</strong> XL hanya punya 10 data points (sangat sparse), Telkomsel 66, Indosat 26 — sampling density sangat tidak merata.</p>
+</div>
+
+<div class="legend-custom">
+  <div class="legend-item"><div class="legend-dot" style="background:#0066ff"></div> XL</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#e4405f"></div> Telkomsel</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#f5a623"></div> Indosat</div>
+  <div class="legend-item" style="color:#8b949e">Titik = data harian · Garis = MA7</div>
+</div>
+
+<div class="grid">
+  <div class="card">
+    <h2>⏱️ Stall Time (detik)</h2>
+    <div class="note">avg_video_stallinginterval · Skala log · Lower = better</div>
+    <div class="chart-wrap"><canvas id="chartStall"></canvas></div>
+  </div>
+  <div class="card">
+    <h2>📦 Buffer Count</h2>
+    <div class="note">avg_video_bufferingcount · Lower = better</div>
+    <div class="chart-wrap"><canvas id="chartBuffer"></canvas></div>
+  </div>
+  <div class="card full">
+    <h2>📶 RSRP (dBm)</h2>
+    <div class="note">avg_qos_rsrp · Hanya baseline (Apr–Mei) · Closer to 0 = better</div>
+    <div class="chart-wrap"><canvas id="chartRsrp"></canvas></div>
+  </div>
+</div>
+
+<div class="card">
+  <h2>📋 Sample Size per Hari</h2>
+  <div class="note">Jumlah test per operator per hari — semakin tinggi semakin reliable</div>
+  <div class="chart-wrap"><canvas id="chartCount"></canvas></div>
+</div>
+
+<script>
+// === DATA ===
+const DATA = {
+  "XL": [
+    {"date":"2026-04-02","stall":0,"buffer":0,"rsrp":-100,"count":1},
+    {"date":"2026-04-11","stall":0,"buffer":0,"rsrp":-102,"count":1},
+    {"date":"2026-04-29","stall":0,"buffer":1,"rsrp":-97,"count":1},
+    {"date":"2026-05-08","stall":0,"buffer":0,"rsrp":-108,"count":1},
+    {"date":"2026-05-14","stall":0,"buffer":0,"rsrp":-96,"count":1},
+    {"date":"2026-05-18","stall":0,"buffer":0,"rsrp":-112,"count":1},
+    {"date":"2026-05-25","stall":0,"buffer":1,"rsrp":-95,"count":1},
+    {"date":"2026-06-08","stall":0,"buffer":0.5,"rsrp":null,"count":2},
+    {"date":"2026-06-09","stall":0,"buffer":0,"rsrp":null,"count":1},
+    {"date":"2026-06-12","stall":0,"buffer":1,"rsrp":null,"count":1}
+  ],
+  "Telkomsel": [
+    {"date":"2026-04-01","stall":0,"buffer":0,"rsrp":-85,"count":2},
+    {"date":"2026-04-02","stall":0,"buffer":0.5,"rsrp":-83,"count":2},
+    {"date":"2026-04-03","stall":0,"buffer":0.17,"rsrp":-92,"count":6},
+    {"date":"2026-04-04","stall":0,"buffer":0,"rsrp":-85,"count":2},
+    {"date":"2026-04-06","stall":0,"buffer":0,"rsrp":-87,"count":2},
+    {"date":"2026-04-07","stall":0,"buffer":0.17,"rsrp":-90,"count":6},
+    {"date":"2026-04-08","stall":0,"buffer":0,"rsrp":-88,"count":2},
+    {"date":"2026-04-09","stall":0,"buffer":0,"rsrp":-86,"count":1},
+    {"date":"2026-04-10","stall":0,"buffer":0.33,"rsrp":-84,"count":3},
+    {"date":"2026-04-11","stall":0,"buffer":0,"rsrp":-85,"count":3},
+    {"date":"2026-04-12","stall":0,"buffer":0.5,"rsrp":-83,"count":2},
+    {"date":"2026-04-13","stall":0,"buffer":0,"rsrp":-87,"count":2},
+    {"date":"2026-04-14","stall":0,"buffer":0.5,"rsrp":-84,"count":4},
+    {"date":"2026-04-15","stall":0,"buffer":0,"rsrp":-86,"count":1},
+    {"date":"2026-04-18","stall":0,"buffer":0,"rsrp":-87,"count":4},
+    {"date":"2026-04-19","stall":0,"buffer":0,"rsrp":-89,"count":3},
+    {"date":"2026-04-20","stall":0,"buffer":0,"rsrp":-91,"count":3},
+    {"date":"2026-04-21","stall":0,"buffer":0.12,"rsrp":-88,"count":8},
+    {"date":"2026-04-22","stall":0,"buffer":0,"rsrp":-85,"count":2},
+    {"date":"2026-04-23","stall":0,"buffer":0,"rsrp":-90,"count":1},
+    {"date":"2026-04-24","stall":0,"buffer":0,"rsrp":-87,"count":3},
+    {"date":"2026-04-25","stall":0,"buffer":0,"rsrp":-86,"count":1},
+    {"date":"2026-04-26","stall":0,"buffer":0,"rsrp":-89,"count":2},
+    {"date":"2026-04-27","stall":0,"buffer":0,"rsrp":-88,"count":2},
+    {"date":"2026-04-28","stall":0,"buffer":0.33,"rsrp":-84,"count":3},
+    {"date":"2026-04-29","stall":0,"buffer":0.5,"rsrp":-86,"count":2},
+    {"date":"2026-04-30","stall":0,"buffer":0,"rsrp":-90,"count":2},
+    {"date":"2026-05-02","stall":0,"buffer":0,"rsrp":-85,"count":1},
+    {"date":"2026-05-03","stall":0,"buffer":0,"rsrp":-87,"count":3},
+    {"date":"2026-05-04","stall":0,"buffer":0.5,"rsrp":-84,"count":2},
+    {"date":"2026-05-05","stall":0,"buffer":0,"rsrp":-89,"count":3},
+    {"date":"2026-05-06","stall":0,"buffer":0,"rsrp":-86,"count":6},
+    {"date":"2026-05-07","stall":0,"buffer":0,"rsrp":-85,"count":3},
+    {"date":"2026-05-08","stall":0,"buffer":0,"rsrp":-87,"count":3},
+    {"date":"2026-05-09","stall":0,"buffer":0,"rsrp":-88,"count":2},
+    {"date":"2026-05-10","stall":0,"buffer":0,"rsrp":-84,"count":3},
+    {"date":"2026-05-11","stall":0,"buffer":0.25,"rsrp":-86,"count":4},
+    {"date":"2026-05-14","stall":0,"buffer":0,"rsrp":-90,"count":1},
+    {"date":"2026-05-15","stall":0,"buffer":0,"rsrp":-87,"count":2},
+    {"date":"2026-05-16","stall":0,"buffer":0,"rsrp":-85,"count":2},
+    {"date":"2026-05-18","stall":0,"buffer":0,"rsrp":-88,"count":3},
+    {"date":"2026-05-19","stall":0,"buffer":0,"rsrp":-86,"count":1},
+    {"date":"2026-05-20","stall":0,"buffer":0,"rsrp":-89,"count":4},
+    {"date":"2026-05-21","stall":0,"buffer":0,"rsrp":-87,"count":6},
+    {"date":"2026-05-22","stall":0,"buffer":0,"rsrp":-85,"count":2},
+    {"date":"2026-05-23","stall":0,"buffer":0,"rsrp":-86,"count":4},
+    {"date":"2026-05-24","stall":0,"buffer":0,"rsrp":-84,"count":2},
+    {"date":"2026-05-25","stall":0,"buffer":0,"rsrp":-88,"count":2},
+    {"date":"2026-05-26","stall":0,"buffer":0,"rsrp":-87,"count":3},
+    {"date":"2026-05-27","stall":0,"buffer":0,"rsrp":-85,"count":2},
+    {"date":"2026-05-29","stall":0,"buffer":0,"rsrp":-86,"count":1},
+    {"date":"2026-05-30","stall":0,"buffer":0,"rsrp":-89,"count":4},
+    {"date":"2026-05-31","stall":0,"buffer":0,"rsrp":-88,"count":9},
+    {"date":"2026-06-01","stall":0,"buffer":0.33,"rsrp":null,"count":3},
+    {"date":"2026-06-02","stall":0,"buffer":0,"rsrp":null,"count":2},
+    {"date":"2026-06-03","stall":0,"buffer":0,"rsrp":null,"count":8},
+    {"date":"2026-06-05","stall":0,"buffer":0,"rsrp":null,"count":14},
+    {"date":"2026-06-06","stall":0,"buffer":0.33,"rsrp":null,"count":6},
+    {"date":"2026-06-08","stall":0,"buffer":0,"rsrp":null,"count":4},
+    {"date":"2026-06-09","stall":0,"buffer":0,"rsrp":null,"count":2},
+    {"date":"2026-06-10","stall":0,"buffer":0,"rsrp":null,"count":9},
+    {"date":"2026-06-11","stall":0,"buffer":0,"rsrp":null,"count":1},
+    {"date":"2026-06-12","stall":0,"buffer":0,"rsrp":null,"count":1},
+    {"date":"2026-06-13","stall":0,"buffer":0,"rsrp":null,"count":3},
+    {"date":"2026-06-14","stall":0,"buffer":0,"rsrp":null,"count":2},
+    {"date":"2026-06-15","stall":0,"buffer":0.14,"rsrp":null,"count":7}
+  ],
+  "Indosat": [
+    {"date":"2026-04-11","stall":0,"buffer":1,"rsrp":-92,"count":1},
+    {"date":"2026-04-12","stall":6700,"buffer":1,"rsrp":-95,"count":1},
+    {"date":"2026-04-15","stall":0,"buffer":0,"rsrp":-91,"count":1},
+    {"date":"2026-04-16","stall":0,"buffer":0,"rsrp":-88,"count":1},
+    {"date":"2026-04-19","stall":0,"buffer":0,"rsrp":-93,"count":1},
+    {"date":"2026-04-30","stall":0,"buffer":0,"rsrp":-90,"count":1},
+    {"date":"2026-05-01","stall":0,"buffer":0,"rsrp":-89,"count":1},
+    {"date":"2026-05-02","stall":0,"buffer":0,"rsrp":-87,"count":1},
+    {"date":"2026-05-05","stall":0,"buffer":0,"rsrp":-91,"count":1},
+    {"date":"2026-05-06","stall":0,"buffer":0,"rsrp":-93,"count":1},
+    {"date":"2026-05-07","stall":0,"buffer":0,"rsrp":-90,"count":1},
+    {"date":"2026-05-08","stall":0,"buffer":0,"rsrp":-92,"count":1},
+    {"date":"2026-05-14","stall":0,"buffer":0,"rsrp":-88,"count":2},
+    {"date":"2026-05-18","stall":0,"buffer":1,"rsrp":-95,"count":1},
+    {"date":"2026-05-21","stall":0,"buffer":0,"rsrp":-90,"count":1},
+    {"date":"2026-05-24","stall":0,"buffer":0,"rsrp":-87,"count":1},
+    {"date":"2026-05-25","stall":0,"buffer":0,"rsrp":-89,"count":2},
+    {"date":"2026-05-28","stall":0,"buffer":0,"rsrp":-91,"count":1},
+    {"date":"2026-05-31","stall":0,"buffer":0,"rsrp":-93,"count":1},
+    {"date":"2026-06-01","stall":0,"buffer":0,"rsrp":null,"count":1},
+    {"date":"2026-06-03","stall":0,"buffer":0,"rsrp":null,"count":2},
+    {"date":"2026-06-05","stall":0,"buffer":0,"rsrp":null,"count":2},
+    {"date":"2026-06-06","stall":0,"buffer":0,"rsrp":null,"count":4},
+    {"date":"2026-06-07","stall":0,"buffer":0,"rsrp":null,"count":2},
+    {"date":"2026-06-09","stall":0,"buffer":0,"rsrp":null,"count":3},
+    {"date":"2026-06-12","stall":0,"buffer":0,"rsrp":null,"count":1}
+  ]
+};
+
+const COLORS = { XL:'#0066ff', Telkomsel:'#e4405f', Indosat:'#f5a623' };
+const OP_LIST = ['XL','Telkomsel','Indosat'];
+
+// Compute MA7
+function ma7(data, field) {
+  const vals = data.map(d => d[field] !== null && d[field] !== undefined ? d[field] : null);
+  const result = [];
+  for (let i = 0; i < vals.length; i++) {
+    const window = [];
+    for (let j = Math.max(0, i-3); j <= Math.min(vals.length-1, i+3); j++) {
+      if (vals[j] !== null) window.push(vals[j]);
+    }
+    result.push(window.length > 0 ? window.reduce((a,b)=>a+b,0)/window.length : null);
+  }
+  return result;
+}
+
+// Chart defaults
+Chart.defaults.color = '#8b949e';
+Chart.defaults.borderColor = '#21262d';
+
+function makeChart(canvasId, label, field, opts={}) {
+  const datasets = [];
+  for (const op of OP_LIST) {
+    const d = DATA[op];
+    const xData = d.map(r => r.date);
+    const yData = d.map(r => r[field]);
+    const ma = ma7(d, field);
+
+    // Scatter dots (actual data)
+    datasets.push({
+      label: op,
+      data: d.map(r => ({x: r.date, y: r[field]})),
+      borderColor: COLORS[op],
+      backgroundColor: COLORS[op] + '88',
+      pointRadius: d.map(r => r[field] === 0 ? 3 : 5),
+      pointStyle: 'circle',
+      showLine: false,
+      order: 2
+    });
+
+    // MA7 line
+    datasets.push({
+      label: op + ' MA7',
+      data: d.map((r,i) => ({x: r.date, y: ma[i]})),
+      borderColor: COLORS[op],
+      backgroundColor: 'transparent',
+      borderWidth: 2.5,
+      pointRadius: 0,
+      showLine: true,
+      tension: 0.4,
+      borderDash: [],
+      order: 1
+    });
+  }
+
+  const config = {
+    type: 'scatter',
+    data: { datasets },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode:'nearest', intersect:false },
+      plugins: {
+        legend: {
+          display: true,
+          position: 'top',
+          labels: {
+            filter: item => !item.text.includes('MA7'),
+            usePointStyle: true,
+            pointStyle: 'circle',
+            padding: 16,
+            font: { size: 11 }
+          }
+        },
+        tooltip: {
+          callbacks: {
+            label: ctx => {
+              const ds = ctx.dataset;
+              const op = ds.label.replace(' MA7','');
+              const isMA = ds.label.includes('MA7');
+              const val = ctx.parsed.y;
+              const suffix = opts.unit || '';
+              return `${op}${isMA?' (MA7)':': actual'}: ${val !== null ? val.toFixed(opts.decimals||1) + suffix : 'N/A'}`;
+            }
+          }
+        }
+      },
+      scales: {
+        x: {
+          type: 'time',
+          time: { unit: 'week', displayFormats: { week: 'dd MMM' } },
+          grid: { color:'#21262d' },
+          ticks: { font:{size:10} }
+        },
+        y: {
+          ...opts.yScale,
+          grid: { color:'#21262d' },
+          ticks: { font:{size:10} },
+          title: { display:true, text: opts.yLabel||'', font:{size:11} }
+        }
+      }
+    }
+  };
+
+  new Chart(document.getElementById(canvasId), config);
+}
+
+// Stall chart (log scale)
+makeChart('chartStall', 'Stall Time', 'stall', {
+  unit:'s', decimals:0, yLabel:'Detik',
+  yScale: {
+    type: 'logarithmic',
+    min: 0.1,
+    ticks: {
+      callback: v => v >= 1 ? v.toString() : v.toFixed(1)
+    }
+  }
+});
+
+// Buffer chart
+makeChart('chartBuffer', 'Buffer Count', 'buffer', {
+  unit:'', decimals:2, yLabel:'Count',
+  yScale: { min:0 }
+});
+
+// RSRP chart
+makeChart('chartRsrp', 'RSRP', 'rsrp', {
+  unit:' dBm', decimals:0, yLabel:'dBm',
+  yScale: { reverse: false }
+});
+
+// Sample count chart
+(function(){
+  const datasets = [];
+  for (const op of OP_LIST) {
+    datasets.push({
+      label: op,
+      data: DATA[op].map(r => ({x: r.date, y: r.count})),
+      backgroundColor: COLORS[op] + '99',
+      borderColor: COLORS[op],
+      borderWidth: 1,
+      barPercentage: 0.8,
+      categoryPercentage: 0.7
+    });
+  }
+  new Chart(document.getElementById('chartCount'), {
+    type: 'bar',
+    data: { datasets },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display:true, position:'top', labels:{usePointStyle:true, padding:16, font:{size:11}} },
+        tooltip: {
+          callbacks: { label: ctx => `${ctx.dataset.label}: ${ctx.parsed.y} tests` }
+        }
+      },
+      scales: {
+        x: {
+          type: 'time',
+          time: { unit:'week', displayFormats:{week:'dd MMM'} },
+          grid: { color:'#21262d' },
+          ticks: { font:{size:10} },
+          stacked: false
+        },
+        y: {
+          grid: { color:'#21262d' },
+          ticks: { font:{size:10} },
+          title: { display:true, text:'Jumlah Test', font:{size:11} },
+          beginAtZero: true
+        }
+      }
+    }
+  });
+})();
+
+</script>
+</body>
+</html>

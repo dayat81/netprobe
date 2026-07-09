@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>XL Minahasa Utara – Kecamatan Breakdown</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', Tahoma, sans-serif; padding: 20px; background: #fff; }
+  .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; padding-bottom: 10px; border-bottom: 3px solid #4A90D9; }
+  .header h1 { font-size: 22px; color: #222; }
+  .logo { font-size: 20px; font-weight: bold; color: #E74C3C; }
+  .subtitle { color: #666; font-size: 13px; margin-bottom: 15px; }
+  .subtitle span { background: #f0f0f0; padding: 3px 10px; border-radius: 4px; margin-right: 8px; }
+  .cards { display: flex; gap: 20px; margin-bottom: 20px; }
+  .card { background: #f8f9fa; border: 1px solid #e0e0e0; border-radius: 8px; padding: 15px 20px; flex: 1; text-align: center; }
+  .card .value { font-size: 28px; font-weight: 700; color: #333; }
+  .card .label { font-size: 12px; color: #888; margin-top: 5px; }
+  .card.highlight { background: #FFF3CD; border-color: #FFEAA7; }
+  .card.highlight .value { color: #E74C3C; }
+  table { border-collapse: collapse; width: 100%; font-size: 13px; }
+  th { background: #4A90D9; color: white; padding: 10px 8px; text-align: center; font-weight: 600; }
+  td { padding: 10px 8px; text-align: center; border-bottom: 1px solid #eee; }
+  td.kec { text-align: left; font-weight: 500; }
+  .score-good { color: #27ae60; font-weight: 600; }
+  .score-ok { color: #2ecc71; font-weight: 600; }
+  .score-avg { color: #f39c12; font-weight: 600; }
+  .score-poor { color: #e74c3c; font-weight: 600; }
+  tr:hover { background: #f0f7ff; }
+  tr.worst { background: #FADBD8 !important; }
+  .footer { margin-top: 20px; padding: 12px; background: #D6E6F5; border-radius: 6px; font-size: 13px; }
+  .legend { margin-bottom: 15px; font-size: 12px; color: #555; }
+  .legend span { margin-right: 15px; }
+  .legend .swatch { display: inline-block; width: 12px; height: 12px; border-radius: 2px; vertical-align: middle; margin-right: 3px; }
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>📍 Kab. Minahasa Utara — XL Kecamatan Breakdown</h1>
+  <div class="logo">XLSMART</div>
+</div>
+<div class="subtitle">
+  <span>📅 13 Jun – 19 Jun 2026</span>
+  <span>📶 4G+5G</span>
+  <span>🎬 ABR Video</span>
+  <span>🔵 XL Only</span>
+  <span>📍 7 Kecamatan</span>
+</div>
+
+<div class="cards">
+  <div class="card">
+    <div class="value">23</div>
+    <div class="label">Total Records (XL)</div>
+  </div>
+  <div class="card">
+    <div class="value">7</div>
+    <div class="label">Kecamatan with Data</div>
+  </div>
+  <div class="card highlight">
+    <div class="value">15000.0s</div>
+    <div class="label">Worst Stall: KAUDITAN</div>
+  </div>
+  <div class="card highlight">
+    <div class="value">1.000%</div>
+    <div class="label">Worst Buffer: KAUDITAN</div>
+  </div>
+</div>
+
+<div class="legend">
+  <b>Score = (Buffer% / Max × 50) + (StallTime / Max × 50)</b> — lower = better
+  <span><span class="swatch" style="background:#27ae60"></span>≤20 Excellent</span>
+  <span><span class="swatch" style="background:#2ecc71"></span>21-30 Good</span>
+  <span><span class="swatch" style="background:#f39c12"></span>31-40 Average</span>
+  <span><span class="swatch" style="background:#e74c3c"></span>>40 Poor</span>
+</div>
+
+<table>
+<thead>
+  <tr><th>Rank</th><th>Kecamatan</th><th>Score</th><th>Buffer</th><th>Stall Time</th><th>Records</th></tr>
+</thead>
+<tbody>
+<tr><td>1</td><td class="kec">KAUDITAN</td><td class="score-poor">100.0</td><td>1.000%</td><td>15000.0s</td><td>2</td></tr>
+<tr><td>2</td><td class="kec">DIMEMBE</td><td class="score-poor">62.5</td><td>0.750%</td><td>7500.0s</td><td>8</td></tr>
+<tr><td>3</td><td class="kec">TALAWAAN</td><td class="score-poor">50.0</td><td>1.000%</td><td>0.0s</td><td>1</td></tr>
+<tr><td>4</td><td class="kec">WORI</td><td class="score-poor">50.0</td><td>1.000%</td><td>0.0s</td><td>1</td></tr>
+<tr><td>5</td><td class="kec">KALAWAT</td><td class="score-good">18.8</td><td>0.375%</td><td>0.0s</td><td>8</td></tr>
+<tr><td>6</td><td class="kec">AIRMADIDI</td><td class="score-good">0.0</td><td>0.000%</td><td>0.0s</td><td>2</td></tr>
+<tr><td>7</td><td class="kec">LIKUPANG TIMUR</td><td class="score-good">0.0</td><td>0.000%</td><td>0.0s</td><td>1</td></tr>
+
+</tbody>
+</table>
+
+<div class="footer">
+  <b>💡 Insight:</b> KAUDITAN memiliki stall time <b>15000.0s</b> (250.0 menit) 
+  dan buffer count <b>1.000%</b> — kemungkinan ada masalah jaringan XL di area ini.
+  Perlu investigasi tower/cell yang melayani kecamatan ini.
+</div>
+</body>
+</html>

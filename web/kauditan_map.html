@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>KAUDITAN — All Operators Map</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+body{margin:0;padding:0;font-family:'Segoe UI',system-ui,sans-serif;background:#0f1923}
+#header{background:linear-gradient(135deg,#1a2332,#0d1b2a);color:#e0e6ed;padding:14px 24px;
+  border-bottom:2px solid #2563eb;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+#header h1{margin:0;font-size:17px;font-weight:600;letter-spacing:.5px}
+.badge{display:inline-block;padding:3px 10px;border-radius:12px;font-size:11px;font-weight:600}
+#map{height:calc(100vh - 52px);width:100%}
+.leaflet-popup-content-wrapper{background:#1e293b!important;color:#e0e6ed!important;border-radius:8px!important;
+  box-shadow:0 4px 20px rgba(0,0,0,.5)!important;max-width:360px!important}
+.leaflet-popup-content{margin:12px 16px!important;font-size:13px;line-height:1.6}
+.leaflet-popup-tip{background:#1e293b!important}
+.popup-title{font-size:14px;font-weight:700;margin-bottom:6px}
+.popup-row{display:flex;justify-content:space-between;gap:8px;padding:2px 0}
+.popup-label{color:#94a3b8;font-size:11px}
+.popup-value{font-weight:600;font-size:12px}
+.popup-divider{border-top:1px solid #334155;margin:6px 0}
+.stall-bad{color:#ef4444;font-weight:700}
+.stall-warn{color:#f59e0b;font-weight:600}
+.stall-ok{color:#34d399}
+.rsrp-good{color:#34d399}
+.rsrp-mid{color:#f59e0b}
+.rsrp-bad{color:#ef4444}
+.leaflet-control-zoom a{background:#1e293b!important;color:#e0e6ed!important;border-color:#334155!important}
+.leaflet-control-layers{background:#1e293b!important;color:#e0e6ed!important;border:1px solid #334155!important}
+.leaflet-control-layers label{color:#e0e6ed!important}
+.leaflet-control-layers input{margin-right:4px}
+#legend{position:absolute;bottom:30px;right:16px;background:#1e293bee;border:1px solid #334155;
+  border-radius:8px;padding:12px 16px;z-index:1000;color:#e0e6ed;font-size:11px;line-height:2.2}
+#legend h3{margin:0 0 6px;font-size:13px;color:#60a5fa}
+.leg-item{display:flex;align-items:center;gap:6px}
+.leg-dot{width:12px;height:12px;border-radius:50%;border:2px solid rgba(255,255,255,.5);display:inline-block}
+.leg-line{width:20px;height:3px;display:inline-block;border-radius:2px}
+#stats{position:absolute;top:60px;right:16px;background:#1e293bee;border:1px solid #334155;
+  border-radius:8px;padding:12px 16px;z-index:1000;color:#e0e6ed;font-size:12px;line-height:1.8}
+#stats h3{margin:0 0 4px;font-size:13px;color:#60a5fa}
+.st-rc{color:#ef4444;font-weight:700}
+</style>
+</head>
+<body>
+<div id="header">
+  <h1>📍 KAUDITAN — All Operators</h1>
+  <span class="badge" style="background:#2563eb;color:#fff">XL</span>
+  <span class="badge" style="background:#dc2626;color:#fff">Telkomsel</span>
+  <span class="badge" style="background:#eab308;color:#000">Indosat</span>
+  <span class="badge" style="background:#16a34a;color:#fff">Tri</span>
+  <span class="badge" style="background:#9333ea;color:#fff">Smartfren</span>
+  <span class="badge" style="background:#334155;color:#94a3b8">686 records · Jun 15-21</span>
+</div>
+<div id="map"></div>
+
+<div id="stats">
+  <h3>📊 Summary</h3>
+  <div>🔵 XL: 19 records · <span class="st-rc">30,000s stall</span></div>
+  <div>🔴 Telkomsel: 442 records · <span class="st-rc">2,712s stall</span></div>
+  <div>🟡 Indosat: 90 records · <span class="st-rc">681s stall</span></div>
+  <div>🟢 Tri: 99 records · ✅ no stall</div>
+  <div>🟣 Smartfren: 36 records · ✅ no stall</div>
+</div>
+
+<div id="legend">
+  <h3>Legend</h3>
+  <div class="leg-item"><span class="leg-dot" style="background:#ef4444;width:16px;height:16px"></span> Stall event (size = severity)</div>
+  <div class="leg-item"><span class="leg-dot" style="background:#22c55e"></span> Video test OK (no stall)</div>
+  <div class="leg-item"><span class="leg-dot" style="background:#60a5fa"></span> Signal only</div>
+  <div style="border-top:1px solid #334155;margin:6px 0"></div>
+  <div class="leg-item"><span class="leg-dot" style="background:#2563eb"></span> XL</div>
+  <div class="leg-item"><span class="leg-dot" style="background:#dc2626"></span> Telkomsel</div>
+  <div class="leg-item"><span class="leg-dot" style="background:#eab308"></span> Indosat</div>
+  <div class="leg-item"><span class="leg-dot" style="background:#16a34a"></span> Tri</div>
+  <div class="leg-item"><span class="leg-dot" style="background:#9333ea"></span> Smartfren</div>
+</div>
+
+<script>
+const stallEvents = [{"lat": 1.3997597, "lon": 125.02302, "op": "XL", "opColor": "#2563eb", "date": "2026-06-19 21:00", "rsrp": -115, "bc": 2, "st": 30000.0, "gen": "4G"}, {"lat": 1.4060832, "lon": 124.99357, "op": "Telkomsel", "opColor": "#dc2626", "date": "2026-06-20 23:00", "rsrp": -98, "bc": 1, "st": 2712.0, "gen": "4G"}, {"lat": 1.3994573, "lon": 125.020966, "op": "Indosat", "opColor": "#eab308", "date": "2026-06-17 07:00", "rsrp": -98, "bc": 1, "st": 681.0, "gen": "4G"}, {"lat": 1.3989561, "lon": 125.02068, "op": "Telkomsel", "opColor": "#dc2626", "date": "2026-06-20 21:00", "rsrp": -83, "bc": 1, "st": 615.0, "gen": "5G"}];
+const videoTests = [{"lat": 1.3932416, "lon": 125.04268, "op": "Telkomsel", "opColor": "#dc2626", "date": "2026-06-15 12:00", "rsrp": -82, "bc": 0, "st": 0.0, "gen": "4G"}, {"lat": 1.3939646, "lon": 125.04426, "op": "Telkomsel", "opColor": "#dc2626", "date": "2026-06-15 14:00", "rsrp": -95, "bc": 0, "st": 0.0, "gen": "4G"}, {"lat": 1.3906783, "lon": 125.034325, "op": "Telkomsel", "opColor": "#dc2626", "date": "2026-06-15 17:00", "rsrp": -97, "bc": 0, "st": 0.0, "gen": "4G"}, {"lat": 1.3958488, "lon": 125.00135, "op": "Telkomsel", "opColor": "#dc2626", "date": "2026-06-15 18:00", "rsrp": -84, "bc": 0, "st": 0.0, "gen": "4G"}, {"lat": 1.3940787, "lon": 125.04431, "op": "Telkomsel", "opColor": "#dc2626", "date": "2026-06-15 18:00", "rsrp": -100, "bc": 0, "st": 0.0, "gen": "4G"}, {"lat": 1.4133269, "lon": 124.99904, "op": "Telkomsel", "opColor": "#dc2626", "date": "2026-06-15 21:00", "rsrp": -111, "bc": 0, "st": 0.0, "gen": "4G"}, {"lat": 1.3994457, "lon": 125.020454, "op": "Telkomsel", "opColor": "#dc2626", "date": "2026-06-16 07:00", "rsrp": -97, "bc": 0, "st": 0.0, "gen": "4G"}, {"lat": 1.4015129, "lon": 125.0036, "op": "Telkomsel", "opColor": "#dc2626", "date": "2026-06-16 08:00", "rsrp": -103, "bc": 1, "st": null, "gen": "4G"}, {"lat": 1.3994038, "lon": 125.020744, "op": "Telkomsel", "opColor": "#dc2626", "date": "2026-06-16 08:00", "rsrp": -95, "bc": 0, "st": 0.0, "gen": "4G"}, {"lat": 1.3971058, "lon": 125.01675, "op": "Telkomsel", "opColor": "#dc2626", "date": "2026-06-16 15:00", "rsrp": -79, "bc": 0, "st": 0.0, "gen": "4G"}, {"lat": 1.3959887, "lon": 125.001305, "op": "Telkomsel", "opColor": "#dc2626", "date": "2026-06-16 15:00", "rsrp": -100, "bc": 0, "st": 0.0, "gen": "4G"}, {"lat": 1.4169971, "lon": 125.0002, "op": "Telkomsel", "opColor": "#dc2626", "date": "2026-06-16 18:00", "rsrp": -87, "bc": 1, "st": null, "gen": "4G"}, {"lat": 1.3922449, "lon": 125.03244, "op": "Telkomsel", "opColor": "#dc2626", "date": "2026-06-16 19:00", "rsrp": -95, "bc": 0, "st": 0.0, "gen": "4G"}, {"lat": 1.414634, "lon": 125.00361, "op": "Telkomsel", "opColor": "#dc2626", "date": "2026-06-16 19:00", "rsrp": -103, "bc": 0, "st": 0.0, "gen": "4G"}, {"lat": 1.414634, "lon": 125.00361, "op": "Telkomsel", "opColor": "#dc2626", "date": "2026-06-16 21:00", "rsrp": -102, "bc": 0, "st": 0.0, "gen": "4G"}, {"lat": 1.4150102, "lon": 124.99767, "op": "Telkomsel", "opColor": "#dc2626", "date": "2026-06-17 07:00", "rsrp": -99, "bc": 0, "st": 0.0, "gen": "4G"}, {"lat": 1.4150102, "lon": 124.99767, "op": "Telkomsel", "opColor": "#dc2626", "date": "2026-06-17 11:00", "rsrp": -100, "bc": 0, "st": 0.0, "gen": "4G"}, {"lat": 1.4068606, "lon": 124.9955, "op": "Telkomsel", "opColor": "#dc2626", "date": "2026-06-18 07:00", "rsrp": -104, "bc": 0, "st": 0.0, "gen": "4G"}, {"lat": 1.4015129, "lon": 125.0036, "op": "Telkomsel", "opColor": "#dc2626", "date": "2026-06-18 14:00", "rsrp": -89, "bc": 0, "st": 0.0, "gen": "4G"}, {"lat": 1.4033724, "lon": 124.99902, "op": "Telkomsel", "opColor": "#dc2626", "date": "2026-06-18 22:00", "rsrp": -101, "bc": 0, "st": 0.0, "gen": "4G"}, {"lat": 1.3919933, "lon": 125.03256, "op": "Telkomsel", "opColor": "#dc2626", "date": "2026-06-19 12:00", "rsrp": -90, "bc": 0, "st": 0.0, "gen": "4G"}, {"lat": 1.4144475, "lon": 125.00356, "op": "Telkomsel", "opColor": "#dc2626", "date": "2026-06-19 14:00", "rsrp": -99, "bc": 0, "st": 0.0, "gen": "4G"}, {"lat": 1.4144475, "lon": 125.00356, "op": "Telkomsel", "opColor": "#dc2626", "date": "2026-06-19 14:00", "rsrp": -105, "bc": 0, "st": 0.0, "gen": "4G"}, {"lat": 1.3919278, "lon": 125.032814, "op": "Telkomsel", "opColor": "#dc2626", "date": "2026-06-19 17:00", "rsrp": -101, "bc": 0, "st": 0.0, "gen": "4G"}, {"lat": 1.3920573, "lon": 125.0326, "op": "Telkomsel", "opColor": "#dc2626", "date": "2026-06-19 19:00", "rsrp": -103, "bc": 0, "st": 0.0, "gen": "4G"}, {"lat": 1.3993773, "lon": 125.02074, "op": "Telkomsel", "opColor": "#dc2626", "date": "2026-06-19 20:00", "rsrp": -100, "bc": 0, "st": 0.0, "gen": "4G"}, {"lat": 1.3936424, "lon": 125.09839, "op": "Telkomsel", "opColor": "#dc2626", "date": "2026-06-20 05:00", "rsrp": -100, "bc": 0, "st": 0.0, "gen": "4G"}, {"lat": 1.3929282, "lon": 125.04911, "op": "Telkomsel", "opColor": "#dc2626", "date": "2026-06-20 07:00", "rsrp": -97, "bc": 0, "st": 0.0, "gen": "4G"}, {"lat": 1.4150045, "lon": 124.99763, "op": "Telkomsel", "opColor": "#dc2626", "date": "2026-06-20 08:00", "rsrp": -98, "bc": 0, "st": 0.0, "gen": "4G"}, {"lat": 1.4018846, "lon": 125.0033, "op": "Telkomsel", "opColor": "#dc2626", "date": "2026-06-20 10:00", "rsrp": -97, "bc": 0, "st": 0.0, "gen": "4G"}, {"lat": 1.412977, "lon": 124.9988, "op": "Telkomsel", "opColor": "#dc2626", "date": "2026-06-20 10:00", "rsrp": -102, "bc": 0, "st": 0.0, "gen": "4G"}, {"lat": 1.3926853, "lon": 125.04085, "op": "Telkomsel", "opColor": "#dc2626", "date": "2026-06-20 15:00", "rsrp": -107, "bc": 0, "st": 0.0, "gen": "4G"}, {"lat": 1.4016471, "lon": 125.00329, "op": "Telkomsel", "opColor": "#dc2626", "date": "2026-06-20 18:00", "rsrp": -90, "bc": 0, "st": 0.0, "gen": "4G"}, {"lat": 1.3942724, "lon": 125.04381, "op": "Telkomsel", "opColor": "#dc2626", "date": "2026-06-20 18:00", "rsrp": -103, "bc": 0, "st": 0.0, "gen": "4G"}, {"lat": 1.4016471, "lon": 125.00329, "op": "Telkomsel", "opColor": "#dc2626", "date": "2026-06-20 20:00", "rsrp": -112, "bc": 0, "st": 0.0, "gen": "4G"}, {"lat": 1.3960812, "lon": 125.00138, "op": "Telkomsel", "opColor": "#dc2626", "date": "2026-06-20 20:00", "rsrp": -87, "bc": 0, "st": 0.0, "gen": "4G"}, {"lat": 1.4060832, "lon": 124.99357, "op": "Telkomsel", "opColor": "#dc2626", "date": "2026-06-20 20:00", "rsrp": -83, "bc": 0, "st": 0.0, "gen": "4G"}, {"lat": 1.3993982, "lon": 125.02059, "op": "Telkomsel", "opColor": "#dc2626", "date": "2026-06-21 07:00", "rsrp": -104, "bc": 0, "st": 0.0, "gen": "4G"}, {"lat": 1.3925635, "lon": 125.09719, "op": "Indosat", "opColor": "#eab308", "date": "2026-06-15 05:00", "rsrp": -103, "bc": 0, "st": 0.0, "gen": "4G"}, {"lat": 1.3937128, "lon": 125.09807, "op": "Indosat", "opColor": "#eab308", "date": "2026-06-17 06:00", "rsrp": -104, "bc": 0, "st": 0.0, "gen": "4G"}, {"lat": 1.399386, "lon": 125.02087, "op": "Indosat", "opColor": "#eab308", "date": "2026-06-17 11:00", "rsrp": null, "bc": 0, "st": 0.0, "gen": "4G"}, {"lat": 1.4129266, "lon": 125.00062, "op": "Indosat", "opColor": "#eab308", "date": "2026-06-17 18:00", "rsrp": -98, "bc": 0, "st": 0.0, "gen": "4G"}, {"lat": 1.3980244, "lon": 125.01384, "op": "Indosat", "opColor": "#eab308", "date": "2026-06-17 19:00", "rsrp": -96, "bc": 0, "st": 0.0, "gen": "4G"}, {"lat": 1.3980244, "lon": 125.01384, "op": "Indosat", "opColor": "#eab308", "date": "2026-06-17 20:00", "rsrp": -96, "bc": 0, "st": 0.0, "gen": "4G"}, {"lat": 1.409117, "lon": 124.998695, "op": "Indosat", "opColor": "#eab308", "date": "2026-06-19 17:00", "rsrp": -111, "bc": 0, "st": 0.0, "gen": "4G"}, {"lat": 1.409117, "lon": 124.998695, "op": "Indosat", "opColor": "#eab308", "date": "2026-06-19 20:00", "rsrp": -89, "bc": 0, "st": 0.0, "gen": "5G"}, {"lat": 1.3933468, "lon": 125.00289, "op": "3", "opColor": "#16a34a", "date": "2026-06-15 17:00", "rsrp": -113, "bc": 0, "st": 0.0, "gen": "4G"}, {"lat": 1.3933468, "lon": 125.00289, "op": "3", "opColor": "#16a34a", "date": "2026-06-16 10:00", "rsrp": -109, "bc": 0, "st": 0.0, "gen": "4G"}, {"lat": 1.3947093, "lon": 125.04502, "op": "3", "opColor": "#16a34a", "date": "2026-06-16 22:00", "rsrp": -103, "bc": 0, "st": 0.0, "gen": "4G"}, {"lat": 1.4109639, "lon": 125.08957, "op": "3", "opColor": "#16a34a", "date": "2026-06-18 08:00", "rsrp": -110, "bc": 0, "st": 0.0, "gen": "4G"}, {"lat": 1.3933468, "lon": 125.00289, "op": "3", "opColor": "#16a34a", "date": "2026-06-18 09:00", "rsrp": -113, "bc": 0, "st": 0.0, "gen": "4G"}, {"lat": 1.3882033, "lon": 125.04637, "op": "3", "opColor": "#16a34a", "date": "2026-06-18 11:00", "rsrp": -96, "bc": 0, "st": 0.0, "gen": "4G"}, {"lat": 1.3873874, "lon": 125.04567, "op": "3", "opColor": "#16a34a", "date": "2026-06-19 11:00", "rsrp": -123, "bc": 0, "st": 0.0, "gen": "4G"}, {"lat": 1.3932784, "lon": 125.00291, "op": "3", "opColor": "#16a34a", "date": "2026-06-21 06:00", "rsrp": -115, "bc": 0, "st": 0.0, "gen": "4G"}, {"lat": 1.3979908, "lon": 125.00574, "op": "Smartfren", "opColor": "#9333ea", "date": "2026-06-16 14:00", "rsrp": -101, "bc": 0, "st": 0.0, "gen": "4G"}, {"lat": 1.3954191, "lon": 125.03265, "op": "Smartfren", "opColor": "#9333ea", "date": "2026-06-17 14:00", "rsrp": -101, "bc": 0, "st": 0.0, "gen": "4G"}, {"lat": 1.3980306, "lon": 125.006, "op": "Smartfren", "opColor": "#9333ea", "date": "2026-06-17 16:00", "rsrp": -105, "bc": 0, "st": 0.0, "gen": "4G"}, {"lat": 1.3947521, "lon": 125.047104, "op": "Smartfren", "opColor": "#9333ea", "date": "2026-06-18 10:00", "rsrp": -102, "bc": 0, "st": 0.0, "gen": "4G"}, {"lat": 1.3949903, "lon": 125.04762, "op": "Smartfren", "opColor": "#9333ea", "date": "2026-06-18 10:00", "rsrp": -88, "bc": 0, "st": 0.0, "gen": "4G"}, {"lat": 1.3954191, "lon": 125.03265, "op": "Smartfren", "opColor": "#9333ea", "date": "2026-06-18 11:00", "rsrp": -108, "bc": 0, "st": 0.0, "gen": "4G"}, {"lat": 1.3980285, "lon": 125.00578, "op": "Smartfren", "opColor": "#9333ea", "date": "2026-06-20 13:00", "rsrp": -101, "bc": 0, "st": 0.0, "gen": "4G"}, {"lat": 1.3928018, "lon": 125.047195, "op": "XL", "opColor": "#2563eb", "date": "2026-06-19 10:00", "rsrp": -111, "bc": 0, "st": 0.0, "gen": "4G"}, {"lat": 1.3997597, "lon": 125.02302, "op": "XL", "opColor": "#2563eb", "date": "2026-06-19 22:00", "rsrp": -115, "bc": 1, "st": null, "gen": "4G"}];
+const signalPts = [{"lat": 1.399422, "lon": 125.02151, "op": "Telkomsel", "opColor": "#dc2626", "rsrp": -97, "date": "2026-06-15 01:00", "gen": "4G"}, {"lat": 1.3993773, "lon": 125.02074, "op": "Telkomsel", "opColor": "#dc2626", "rsrp": -104, "date": "2026-06-15 02:00", "gen": "4G"}, {"lat": 1.3920716, "lon": 125.04109, "op": "Telkomsel", "opColor": "#dc2626", "rsrp": -83, "date": "2026-06-15 04:00", "gen": "4G"}, {"lat": 1.3937128, "lon": 125.09807, "op": "Telkomsel", "opColor": "#dc2626", "rsrp": -120, "date": "2026-06-15 06:00", "gen": "4G"}, {"lat": 1.3979867, "lon": 125.00572, "op": "Telkomsel", "opColor": "#dc2626", "rsrp": -89, "date": "2026-06-15 06:00", "gen": "4G"}, {"lat": 1.4091262, "lon": 124.98952, "op": "Telkomsel", "opColor": "#dc2626", "rsrp": -97, "date": "2026-06-15 07:00", "gen": "4G"}, {"lat": 1.4150105, "lon": 124.99768, "op": "Telkomsel", "opColor": "#dc2626", "rsrp": -101, "date": "2026-06-15 07:00", "gen": "4G"}, {"lat": 1.3917618, "lon": 125.03284, "op": "Telkomsel", "opColor": "#dc2626", "rsrp": -93, "date": "2026-06-15 08:00", "gen": "4G"}, {"lat": 1.409797, "lon": 125.080826, "op": "Telkomsel", "opColor": "#dc2626", "rsrp": -96, "date": "2026-06-15 10:00", "gen": "4G"}, {"lat": 1.3906783, "lon": 125.034325, "op": "Telkomsel", "opColor": "#dc2626", "rsrp": -93, "date": "2026-06-15 10:00", "gen": "4G"}, {"lat": 1.393605, "lon": 125.041336, "op": "Telkomsel", "opColor": "#dc2626", "rsrp": -100, "date": "2026-06-15 11:00", "gen": "4G"}, {"lat": 1.402232, "lon": 125.00275, "op": "Telkomsel", "opColor": "#dc2626", "rsrp": -86, "date": "2026-06-15 11:00", "gen": "4G"}, {"lat": 1.3936489, "lon": 125.04131, "op": "Telkomsel", "opColor": "#dc2626", "rsrp": -99, "date": "2026-06-15 13:00", "gen": "4G"}, {"lat": 1.3985155, "lon": 125.00716, "op": "Telkomsel", "opColor": "#dc2626", "rsrp": -102, "date": "2026-06-15 13:00", "gen": "4G"}, {"lat": 1.3939646, "lon": 125.04426, "op": "Telkomsel", "opColor": "#dc2626", "rsrp": -93, "date": "2026-06-15 14:00", "gen": "4G"}, {"lat": 1.3979719, "lon": 125.022125, "op": "Indosat", "opColor": "#eab308", "rsrp": -116, "date": "2026-06-15 02:00", "gen": "4G"}, {"lat": 1.3910196, "lon": 125.05035, "op": "Indosat", "opColor": "#eab308", "rsrp": -121, "date": "2026-06-15 03:00", "gen": "4G"}, {"lat": 1.3980244, "lon": 125.01384, "op": "Indosat", "opColor": "#eab308", "rsrp": -88, "date": "2026-06-15 08:00", "gen": "4G"}, {"lat": 1.3937128, "lon": 125.09807, "op": "Indosat", "opColor": "#eab308", "rsrp": -101, "date": "2026-06-15 10:00", "gen": "4G"}, {"lat": 1.4125851, "lon": 125.00086, "op": "Indosat", "opColor": "#eab308", "rsrp": -105, "date": "2026-06-15 12:00", "gen": "4G"}, {"lat": 1.3905421, "lon": 125.03814, "op": "Indosat", "opColor": "#eab308", "rsrp": -101, "date": "2026-06-15 12:00", "gen": "4G"}, {"lat": 1.3991865, "lon": 125.020676, "op": "Indosat", "opColor": "#eab308", "rsrp": -102, "date": "2026-06-15 17:00", "gen": "4G"}, {"lat": 1.3994342, "lon": 125.020905, "op": "Indosat", "opColor": "#eab308", "rsrp": -98, "date": "2026-06-17 07:00", "gen": "4G"}, {"lat": 1.4100457, "lon": 124.99891, "op": "Indosat", "opColor": "#eab308", "rsrp": -87, "date": "2026-06-17 14:00", "gen": "4G"}, {"lat": 1.3989561, "lon": 125.02068, "op": "Indosat", "opColor": "#eab308", "rsrp": -103, "date": "2026-06-19 12:00", "gen": "4G"}, {"lat": 1.409117, "lon": 124.998695, "op": "Indosat", "opColor": "#eab308", "rsrp": -100, "date": "2026-06-19 18:00", "gen": "4G"}, {"lat": 1.4072583, "lon": 125.07262, "op": "Indosat", "opColor": "#eab308", "rsrp": -98, "date": "2026-06-20 15:00", "gen": "4G"}, {"lat": 1.3873874, "lon": 125.04567, "op": "3", "opColor": "#16a34a", "rsrp": -106, "date": "2026-06-15 04:00", "gen": "4G"}, {"lat": 1.3922482, "lon": 125.03228, "op": "3", "opColor": "#16a34a", "rsrp": -89, "date": "2026-06-15 06:00", "gen": "4G"}, {"lat": 1.3939636, "lon": 125.04491, "op": "3", "opColor": "#16a34a", "rsrp": -108, "date": "2026-06-15 10:00", "gen": "4G"}, {"lat": 1.3943608, "lon": 125.05165, "op": "3", "opColor": "#16a34a", "rsrp": null, "date": "2026-06-15 20:00", "gen": "4G"}, {"lat": 1.3945153, "lon": 125.05196, "op": "3", "opColor": "#16a34a", "rsrp": null, "date": "2026-06-15 21:00", "gen": "4G"}, {"lat": 1.3909727, "lon": 125.0531, "op": "3", "opColor": "#16a34a", "rsrp": null, "date": "2026-06-16 03:00", "gen": "4G"}, {"lat": 1.3933468, "lon": 125.00289, "op": "3", "opColor": "#16a34a", "rsrp": -117, "date": "2026-06-16 08:00", "gen": "4G"}, {"lat": 1.3943043, "lon": 125.05168, "op": "3", "opColor": "#16a34a", "rsrp": null, "date": "2026-06-16 10:00", "gen": "4G"}, {"lat": 1.3965167, "lon": 125.04823, "op": "3", "opColor": "#16a34a", "rsrp": -74, "date": "2026-06-16 15:00", "gen": "4G"}, {"lat": 1.3929296, "lon": 125.04911, "op": "3", "opColor": "#16a34a", "rsrp": null, "date": "2026-06-16 19:00", "gen": "4G"}, {"lat": 1.394225, "lon": 125.0517, "op": "3", "opColor": "#16a34a", "rsrp": null, "date": "2026-06-16 23:00", "gen": "4G"}, {"lat": 1.3946627, "lon": 125.04497, "op": "3", "opColor": "#16a34a", "rsrp": -97, "date": "2026-06-17 14:00", "gen": "4G"}, {"lat": 1.393732, "lon": 125.051765, "op": "3", "opColor": "#16a34a", "rsrp": null, "date": "2026-06-17 17:00", "gen": "4G"}, {"lat": 1.4107594, "lon": 125.08326, "op": "3", "opColor": "#16a34a", "rsrp": -104, "date": "2026-06-17 20:00", "gen": "4G"}, {"lat": 1.3959887, "lon": 125.001305, "op": "3", "opColor": "#16a34a", "rsrp": -98, "date": "2026-06-18 10:00", "gen": "4G"}, {"lat": 1.3979839, "lon": 125.00575, "op": "Smartfren", "opColor": "#9333ea", "rsrp": -104, "date": "2026-06-15 12:00", "gen": "4G"}, {"lat": 1.3979846, "lon": 125.00574, "op": "Smartfren", "opColor": "#9333ea", "rsrp": -103, "date": "2026-06-15 14:00", "gen": "4G"}, {"lat": 1.3979908, "lon": 125.00574, "op": "Smartfren", "opColor": "#9333ea", "rsrp": -109, "date": "2026-06-16 09:00", "gen": "4G"}, {"lat": 1.4005684, "lon": 125.007164, "op": "Smartfren", "opColor": "#9333ea", "rsrp": -100, "date": "2026-06-16 22:00", "gen": "4G"}, {"lat": 1.3979964, "lon": 125.0058, "op": "Smartfren", "opColor": "#9333ea", "rsrp": -105, "date": "2026-06-16 22:00", "gen": "4G"}, {"lat": 1.4022679, "lon": 125.003876, "op": "Smartfren", "opColor": "#9333ea", "rsrp": -93, "date": "2026-06-17 00:00", "gen": "4G"}, {"lat": 1.4087079, "lon": 124.998764, "op": "Smartfren", "opColor": "#9333ea", "rsrp": -93, "date": "2026-06-17 10:00", "gen": "4G"}, {"lat": 1.3954191, "lon": 125.03265, "op": "Smartfren", "opColor": "#9333ea", "rsrp": -101, "date": "2026-06-17 14:00", "gen": "4G"}, {"lat": 1.3980306, "lon": 125.006, "op": "Smartfren", "opColor": "#9333ea", "rsrp": -105, "date": "2026-06-17 16:00", "gen": "4G"}, {"lat": 1.3980018, "lon": 125.00577, "op": "Smartfren", "opColor": "#9333ea", "rsrp": -105, "date": "2026-06-17 20:00", "gen": "4G"}, {"lat": 1.3949903, "lon": 125.04762, "op": "Smartfren", "opColor": "#9333ea", "rsrp": -92, "date": "2026-06-18 10:00", "gen": "4G"}, {"lat": 1.3980546, "lon": 125.00585, "op": "Smartfren", "opColor": "#9333ea", "rsrp": -102, "date": "2026-06-19 14:00", "gen": "4G"}, {"lat": 1.398024, "lon": 125.005745, "op": "Smartfren", "opColor": "#9333ea", "rsrp": -103, "date": "2026-06-19 17:00", "gen": "4G"}, {"lat": 1.3980082, "lon": 125.00577, "op": "Smartfren", "opColor": "#9333ea", "rsrp": -101, "date": "2026-06-20 13:00", "gen": "4G"}, {"lat": 1.398016, "lon": 125.005714, "op": "Smartfren", "opColor": "#9333ea", "rsrp": -104, "date": "2026-06-20 20:00", "gen": "4G"}, {"lat": 1.3857149, "lon": 125.02613, "op": "XL", "opColor": "#2563eb", "rsrp": -113, "date": "2026-06-15 12:00", "gen": "4G"}, {"lat": 1.3928018, "lon": 125.047195, "op": "XL", "opColor": "#2563eb", "rsrp": -74, "date": "2026-06-15 13:00", "gen": "4G"}, {"lat": 1.412977, "lon": 124.9988, "op": "XL", "opColor": "#2563eb", "rsrp": -108, "date": "2026-06-16 10:00", "gen": "4G"}, {"lat": 1.4172478, "lon": 125.00044, "op": "XL", "opColor": "#2563eb", "rsrp": -95, "date": "2026-06-17 09:00", "gen": "4G"}, {"lat": 1.3997597, "lon": 125.02302, "op": "XL", "opColor": "#2563eb", "rsrp": -92, "date": "2026-06-17 19:00", "gen": "4G"}, {"lat": 1.4172353, "lon": 125.00032, "op": "XL", "opColor": "#2563eb", "rsrp": -82, "date": "2026-06-18 08:00", "gen": "4G"}, {"lat": 1.3965728, "lon": 125.0516, "op": "XL", "opColor": "#2563eb", "rsrp": -91, "date": "2026-06-18 10:00", "gen": "4G"}];
+
+const map = L.map("map", {zoomControl:true}).setView([1.402, 125.022], 14);
+L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+  attribution:'© <a href="https://openstreetmap.org">OpenStreetMap</a>',
+  maxZoom:19
+}).addTo(map);
+
+function rsrpCls(v) { return v > -100 ? "rsrp-good" : (v > -110 ? "rsrp-mid" : "rsrp-bad"); }
+function stallCls(v) { return v > 1000 ? "stall-bad" : (v > 0 ? "stall-warn" : "stall-ok"); }
+function fmtStall(v) { return v ? (v > 60 ? (v/60).toFixed(0)+" min" : v+"s") : "—"; }
+
+// Layer groups per operator
+const layers = {};
+const opNames = ["XL","Telkomsel","Indosat","3","Smartfren"];
+opNames.forEach(op => { layers[op] = L.layerGroup().addTo(map); });
+
+// Stall events — big markers
+stallEvents.forEach(s => {
+  let size = s.st > 10000 ? 18 : (s.st > 1000 ? 14 : 10);
+  let html = `<div class="popup-title" style="color:${s.opColor}">🔴 ${s.op} — Stall Event</div>
+    <div class="popup-row"><span class="popup-label">Date</span><span class="popup-value">${s.date}</span></div>
+    <div class="popup-row"><span class="popup-label">RSRP</span><span class="popup-value ${rsrpCls(s.rsrp)}">${s.rsrp} dBm</span></div>
+    <div class="popup-row"><span class="popup-label">Buffer</span><span class="popup-value">${s.bc !== null ? s.bc : "—"}</span></div>
+    <div class="popup-row"><span class="popup-label">Stall</span><span class="popup-value ${stallCls(s.st)}">${fmtStall(s.st)} (${s.st.toLocaleString()}s)</span></div>
+    <div class="popup-row"><span class="popup-label">Network</span><span class="popup-value">${s.gen}</span></div>
+    <div class="popup-row"><span class="popup-label">Location</span><span class="popup-value">${s.lat.toFixed(6)}, ${s.lon.toFixed(6)}</span></div>`;
+  L.circleMarker([s.lat, s.lon], {
+    radius: size, fillColor: "#ef4444", color: s.opColor, weight: 3, opacity: 1, fillOpacity: 0.85
+  }).bindPopup(html, {maxWidth:360}).addTo(layers[s.op]);
+});
+
+// Video tests — medium markers
+videoTests.forEach(v => {
+  let html = `<div class="popup-title" style="color:${v.opColor}">✅ ${v.op} — Video Test</div>
+    <div class="popup-row"><span class="popup-label">Date</span><span class="popup-value">${v.date}</span></div>
+    <div class="popup-row"><span class="popup-label">RSRP</span><span class="popup-value ${rsrpCls(v.rsrp)}">${v.rsrp} dBm</span></div>
+    <div class="popup-row"><span class="popup-label">Buffer</span><span class="popup-value">${v.bc !== null ? v.bc : "—"}</span></div>
+    <div class="popup-row"><span class="popup-label">Stall</span><span class="popup-value stall-ok">${fmtStall(v.st)}</span></div>
+    <div class="popup-row"><span class="popup-label">Network</span><span class="popup-value">${v.gen}</span></div>`;
+  L.circleMarker([v.lat, v.lon], {
+    radius: 6, fillColor: "#22c55e", color: v.opColor, weight: 2, opacity: 0.9, fillOpacity: 0.7
+  }).bindPopup(html, {maxWidth:320}).addTo(layers[v.op]);
+});
+
+// Signal only — small markers
+signalPts.forEach(p => {
+  let html = `<div class="popup-title" style="color:${p.opColor}">📶 ${p.op} — Signal</div>
+    <div class="popup-row"><span class="popup-label">Date</span><span class="popup-value">${p.date}</span></div>
+    <div class="popup-row"><span class="popup-label">RSRP</span><span class="popup-value ${rsrpCls(p.rsrp)}">${p.rsrp} dBm</span></div>
+    <div class="popup-row"><span class="popup-label">Network</span><span class="popup-value">${p.gen}</span></div>`;
+  L.circleMarker([p.lat, p.lon], {
+    radius: 4, fillColor: p.opColor, color: "#fff", weight: 1, opacity: 0.7, fillOpacity: 0.5
+  }).bindPopup(html, {maxWidth:280}).addTo(layers[p.op]);
+});
+
+// Layer control
+L.control.layers(null, {
+  "🔵 XL": layers["XL"],
+  "🔴 Telkomsel": layers["Telkomsel"],
+  "🟡 Indosat": layers["Indosat"],
+  "🟢 Tri": layers["3"],
+  "🟣 Smartfren": layers["Smartfren"]
+}, {collapsed:false, position:"topleft"}).addTo(map);
+
+L.control.scale({imperial:false, position:"bottomleft"}).addTo(map);
+</script>
+</body>
+</html>

@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Video Quality — National Dashboard</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',Tahoma,sans-serif;padding:20px;background:#1a1a2e;color:#e0e0e0}
+.header{display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;padding-bottom:12px;border-bottom:3px solid #4A90D9}
+.header h1{font-size:22px;color:#fff}
+.logo{font-size:18px;font-weight:bold;color:#4A90D9}
+.subtitle{color:#aaa;font-size:13px;margin-bottom:18px}
+.subtitle span{background:#2a2a4a;padding:4px 12px;border-radius:4px;margin-right:8px;display:inline-block;margin-bottom:4px}
+.cards{display:flex;gap:15px;margin-bottom:20px;flex-wrap:wrap}
+.card{background:#16213e;border:1px solid #2a2a5a;border-radius:8px;padding:15px 20px;flex:1;min-width:160px;text-align:center}
+.card .value{font-size:26px;font-weight:700;color:#4A90D9}
+.card .label{font-size:11px;color:#888;margin-top:5px;text-transform:uppercase}
+.card.alert{background:#3d1f1f;border-color:#e74c3c}
+.card.alert .value{color:#e74c3c}
+.card.good{background:#1a3d1a;border-color:#27ae60}
+.card.good .value{color:#27ae60}
+.section{margin-bottom:25px}
+.section h2{font-size:16px;color:#4A90D9;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid #2a2a5a}
+table{border-collapse:collapse;width:100%;font-size:12px}
+th{background:#16213e;color:#4A90D9;padding:8px 6px;text-align:center;font-weight:600;border-bottom:2px solid #4A90D9;position:sticky;top:0}
+td{padding:7px 6px;text-align:center;border-bottom:1px solid #2a2a4a}
+tr:hover{background:#1a2a4a}
+.hd-good{color:#27ae60;font-weight:700}
+.hd-ok{color:#2ecc71;font-weight:600}
+.hd-warn{color:#f39c12;font-weight:600}
+.hd-bad{color:#e74c3c;font-weight:700}
+.stall-critical{color:#e74c3c;font-weight:700}
+.stall-warn{color:#f39c12}
+.stall-ok{color:#27ae60}
+.insight{background:#16213e;border-left:4px solid #e74c3c;padding:12px 16px;border-radius:0 6px 6px 0;margin-bottom:12px;font-size:13px;line-height:1.6}
+.insight.warn{border-left-color:#f39c12}
+.insight.ok{border-left-color:#27ae60}
+.insight strong{color:#fff}
+.footer{margin-top:25px;padding:12px;background:#16213e;border-radius:6px;font-size:11px;color:#666;text-align:center}
+.bar-row{display:flex;align-items:center;gap:8px;margin:6px 0}
+.bar-label{width:80px;font-size:12px;font-weight:600;text-align:right}
+.bar-track{flex:1;height:28px;background:#2a2a4a;border-radius:4px;overflow:hidden;position:relative}
+.bar-fill{height:100%;border-radius:4px;display:flex;align-items:center;justify-content:flex-end;padding-right:8px;font-size:11px;font-weight:700;color:#fff}
+.dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin:0 1px}
+.prov-link{color:#4A90D9;text-decoration:underline;cursor:pointer}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>🎬 Video Quality — National Dashboard</h1>
+  <div class="logo">XLSMART</div>
+</div>
+
+<div class="subtitle">
+  <span>📅 15 Jun – 21 Jun 2026 (MA7)</span>
+  <span>📶 ABR Video</span>
+  <span>🇮🇩 35 Provinsi</span>
+  <span>📊 519,396 video tests</span>
+</div>
+
+<!-- NATIONAL CARDS -->
+<div class="cards">
+  <div class="card">
+    <div class="value">519,396</div>
+    <div class="label">Total Video Tests</div>
+  </div>
+  <div class="card">
+    <div class="value">35</div>
+    <div class="label">Provinsi</div>
+  </div>
+  <div class="card good">
+    <div class="value">96%</div>
+    <div class="label">Best HD: Telkomsel</div>
+  </div>
+  <div class="card">
+    <div class="value">96%</div>
+    <div class="label">XL HD Rate</div>
+  </div>
+  <div class="card alert">
+    <div class="value">30,000s</div>
+    <div class="label">XL Max Stall</div>
+  </div>
+</div>
+
+<!-- HD RATE BAR CHART -->
+<div class="section">
+  <h2>📊 HD Video Rate — Semua Operator (Nasional)</h2>
+  <p style="font-size:12px;color:#888;margin-bottom:12px">% video test yang capai 720p+. Lebih tinggi = lebih baik.</p>
+
+  <div class="bar-row">
+    <span class="bar-label" style="color:#e74c3c">Telkomsel</span>
+    <div class="bar-track">
+      <div class="bar-fill" style="width:95.5598584139074%;background:linear-gradient(90deg,#27ae60,#27ae60dd)">95.6%</div>
+    </div>
+    <span style="width:80px;font-size:11px;color:#888">236,897 tests</span>
+  </div>
+  <div class="bar-row">
+    <span class="bar-label" style="color:#4A90D9">XL</span>
+    <div class="bar-track">
+      <div class="bar-fill" style="width:95.5757400021795%;background:linear-gradient(90deg,#27ae60,#27ae60dd)">95.6%</div>
+    </div>
+    <span style="width:80px;font-size:11px;color:#888">81,048 tests</span>
+  </div>
+  <div class="bar-row">
+    <span class="bar-label" style="color:#f1c40f">Indosat</span>
+    <div class="bar-track">
+      <div class="bar-fill" style="width:93.04014497097965%;background:linear-gradient(90deg,#2ecc71,#2ecc71dd)">93.0%</div>
+    </div>
+    <span style="width:80px;font-size:11px;color:#888">109,932 tests</span>
+  </div>
+  <div class="bar-row">
+    <span class="bar-label" style="color:#9b59b6">Smartfren</span>
+    <div class="bar-track">
+      <div class="bar-fill" style="width:92.60636877545157%;background:linear-gradient(90deg,#f39c12,#f39c12dd)">92.6%</div>
+    </div>
+    <span style="width:80px;font-size:11px;color:#888">25,993 tests</span>
+  </div>
+  <div class="bar-row">
+    <span class="bar-label" style="color:#2ecc71">3</span>
+    <div class="bar-track">
+      <div class="bar-fill" style="width:91.8001020931587%;background:linear-gradient(90deg,#f39c12,#f39c12dd)">91.8%</div>
+    </div>
+    <span style="width:80px;font-size:11px;color:#888">65,526 tests</span>
+  </div>
+  <div style="margin-top:10px;display:flex;gap:20px;font-size:11px;color:#888">
+    <span><span class="dot" style="background:#27ae60"></span> ≥95% Excellent</span>
+    <span><span class="dot" style="background:#2ecc71"></span> 93-95% Good</span>
+    <span><span class="dot" style="background:#f39c12"></span> 90-93% Average</span>
+    <span><span class="dot" style="background:#e74c3c"></span> &lt;90% Poor</span>
+  </div>
+</div>
+
+<!-- NATIONAL SUMMARY TABLE -->
+<div class="section">
+  <h2>📋 Operator Comparison — Nasional</h2>
+  <table>
+    <thead>
+      <tr><th style="text-align:left">Operator</th><th>Video Tests</th><th>HD Rate</th><th>SD Rate</th><th>720p%</th><th>1080p%</th><th>Avg Buffer</th><th>Avg Stall (s)</th><th>Max Stall (s)</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td style="text-align:left;font-weight:600;color:#e74c3c">Telkomsel</td>
+        <td>236,897</td>
+        <td class="hd-good">95.6%</td>
+        <td>4.4%</td>
+        <td>96</td>
+        <td>96</td>
+        <td>0.10</td>
+        <td>279</td>
+        <td class="stall-critical">30,853</td>
+      </tr>
+      <tr>
+        <td style="text-align:left;font-weight:600;color:#4A90D9">XL</td>
+        <td>81,048</td>
+        <td class="hd-good">95.6%</td>
+        <td>4.4%</td>
+        <td>96</td>
+        <td>96</td>
+        <td>0.08</td>
+        <td>261</td>
+        <td class="stall-critical">30,000</td>
+      </tr>
+      <tr>
+        <td style="text-align:left;font-weight:600;color:#f1c40f">Indosat</td>
+        <td>109,932</td>
+        <td class="hd-ok">93.0%</td>
+        <td>7.0%</td>
+        <td>93</td>
+        <td>93</td>
+        <td>0.08</td>
+        <td>292</td>
+        <td class="stall-critical">30,560</td>
+      </tr>
+      <tr>
+        <td style="text-align:left;font-weight:600;color:#2ecc71">3</td>
+        <td>65,526</td>
+        <td class="hd-warn">91.8%</td>
+        <td>8.2%</td>
+        <td>92</td>
+        <td>92</td>
+        <td>0.09</td>
+        <td>330</td>
+        <td class="stall-critical">37,875</td>
+      </tr>
+      <tr>
+        <td style="text-align:left;font-weight:600;color:#9b59b6">Smartfren</td>
+        <td>25,993</td>
+        <td class="hd-warn">92.6%</td>
+        <td>7.4%</td>
+        <td>93</td>
+        <td>93</td>
+        <td>0.18</td>
+        <td>389</td>
+        <td class="stall-critical">30,000</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- XL PER PROVINCE -->
+<div class="section">
+  <h2>🔵 XL HD Rate per Provinsi (sorted worst first)</h2>
+  <p style="font-size:12px;color:#888;margin-bottom:12px">Provinsi dengan HD rate rendah = area yang perlu perhatian. Min 5 video tests.</p>
+  <table>
+    <thead>
+      <tr><th style="text-align:left">Provinsi</th><th>XL Tests</th><th>XL HD%</th><th>XL SD%</th><th>XL Max Stall</th><th>XL Avg Buf</th><th style="text-align:left">Status</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td style="text-align:left;font-weight:500">PAPUA BARAT</td>
+        <td>6</td>
+        <td class="hd-bad">83.1%</td>
+        <td>50.5%</td>
+        <td class="stall-warn">1,265</td>
+        <td>0.33</td>
+        <td style="text-align:left;color:#e74c3c;font-weight:600">❌ Poor</td>
+      </tr>
+      <tr>
+        <td style="text-align:left;font-weight:500">SUMATERA SELATAN</td>
+        <td>1,046</td>
+        <td class="hd-warn">92.4%</td>
+        <td>53.6%</td>
+        <td class="stall-critical">30,000</td>
+        <td>0.14</td>
+        <td style="text-align:left;color:#f39c12;font-weight:600">⚠️ Average</td>
+      </tr>
+      <tr>
+        <td style="text-align:left;font-weight:500">RIAU</td>
+        <td>1,005</td>
+        <td class="hd-warn">92.6%</td>
+        <td>56.2%</td>
+        <td class="stall-critical">30,000</td>
+        <td>0.09</td>
+        <td style="text-align:left;color:#f39c12;font-weight:600">⚠️ Average</td>
+      </tr>
+      <tr>
+        <td style="text-align:left;font-weight:500">KALIMANTAN UTARA</td>
+        <td>37</td>
+        <td class="hd-warn">92.7%</td>
+        <td>59.0%</td>
+        <td class="stall-ok">0</td>
+        <td>0.03</td>
+        <td style="text-align:left;color:#f39c12;font-weight:600">⚠️ Average</td>
+      </tr>
+      <tr>
+        <td style="text-align:left;font-weight:500">SUMATERA BARAT</td>
+        <td>675</td>
+        <td class="hd-ok">93.1%</td>
+        <td>55.9%</td>
+        <td class="stall-critical">30,000</td>
+        <td>0.10</td>
+        <td style="text-align:left;color:#27ae60;font-weight:600">✅ Good</td>
+      </tr>
+      <tr>
+        <td style="text-align:left;font-weight:500">NUSA TENGGARA BARAT</td>
+        <td>1,707</td>
+        <td class="hd-ok">93.4%</td>
+        <td>54.1%</td>
+        <td class="stall-critical">30,000</td>
+        <td>0.11</td>
+        <td style="text-align:left;color:#27ae60;font-weight:600">✅ Good</td>
+      </tr>
+      <tr>
+        <td style="text-align:left;font-weight:500">JAWA BARAT</td>
+        <td>18,633</td>
+        <td class="hd-ok">94.0%</td>
+        <td>52.5%</td>
+        <td class="stall-critical">30,000</td>
+        <td>0.09</td>
+        <td style="text-align:left;color:#27ae60;font-weight:600">✅ Good</td>
+      </tr>
+      <tr>
+        <td style="text-align:left;font-weight:500">BALI</td>
+        <td>3,662</td>
+        <td class="hd-ok">94.2%</td>
+        <td>50.9%</td>
+        <td class="stall-critical">30,000</td>
+        <td>0.10</td>
+        <td style="text-align:left;color:#27ae60;font-weight:600">✅ Good</td>
+      </tr>
+      <tr>
+        <td style="text-align:left;font-weight:500">LAMPUNG</td>
+        <td>901</td>
+        <td class="hd-ok">94.4%</td>
+        <td>52.8%</td>
+        <td class="stall-critical">30,000</td>
+        <td>0.09</td>
+        <td style="text-align:left;color:#27ae60;font-weight:600">✅ Good</td>
+      </tr>
+      <tr>
+        <td style="text-align:left;font-weight:500">KEPULAUAN RIAU</td>
+        <td>705</td>
+        <td class="hd-ok">94.6%</td>
+        <td>53.7%</td>
+        <td class="stall-critical">30,000</td>
+        <td>0.08</td>
+        <td style="text-align:left;color:#27ae60;font-weight:600">✅ Good</td>
+      </tr>
+      <tr>
+        <td style="text-align:left;font-weight:500">SULAWESI TENGAH</td>
+        <td>244</td>
+        <td class="hd-ok">94.7%</td>
+        <td>51.7%</td>
+        <td class="stall-critical">30,000</td>
+        <td>0.11</td>
+        <td style="text-align:left;color:#27ae60;font-weight:600">✅ Good</td>
+      </tr>
+      <tr>
+        <td style="text-align:left;font-weight:500">BANTEN</td>
+        <td>6,707</td>
+        <td class="hd-ok">94.9%</td>
+        <td>53.3%</td>
+        <td class="stall-critical">30,000</td>
+        <td>0.08</td>
+        <td style="text-align:left;color:#27ae60;font-weight:600">✅ Good</td>
+      </tr>
+      <tr>
+        <td style="text-align:left;font-weight:500">KALIMANTAN TENGAH</td>
+        <td>374</td>
+        <td class="hd-ok">95.0%</td>
+        <td>45.6%</td>
+        <td class="stall-critical">30,000</td>
+        <td>0.14</td>
+        <td style="text-align:left;color:#27ae60;font-weight:600">✅ Good</td>
+      </tr>
+      <tr>
+        <td style="text-align:left;font-weight:500">BENGKULU</td>
+        <td>161</td>
+        <td class="hd-good">95.1%</td>
+        <td>49.6%</td>
+        <td class="stall-critical">30,000</td>
+        <td>0.08</td>
+        <td style="text-align:left;color:#27ae60;font-weight:600">✅ Excellent</td>
+      </tr>
+      <tr>
+        <td style="text-align:left;font-weight:500">KALIMANTAN BARAT</td>
+        <td>557</td>
+        <td class="hd-good">95.1%</td>
+        <td>52.0%</td>
+        <td class="stall-critical">30,000</td>
+        <td>0.10</td>
+        <td style="text-align:left;color:#27ae60;font-weight:600">✅ Excellent</td>
+      </tr>
+      <tr>
+        <td style="text-align:left;font-weight:500">KALIMANTAN SELATAN</td>
+        <td>1,685</td>
+        <td class="hd-good">95.4%</td>
+        <td>50.4%</td>
+        <td class="stall-critical">30,000</td>
+        <td>0.10</td>
+        <td style="text-align:left;color:#27ae60;font-weight:600">✅ Excellent</td>
+      </tr>
+      <tr>
+        <td style="text-align:left;font-weight:500">DKI JAKARTA</td>
+        <td>10,634</td>
+        <td class="hd-good">95.8%</td>
+        <td>49.8%</td>
+        <td class="stall-critical">30,000</td>
+        <td>0.07</td>
+        <td style="text-align:left;color:#27ae60;font-weight:600">✅ Excellent</td>
+      </tr>
+      <tr>
+        <td style="text-align:left;font-weight:500">JAMBI</td>
+        <td>429</td>
+        <td class="hd-good">95.8%</td>
+        <td>58.3%</td>
+        <td class="stall-critical">11,910</td>
+        <td>0.08</td>
+        <td style="text-align:left;color:#27ae60;font-weight:600">✅ Excellent</td>
+      </tr>
+      <tr>
+        <td style="text-align:left;font-weight:500">SUMATERA UTARA</td>
+        <td>2,642</td>
+        <td class="hd-good">95.8%</td>
+        <td>50.8%</td>
+        <td class="stall-critical">30,000</td>
+        <td>0.06</td>
+        <td style="text-align:left;color:#27ae60;font-weight:600">✅ Excellent</td>
+      </tr>
+      <tr>
+        <td style="text-align:left;font-weight:500">KALIMANTAN TIMUR</td>
+        <td>1,105</td>
+        <td class="hd-good">96.0%</td>
+        <td>53.7%</td>
+        <td class="stall-critical">30,000</td>
+        <td>0.14</td>
+        <td style="text-align:left;color:#27ae60;font-weight:600">✅ Excellent</td>
+      </tr>
+      <tr>
+        <td style="text-align:left;font-weight:500">SULAWESI BARAT</td>
+        <td>49</td>
+        <td class="hd-good">96.2%</td>
+        <td>45.1%</td>
+        <td class="stall-ok">0</td>
+        <td>0.04</td>
+        <td style="text-align:left;color:#27ae60;font-weight:600">✅ Excellent</td>
+      </tr>
+      <tr>
+        <td style="text-align:left;font-weight:500">KEPULAUAN BANGKA BELITUNG</td>
+        <td>458</td>
+        <td class="hd-good">96.4%</td>
+        <td>47.9%</td>
+        <td class="stall-critical">30,000</td>
+        <td>0.09</td>
+        <td style="text-align:left;color:#27ae60;font-weight:600">✅ Excellent</td>
+      </tr>
+      <tr>
+        <td style="text-align:left;font-weight:500">SULAWESI UTARA</td>
+        <td>359</td>
+        <td class="hd-good">96.6%</td>
+        <td>53.5%</td>
+        <td class="stall-critical">30,000</td>
+        <td>0.23</td>
+        <td style="text-align:left;color:#27ae60;font-weight:600">✅ Excellent</td>
+      </tr>
+      <tr>
+        <td style="text-align:left;font-weight:500">SULAWESI SELATAN</td>
+        <td>1,652</td>
+        <td class="hd-good">97.0%</td>
+        <td>47.3%</td>
+        <td class="stall-critical">30,000</td>
+        <td>0.09</td>
+        <td style="text-align:left;color:#27ae60;font-weight:600">✅ Excellent</td>
+      </tr>
+      <tr>
+        <td style="text-align:left;font-weight:500">ACEH</td>
+        <td>523</td>
+        <td class="hd-good">97.0%</td>
+        <td>56.4%</td>
+        <td class="stall-warn">8,853</td>
+        <td>0.03</td>
+        <td style="text-align:left;color:#27ae60;font-weight:600">✅ Excellent</td>
+      </tr>
+      <tr>
+        <td style="text-align:left;font-weight:500">JAWA TENGAH</td>
+        <td>9,612</td>
+        <td class="hd-good">97.1%</td>
+        <td>51.0%</td>
+        <td class="stall-critical">30,000</td>
+        <td>0.08</td>
+        <td style="text-align:left;color:#27ae60;font-weight:600">✅ Excellent</td>
+      </tr>
+      <tr>
+        <td style="text-align:left;font-weight:500">NUSA TENGGARA TIMUR</td>
+        <td>203</td>
+        <td class="hd-good">97.1%</td>
+        <td>47.0%</td>
+        <td class="stall-critical">21,458</td>
+        <td>0.06</td>
+        <td style="text-align:left;color:#27ae60;font-weight:600">✅ Excellent</td>
+      </tr>
+      <tr>
+        <td style="text-align:left;font-weight:500">DAERAH ISTIMEWA YOGYAKARTA</td>
+        <td>2,209</td>
+        <td class="hd-good">97.3%</td>
+        <td>50.7%</td>
+        <td class="stall-critical">30,000</td>
+        <td>0.06</td>
+        <td style="text-align:left;color:#27ae60;font-weight:600">✅ Excellent</td>
+      </tr>
+      <tr>
+        <td style="text-align:left;font-weight:500">PAPUA</td>
+        <td>15</td>
+        <td class="hd-good">97.6%</td>
+        <td>34.2%</td>
+        <td class="stall-ok">201</td>
+        <td>0.13</td>
+        <td style="text-align:left;color:#27ae60;font-weight:600">✅ Excellent</td>
+      </tr>
+      <tr>
+        <td style="text-align:left;font-weight:500">GORONTALO</td>
+        <td>100</td>
+        <td class="hd-good">97.6%</td>
+        <td>64.1%</td>
+        <td class="stall-warn">4,026</td>
+        <td>0.20</td>
+        <td style="text-align:left;color:#27ae60;font-weight:600">✅ Excellent</td>
+      </tr>
+      <tr>
+        <td style="text-align:left;font-weight:500">JAWA TIMUR</td>
+        <td>12,469</td>
+        <td class="hd-good">97.7%</td>
+        <td>50.5%</td>
+        <td class="stall-critical">30,000</td>
+        <td>0.06</td>
+        <td style="text-align:left;color:#27ae60;font-weight:600">✅ Excellent</td>
+      </tr>
+      <tr>
+        <td style="text-align:left;font-weight:500">SULAWESI TENGGARA</td>
+        <td>236</td>
+        <td class="hd-good">98.6%</td>
+        <td>33.4%</td>
+        <td class="stall-critical">30,000</td>
+        <td>0.08</td>
+        <td style="text-align:left;color:#27ae60;font-weight:600">✅ Excellent</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- INSIGHTS -->
+<div class="section">
+  <h2>🔍 Key Insights</h2>
+  <div class="insight ok">
+    <strong>✅ XL HD Rate Nasional: 95.6%</strong> — Hampir setara Telkomsel (95.6%). XL mengejar kompetitor di video quality secara nasional.
+  </div>
+  <div class="insight">
+    <strong>⚠️ XL Problem Areas</strong> — Maluku (55.5% HD) dan Papua Barat (83.1% HD) adalah provinsi terlemah. Sample kecil (2-6 tests). Perlu investigasi lebih lanjut.
+  </div>
+  <div class="insight warn">
+    <strong>⚠️ Max Stall 30,000s</strong> — XL, Telkomsel, dan Indosat semua punya max stall 30,000s di beberapa provinsi. Ini masalah area tertentu, bukan operator-spesifik.
+  </div>
+</div>
+
+<div class="footer">
+  Data: OpenSignal MyDashboards API • Period: 15-21 Jun 2026 • 35 Provinsi, 5 Operator<br>
+  Generated: Jun 21, 2026 • osig.netprobe.xyz
+</div>
+
+</body>
+</html>

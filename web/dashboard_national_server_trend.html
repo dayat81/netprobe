@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>National Video Trend per Server — Per Provinsi</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3"></script>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:#0d1117; color:#c9d1d9; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif; padding:20px; }
+h1 { color:#58a6ff; font-size:1.5em; margin-bottom:4px; }
+.subtitle { color:#8b949e; font-size:.85em; margin-bottom:16px; }
+.controls { display:flex; gap:12px; margin-bottom:20px; flex-wrap:wrap; align-items:center; }
+select, button { background:#161b22; border:1px solid #30363d; color:#c9d1d9; padding:8px 14px; border-radius:6px; font-size:.85em; cursor:pointer; }
+select:focus, button:hover { border-color:#58a6ff; }
+button.active { background:#238636; border-color:#238636; color:#fff; }
+.grid { display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-bottom:20px; }
+@media(max-width:1000px) { .grid { grid-template-columns:1fr; } }
+.card { background:#161b22; border:1px solid #30363d; border-radius:8px; padding:16px; }
+.card h2 { color:#58a6ff; font-size:1em; margin-bottom:4px; }
+.card .note { color:#8b949e; font-size:.75em; margin-bottom:12px; }
+.chart-wrap { position:relative; height:300px; }
+.legend-custom { display:flex; gap:16px; flex-wrap:wrap; margin-bottom:12px; }
+.legend-item { display:flex; align-items:center; gap:5px; font-size:.8em; }
+.legend-dot { width:10px; height:10px; border-radius:50%; }
+.stats { display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:10px; margin-bottom:20px; }
+.stat { background:#161b22; border:1px solid #30363d; border-radius:8px; padding:12px; text-align:center; }
+.stat .val { font-size:1.4em; font-weight:700; }
+.stat .label { color:#8b949e; font-size:.75em; margin-top:2px; }
+.info-box { background:#1c2333; border-left:3px solid #f0883e; padding:10px 14px; border-radius:4px; margin-bottom:16px; font-size:.82em; }
+.nav { display:flex; gap:10px; margin-bottom:16px; flex-wrap:wrap; }
+.nav a { color:#58a6ff; text-decoration:none; font-size:.85em; padding:4px 10px; border:1px solid #30363d; border-radius:4px; }
+.nav a:hover { background:#1f2937; }
+</style>
+</head>
+<body>
+
+<h1>🌐 National Video Trend per Server IP — Per Provinsi</h1>
+<p class="subtitle">Buffer Count &amp; Stall Time · Daily per CDN Server · 34 Provinsi · Apr–Jun 2026</p>
+
+<div class="nav">
+  <a href="/">← Dashboard Utama</a>
+  <a href="/dashboard_timeseries_ma.html">KAUDITAN MA7</a>
+  <a href="/dashboard_cdn_analysis.html">CDN Analysis</a>
+</div>
+
+<div class="info-box">
+  ⚠️ <strong>Data dari local export</strong> (baseline_20260401_v2). 1.83 juta records, 34 provinsi, 3 operator, 5 CDN server. Stall & buffer = weighted avg per hari per CDN.
+</div>
+
+<div class="controls">
+  <label style="font-size:.85em;color:#8b949e">Provinsi:</label>
+  <select id="selProv"></select>
+  <label style="font-size:.85em;color:#8b949e">Operator:</label>
+  <select id="selOp"><option value="ALL">Semua</option><option value="XL">XL</option><option value="Telkomsel">Telkomsel</option><option value="Indosat">Indosat</option></select>
+  <label style="font-size:.85em;color:#8b949e">Metric:</label>
+  <select id="selMetric"><option value="buffer">Buffer Count</option><option value="stall">Stall Time (s)</option></select>
+</div>
+
+<div id="statsRow" class="stats"></div>
+
+<div class="legend-custom" id="legend"></div>
+
+<div class="grid">
+  <div class="card">
+    <h2>📊 Trend per CDN Server</h2>
+    <div class="note">Daily weighted avg — klik legend untuk toggle CDN</div>
+    <div class="chart-wrap"><canvas id="chartMain"></canvas></div>
+  </div>
+  <div class="card">
+    <h2>📈 Operator Comparison</h2>
+    <div class="note">Aggregated across all CDNs per operator</div>
+    <div class="chart-wrap"><canvas id="chartOp"></canvas></div>
+  </div>
+</div>
+
+<div class="card" style="margin-bottom:20px">
+  <h2>🏆 CDN Ranking — Worst Stall/Buffer</h2>
+  <div class="note">Top 10 CDN × Operator combos by selected metric</div>
+  <div id="ranking" style="font-size:.85em"></div>
+</div>
+
+<script>
+let DATA = null;
+let chartMain = null, chartOp = null;
+
+const CDN_COLORS = {
+  'CloudFront': '#ff9900',
+  'Google': '#4285f4',
+  'Akamai': '#e4405f',
+  'Three/Indosat': '#f5a623',
+  'Telkom/Lainnya': '#00cc88',
+  'Unknown': '#666'
+};
+
+const OP_COLORS = { 'XL': '#0066ff', 'Telkomsel': '#e4405f', 'Indosat': '#f5a623' };
+
+fetch('/national_server_trend.json')
+  .then(r => r.json())
+  .then(d => { DATA = d; init(); });
+
+function init() {
+  const provinces = Object.keys(DATA).sort();
+  const sel = document.getElementById('selProv');
+  provinces.forEach(p => {
+    const opt = document.createElement('option');
+    opt.value = p; opt.textContent = p;
+    sel.appendChild(opt);
+  });
+  // Default to DKI JAKARTA
+  sel.value = provinces.includes('DKI JAKARTA') ? 'DKI JAKARTA' : provinces[0];
+  
+  sel.addEventListener('change', update);
+  document.getElementById('selOp').addEventListener('change', update);
+  document.getElementById('selMetric').addEventListener('change', update);
+  
+  update();
+}
+
+function update() {
+  const prov = document.getElementById('selProv').value;
+  const opFilter = document.getElementById('selOp').value;
+  const metric = document.getElementById('selMetric').value;
+  
+  if (!DATA || !DATA[prov]) return;
+  
+  const provData = DATA[prov];
+  const operators = Object.keys(provData).sort();
+  
+  // === Stats ===
+  let totalN = 0, totalStall = 0, totalBuf = 0, count = 0;
+  const statsDiv = document.getElementById('statsRow');
+  
+  for (const op of operators) {
+    if (opFilter !== 'ALL' && op !== opFilter) continue;
+    for (const cdn of Object.keys(provData[op])) {
+      for (const rec of provData[op][cdn]) {
+        totalN += rec.n;
+        totalStall += rec.stall * rec.n;
+        totalBuf += rec.buffer * rec.n;
+        count++;
+      }
+    }
+  }
+  
+  statsDiv.innerHTML = `
+    <div class="stat"><div class="val" style="color:#58a6ff">${totalN.toLocaleString()}</div><div class="label">Total Tests</div></div>
+    <div class="stat"><div class="val" style="color:#f0883e">${(totalStall/totalN).toFixed(1)}s</div><div class="label">Avg Stall</div></div>
+    <div class="stat"><div class="val" style="color:#3fb950">${(totalBuf/totalN).toFixed(2)}</div><div class="label">Avg Buffer</div></div>
+    <div class="stat"><div class="val" style="color:#c9d1d9">${count}</div><div class="label">Data Points</div></div>
+  `;
+  
+  // === Chart per CDN ===
+  const datasets = [];
+  const allCdns = new Set();
+  
+  for (const op of operators) {
+    if (opFilter !== 'ALL' && op !== opFilter) continue;
+    for (const cdn of Object.keys(provData[op])) {
+      allCdns.add(cdn);
+      const records = provData[op][cdn];
+      const cdnLabel = opFilter === 'ALL' ? `${cdn} (${op})` : cdn;
+      datasets.push({
+        label: cdnLabel,
+        data: records.map(r => ({x: r.date, y: metric === 'stall' ? r.stall : r.buffer})),
+        borderColor: CDN_COLORS[cdn] || '#888',
+        backgroundColor: (CDN_COLORS[cdn] || '#888') + '44',
+        borderWidth: opFilter === 'ALL' ? 1.5 : 2,
+        pointRadius: 2,
+        showLine: true,
+        tension: 0.3
+      });
+    }
+  }
+  
+  if (chartMain) chartMain.destroy();
+  chartMain = new Chart(document.getElementById('chartMain'), {
+    type: 'scatter',
+    data: { datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      interaction: { mode:'nearest', intersect:false },
+      plugins: {
+        legend: { display:true, position:'top', labels:{usePointStyle:true, font:{size:9}, padding:8, boxWidth:8} },
+        tooltip: { callbacks:{ label: ctx => `${ctx.dataset.label}: ${ctx.parsed.y.toFixed(metric==='stall'?1:2)}${metric==='stall'?'s':''}` } }
+      },
+      scales: {
+        x: { type:'time', time:{unit:'week',displayFormats:{week:'dd MMM'}}, grid:{color:'#21262d'}, ticks:{font:{size:10}} },
+        y: { grid:{color:'#21262d'}, ticks:{font:{size:10}}, title:{display:true, text: metric==='stall'?'Stall (detik)':'Buffer Count', font:{size:11}}, beginAtZero:true }
+      }
+    }
+  });
+  
+  // === Chart per Operator (aggregated) ===
+  const opDatasets = [];
+  for (const op of operators) {
+    if (opFilter !== 'ALL' && op !== opFilter) continue;
+    // Aggregate across CDNs per date
+    const byDate = {};
+    for (const cdn of Object.keys(provData[op])) {
+      for (const r of provData[op][cdn]) {
+        if (!byDate[r.date]) byDate[r.date] = {sum:0, n:0};
+        byDate[r.date].sum += (metric === 'stall' ? r.stall : r.buffer) * r.n;
+        byDate[r.date].n += r.n;
+      }
+    }
+    const points = Object.entries(byDate).map(([d,v]) => ({x:d, y: v.sum/v.n})).sort((a,b) => a.x.localeCompare(b.x));
+    opDatasets.push({
+      label: op,
+      data: points,
+      borderColor: OP_COLORS[op] || '#888',
+      backgroundColor: (OP_COLORS[op]||'#888') + '44',
+      borderWidth: 2.5,
+      pointRadius: 3,
+      showLine: true,
+      tension: 0.3
+    });
+  }
+  
+  if (chartOp) chartOp.destroy();
+  chartOp = new Chart(document.getElementById('chartOp'), {
+    type: 'scatter',
+    data: { datasets: opDatasets },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      interaction: { mode:'nearest', intersect:false },
+      plugins: {
+        legend: { display:true, position:'top', labels:{usePointStyle:true, font:{size:10}, padding:12} },
+        tooltip: { callbacks:{ label: ctx => `${ctx.dataset.label}: ${ctx.parsed.y.toFixed(metric==='stall'?1:2)}${metric==='stall'?'s':''}` } }
+      },
+      scales: {
+        x: { type:'time', time:{unit:'week',displayFormats:{week:'dd MMM'}}, grid:{color:'#21262d'}, ticks:{font:{size:10}} },
+        y: { grid:{color:'#21262d'}, ticks:{font:{size:10}}, title:{display:true, text: metric==='stall'?'Stall (detik)':'Buffer Count', font:{size:11}}, beginAtZero:true }
+      }
+    }
+  });
+  
+  // === Ranking ===
+  const ranks = [];
+  for (const op of operators) {
+    for (const cdn of Object.keys(provData[op])) {
+      const records = provData[op][cdn];
+      let sumVal = 0, sumN = 0;
+      for (const r of records) {
+        sumVal += (metric === 'stall' ? r.stall : r.buffer) * r.n;
+        sumN += r.n;
+      }
+      if (sumN > 0) {
+        ranks.push({ cdn, op, val: sumVal/sumN, n: sumN });
+      }
+    }
+  }
+  ranks.sort((a,b) => b.val - a.val);
+  
+  let rankHtml = '<table style="width:100%;border-collapse:collapse">';
+  rankHtml += '<tr style="color:#8b949e;text-align:left"><th style="padding:4px">#</th><th>CDN</th><th>Operator</th><th>' + (metric==='stall'?'Avg Stall':'Avg Buffer') + '</th><th>Tests</th></tr>';
+  ranks.slice(0, 15).forEach((r, i) => {
+    const color = CDN_COLORS[r.cdn] || '#888';
+    const valColor = r.val > (metric==='stall'?50:0.5) ? '#f85149' : '#3fb950';
+    rankHtml += `<tr style="border-top:1px solid #21262d"><td style="padding:4px">${i+1}</td><td><span style="color:${color}">●</span> ${r.cdn}</td><td>${r.op}</td><td style="color:${valColor};font-weight:600">${r.val.toFixed(metric==='stall'?1:2)}${metric==='stall'?'s':''}</td><td>${r.n.toLocaleString()}</td></tr>`;
+  });
+  rankHtml += '</table>';
+  document.getElementById('ranking').innerHTML = rankHtml;
+  
+  // === Legend ===
+  const legendDiv = document.getElementById('legend');
+  legendDiv.innerHTML = Object.entries(CDN_COLORS).map(([k,v]) => 
+    `<div class="legend-item"><div class="legend-dot" style="background:${v}"></div>${k}</div>`
+  ).join('') + Object.entries(OP_COLORS).map(([k,v]) =>
+    `<div class="legend-item"><div class="legend-dot" style="background:${v};border:2px solid ${v}"></div>${k}</div>`
+  ).join('');
+}
+</script>
+</body>
+</html>

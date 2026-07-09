@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Packet Loss per Server IP — Operator Comparison</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:#0d1117; color:#c9d1d9; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif; padding:20px; }
+h1 { color:#58a6ff; font-size:1.4em; margin-bottom:4px; }
+.subtitle { color:#8b949e; font-size:.85em; margin-bottom:16px; }
+.info-box { background:#1c2333; border-left:3px solid #f85149; padding:10px 14px; border-radius:4px; margin-bottom:16px; font-size:.82em; }
+.info-box strong { color:#f85149; }
+.stats { display:grid; grid-template-columns:repeat(auto-fit, minmax(180px,1fr)); gap:12px; margin-bottom:20px; }
+.stat { background:#161b22; border:1px solid #30363d; border-radius:8px; padding:14px; text-align:center; }
+.stat .val { font-size:1.5em; font-weight:700; }
+.stat .label { color:#8b949e; font-size:.75em; margin-top:2px; }
+.grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:20px; }
+@media(max-width:1000px) { .grid { grid-template-columns:1fr; } }
+.card { background:#161b22; border:1px solid #30363d; border-radius:8px; padding:16px; }
+.card h2 { color:#58a6ff; font-size:1em; margin-bottom:4px; }
+.card .note { color:#8b949e; font-size:.75em; margin-bottom:12px; }
+.chart-wrap { position:relative; height:320px; }
+.full { grid-column:1/-1; }
+table { width:100%; border-collapse:collapse; font-size:.82em; }
+th { text-align:left; padding:6px 8px; color:#8b949e; border-bottom:1px solid #30363d; font-weight:600; }
+td { padding:5px 8px; border-bottom:1px solid #21262d; }
+tr:hover { background:#161b2288; }
+.op-xl { color:#0066ff; font-weight:600; }
+.op-tsel { color:#e4405f; font-weight:600; }
+.op-isat { color:#f5a623; font-weight:600; }
+.bad { color:#f85149; }
+.good { color:#3fb950; }
+.warn { color:#f0883e; }
+.nav { display:flex; gap:10px; margin-bottom:16px; flex-wrap:wrap; }
+.nav a { color:#58a6ff; text-decoration:none; font-size:.85em; padding:4px 10px; border:1px solid #30363d; border-radius:4px; }
+.nav a:hover { background:#1f2937; }
+.legend { display:flex; gap:16px; margin-bottom:12px; flex-wrap:wrap; }
+.legend-item { display:flex; align-items:center; gap:5px; font-size:.85em; }
+.legend-dot { width:10px; height:10px; border-radius:50%; }
+</style>
+</head>
+<body>
+
+<h1>📡 Packet Loss per Server IP — Operator Comparison</h1>
+<p class="subtitle">avg(qos_packetlosslostpercentage) · Real servers only (count≥10, excl 198.18.x.x Cloudflare WARP) · All data</p>
+
+<div class="nav">
+  <a href="/">← Dashboard Utama</a>
+  <a href="/dashboard_national_server_trend.html">Server Trend</a>
+  <a href="/dashboard_consistency.html">Consistency</a>
+</div>
+
+<div class="info-box">
+  ⚠️ <strong>XL paling tinggi packet loss</strong> di semua server — bahkan di server yang SAMA dengan Telkomsel & Indosat. Ini bukan masalah CDN, ini masalah <strong>jaringan XL</strong>.
+</div>
+
+<div class="stats">
+  <div class="stat"><div class="val op-xl">1.36%</div><div class="label">XL — National Avg</div></div>
+  <div class="stat"><div class="val op-isat">0.87%</div><div class="label">Indosat — National Avg</div></div>
+  <div class="stat"><div class="val" style="color:#888">0.80%</div><div class="label">3 (Tri) — National Avg</div></div>
+  <div class="stat"><div class="val op-tsel">0.68%</div><div class="label">Telkomsel — National Avg</div></div>
+  <div class="stat"><div class="val" style="color:#666">0.64%</div><div class="label">Smartfren — National Avg</div></div>
+</div>
+
+<div class="legend">
+  <div class="legend-item"><div class="legend-dot" style="background:#0066ff"></div> XL</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#e4405f"></div> Telkomsel</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#f5a623"></div> Indosat</div>
+</div>
+
+<div class="grid">
+  <div class="card">
+    <h2>🇮🇩 AWS Jakarta Servers</h2>
+    <div class="note">108.137.x.x — server lokal Indonesia</div>
+    <div class="chart-wrap"><canvas id="chartJakarta"></canvas></div>
+  </div>
+  <div class="card">
+    <h2>🇸🇬 AWS Singapore Servers</h2>
+    <div class="note">43.x.x.x, 54.x.x.x, 3.x.x.x, 13.x.x.x</div>
+    <div class="chart-wrap"><canvas id="chartSingapore"></canvas></div>
+  </div>
+  <div class="card full">
+    <h2>📊 Head-to-Head: Same Server, Different Operators</h2>
+    <div class="note">Top 12 servers by total test count — semua operator pakai server yang SAMA</div>
+    <div class="chart-wrap"><canvas id="chartHeadToHead"></canvas></div>
+  </div>
+</div>
+
+<div class="card" style="margin-bottom:20px">
+  <h2>📋 Detail per Server IP — Semua Operator</h2>
+  <div class="note">Sorted by total test count · Highlight = worst performer per server</div>
+  <div style="overflow-x:auto">
+    <table id="detailTable">
+      <thead>
+        <tr><th>Server IP</th><th>Lokasi</th><th>XL Lost%</th><th>XL N</th><th>Telkomsel Lost%</th><th>Telkomsel N</th><th>Indosat Lost%</th><th>Indosat N</th><th>Δ XL vs Tsel</th></tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+const DATA = [
+  {ip:'108.137.60.128',loc:'Jakarta',xl:{lost:1.07,n:3652413},tsel:{lost:0.68,n:9413083},isat:{lost:0.88,n:8519155}},
+  {ip:'16.78.116.52',loc:'Singapore',xl:{lost:1.07,n:3651589},tsel:{lost:0.68,n:9409080},isat:{lost:0.88,n:8524246}},
+  {ip:'16.78.7.82',loc:'Singapore',xl:{lost:1.08,n:3647020},tsel:{lost:0.68,n:9404660},isat:{lost:0.88,n:8518529}},
+  {ip:'64:ff9b::6c89:3c80',loc:'IPv6',xl:{lost:1.48,n:2063433},tsel:{lost:0.55,n:2194855},isat:{lost:1.12,n:3047}},
+  {ip:'64:ff9b::104e:7434',loc:'IPv6',xl:{lost:1.47,n:2059388},tsel:{lost:0.55,n:2188978},isat:{lost:1.46,n:2984}},
+  {ip:'64:ff9b::104e:752',loc:'IPv6',xl:{lost:1.48,n:2051741},tsel:{lost:0.55,n:2192864},isat:{lost:0.88,n:3134}},
+  {ip:'43.218.11.38',loc:'Singapore',xl:{lost:1.08,n:328868},tsel:{lost:0.67,n:1955430},isat:{lost:0.83,n:771256}},
+  {ip:'108.137.178.126',loc:'Jakarta',xl:{lost:1.06,n:326531},tsel:{lost:0.67,n:1893401},isat:{lost:0.82,n:769047}},
+  {ip:'108.137.182.98',loc:'Jakarta',xl:{lost:1.07,n:325934},tsel:{lost:0.67,n:1875001},isat:{lost:0.84,n:770970}},
+  {ip:'43.217.227.137',loc:'Singapore',xl:{lost:2.54,n:255163},tsel:{lost:0.78,n:1771553},isat:{lost:0.78,n:245522}},
+  {ip:'43.217.166.207',loc:'Singapore',xl:{lost:2.52,n:254988},tsel:{lost:0.78,n:1764271},isat:{lost:0.78,n:245270}},
+  {ip:'43.216.122.42',loc:'Singapore',xl:{lost:2.52,n:254160},tsel:{lost:0.78,n:1769909},isat:{lost:0.78,n:244657}},
+  {ip:'64:ff9b::2bda:b26',loc:'IPv6',xl:{lost:1.65,n:186168},tsel:{lost:0.31,n:300399},isat:{lost:0.85,n:352}},
+  {ip:'64:ff9b::6c89:b27e',loc:'IPv6',xl:{lost:1.71,n:184962},tsel:{lost:0.31,n:300034},isat:{lost:1.61,n:313}},
+  {ip:'64:ff9b::6c89:b662',loc:'IPv6',xl:{lost:1.67,n:184871},tsel:{lost:0.30,n:300442},isat:{lost:0.47,n:345}},
+  {ip:'64:ff9b::2bd9:a6cf',loc:'IPv6',xl:{lost:2.88,n:145775},tsel:{lost:0.89,n:28246},isat:null},
+  {ip:'64:ff9b::2bd8:7a2a',loc:'IPv6',xl:{lost:2.83,n:145238},tsel:{lost:0.97,n:28432},isat:null},
+  {ip:'64:ff9b::2bd9:e389',loc:'IPv6',xl:{lost:2.73,n:145005},tsel:{lost:0.95,n:28347},isat:null},
+  {ip:'54.255.115.71',loc:'Singapore',xl:{lost:2.61,n:142213},tsel:{lost:0.81,n:1283062},isat:{lost:0.93,n:389019}},
+  {ip:'3.0.12.103',loc:'Singapore',xl:{lost:2.67,n:141805},tsel:{lost:0.84,n:1317104},isat:{lost:0.94,n:389050}},
+  {ip:'13.251.196.36',loc:'Singapore',xl:{lost:2.62,n:141375},tsel:{lost:0.82,n:1274582},isat:{lost:0.93,n:389181}},
+  {ip:'64:ff9b::dfb:c424',loc:'IPv6',xl:{lost:3.21,n:84385},tsel:null,isat:null},
+  {ip:'64:ff9b::300:c67',loc:'IPv6',xl:{lost:3.34,n:84135},tsel:null,isat:null},
+  {ip:'64:ff9b::36ff:7347',loc:'IPv6',xl:{lost:3.26,n:83584},tsel:null,isat:null},
+  {ip:'54.66.138.194',loc:'Sydney',xl:null,tsel:{lost:0.93,n:86119},isat:{lost:1.68,n:9927}},
+  {ip:'3.106.99.161',loc:'Sydney',xl:null,tsel:{lost:0.89,n:85563},isat:{lost:1.74,n:9785}},
+  {ip:'3.106.144.33',loc:'Sydney',xl:null,tsel:{lost:0.90,n:85311},isat:{lost:1.66,n:9896}},
+];
+
+const OP_COLORS = {xl:'#0066ff',tsel:'#e4405f',isat:'#f5a623'};
+
+Chart.defaults.color = '#8b949e';
+Chart.defaults.borderColor = '#21262d';
+
+// Jakarta servers chart
+const jakartaData = DATA.filter(d => d.loc === 'Jakarta' || (d.ip.startsWith('108.137') && !d.ip.includes('::')));
+new Chart(document.getElementById('chartJakarta'), {
+  type: 'bar',
+  data: {
+    labels: jakartaData.map(d => d.ip),
+    datasets: [
+      {label:'XL', data: jakartaData.map(d => d.xl?.lost ?? null), backgroundColor:'#0066ff99', borderColor:'#0066ff', borderWidth:1},
+      {label:'Telkomsel', data: jakartaData.map(d => d.tsel?.lost ?? null), backgroundColor:'#e4405f99', borderColor:'#e4405f', borderWidth:1},
+      {label:'Indosat', data: jakartaData.map(d => d.isat?.lost ?? null), backgroundColor:'#f5a62399', borderColor:'#f5a623', borderWidth:1},
+    ]
+  },
+  options: {
+    responsive:true, maintainAspectRatio:false,
+    plugins:{legend:{position:'top',labels:{usePointStyle:true,font:{size:10}}},
+    tooltip:{callbacks:{label:ctx=>`${ctx.dataset.label}: ${ctx.parsed.y?.toFixed(2)}%`}}},
+    scales:{x:{ticks:{font:{size:9},maxRotation:45}},y:{title:{display:true,text:'Packet Loss %'},beginAtZero:true}}
+  }
+});
+
+// Singapore servers chart
+const sgData = DATA.filter(d => d.loc === 'Singapore' && !d.ip.includes('::'));
+new Chart(document.getElementById('chartSingapore'), {
+  type: 'bar',
+  data: {
+    labels: sgData.map(d => d.ip),
+    datasets: [
+      {label:'XL', data: sgData.map(d => d.xl?.lost ?? null), backgroundColor:'#0066ff99', borderColor:'#0066ff', borderWidth:1},
+      {label:'Telkomsel', data: sgData.map(d => d.tsel?.lost ?? null), backgroundColor:'#e4405f99', borderColor:'#e4405f', borderWidth:1},
+      {label:'Indosat', data: sgData.map(d => d.isat?.lost ?? null), backgroundColor:'#f5a62399', borderColor:'#f5a623', borderWidth:1},
+    ]
+  },
+  options: {
+    responsive:true, maintainAspectRatio:false,
+    plugins:{legend:{position:'top',labels:{usePointStyle:true,font:{size:10}}},
+    tooltip:{callbacks:{label:ctx=>`${ctx.dataset.label}: ${ctx.parsed.y?.toFixed(2)}%`}}},
+    scales:{x:{ticks:{font:{size:9},maxRotation:45}},y:{title:{display:true,text:'Packet Loss %'},beginAtZero:true}}
+  }
+});
+
+// Head-to-head (top servers all operators share)
+const h2h = DATA.filter(d => d.xl && d.tsel && d.isat && !d.ip.includes('::')).slice(0,12);
+new Chart(document.getElementById('chartHeadToHead'), {
+  type: 'bar',
+  data: {
+    labels: h2h.map(d => d.ip + ' (' + d.loc + ')'),
+    datasets: [
+      {label:'XL', data: h2h.map(d => d.xl.lost), backgroundColor:'#0066ffcc', borderColor:'#0066ff', borderWidth:1},
+      {label:'Telkomsel', data: h2h.map(d => d.tsel.lost), backgroundColor:'#e4405fcc', borderColor:'#e4405f', borderWidth:1},
+      {label:'Indosat', data: h2h.map(d => d.isat.lost), backgroundColor:'#f5a623cc', borderColor:'#f5a623', borderWidth:1},
+    ]
+  },
+  options: {
+    responsive:true, maintainAspectRatio:false,
+    plugins:{legend:{position:'top',labels:{usePointStyle:true,font:{size:10}}},
+    tooltip:{callbacks:{label:ctx=>`${ctx.dataset.label}: ${ctx.parsed.y?.toFixed(2)}%`}}},
+    scales:{x:{ticks:{font:{size:8},maxRotation:45}},y:{title:{display:true,text:'Packet Loss %'},beginAtZero:true}}
+  }
+});
+
+// Detail table
+const tbody = document.querySelector('#detailTable tbody');
+DATA.forEach(d => {
+  const xlLost = d.xl?.lost;
+  const tselLost = d.tsel?.lost;
+  const isatLost = d.isat?.lost;
+  const delta = (xlLost != null && tselLost != null) ? (xlLost - tselLost) : null;
+  
+  const worst = Math.max(xlLost||0, tselLost||0, isatLost||0);
+  
+  const fmtLost = (v) => {
+    if (v == null) return '<span style="color:#484f58">—</span>';
+    const cls = v > 2 ? 'bad' : v > 1 ? 'warn' : 'good';
+    return `<span class="${cls}">${v.toFixed(2)}%</span>`;
+  };
+  const fmtN = (v) => v ? v.toLocaleString() : '—';
+  const fmtDelta = (v) => {
+    if (v == null) return '—';
+    const cls = v > 1 ? 'bad' : v > 0.5 ? 'warn' : 'good';
+    return `<span class="${cls}">+${v.toFixed(2)}pp</span>`;
+  };
+  
+  tbody.innerHTML += `<tr>
+    <td style="font-family:monospace;font-size:.85em">${d.ip}</td>
+    <td>${d.loc}</td>
+    <td>${fmtLost(xlLost)}</td><td style="color:#8b949e;font-size:.8em">${fmtN(d.xl?.n)}</td>
+    <td>${fmtLost(tselLost)}</td><td style="color:#8b949e;font-size:.8em">${fmtN(d.tsel?.n)}</td>
+    <td>${fmtLost(isatLost)}</td><td style="color:#8b949e;font-size:.8em">${fmtN(d.isat?.n)}</td>
+    <td>${fmtDelta(delta)}</td>
+  </tr>`;
+});
+</script>
+</body>
+</html>

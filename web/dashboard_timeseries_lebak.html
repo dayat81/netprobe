@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html><head><meta charset="UTF-8">
+<title>Timeseries — Kab. Lebak</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<style>
+body{background:#0d1117;color:#e6edf3;font-family:-apple-system,sans-serif;margin:0;padding:15px}
+.container{max-width:1400px;margin:0 auto}
+h1{text-align:center;color:#f44336;margin-bottom:5px;font-size:20px}
+.subtitle{text-align:center;color:#8b949e;margin-bottom:20px;font-size:12px}
+.chart-grid{display:grid;grid-template-columns:1fr 1fr;gap:15px;margin-bottom:20px}
+.chart-box{background:#161b22;border-radius:10px;padding:15px;border:1px solid #30363d}
+.chart-box h3{margin:0 0 10px;font-size:14px;color:#e6edf3}
+.chart-box canvas{width:100%!important;height:250px!important}
+.legend{display:flex;gap:15px;justify-content:center;margin:10px 0;font-size:11px}
+.legend-item{display:flex;align-items:center;gap:4px}
+.legend-dot{width:10px;height:10px;border-radius:50%}
+.anomaly-marker{background:#f44336;color:#fff;padding:1px 5px;border-radius:4px;font-size:10px;font-weight:600}
+</style></head><body>
+<div class="container">
+<h1>📈 Timeseries — Kab. Lebak (XL 4G)</h1>
+<div class="subtitle">Data 1-14 Juni 2026 | Top 4 kecamatan sample terbanyak</div>
+
+<div class="legend">
+<div class="legend-item"><div class="legend-dot" style="background:#42a5f5"></div>Rangkasbitung</div>
+<div class="legend-item"><div class="legend-dot" style="background:#66bb6a"></div>Warunggunung</div>
+<div class="legend-item"><div class="legend-dot" style="background:#ffa726"></div>Maja</div>
+<div class="legend-item"><div class="legend-dot" style="background:#ab47bc"></div>Kalanganyar</div>
+</div>
+
+<div class="chart-grid">
+<div class="chart-box">
+<h3>📹 Video — First Frame (s)</h3>
+<canvas id="chart_ff"></canvas>
+</div>
+<div class="chart-box">
+<h3>📹 Video — Stall Time (s)</h3>
+<canvas id="chart_stall"></canvas>
+</div>
+<div class="chart-box">
+<h3>📹 Video — Throughput (Mbps)</h3>
+<canvas id="chart_tput"></canvas>
+</div>
+<div class="chart-box">
+<h3>📹 Video — Success Rate (%)</h3>
+<canvas id="chart_success"></canvas>
+</div>
+</div>
+
+<div style="background:#161b22;border-radius:10px;padding:15px;border:1px solid #30363d;margin-top:15px">
+<h3 style="margin:0 0 10px;color:#f44336">🚨 Anomali Markers</h3>
+<div style="font-size:12px">
+<ul style="margin:5px 0;padding-left:20px">
+<li><span class="anomaly-marker">Jun 1 Rangkasbitung</span> Success 55.6% — connection failure</li>
+<li><span class="anomaly-marker">Jun 9 Rangkasbitung</span> FF 217s — CDN timeout outlier</li>
+<li><span class="anomaly-marker">Jun 12 Rangkasbitung</span> Stall 4,228s — CLOUDFRONT extreme</li>
+<li><span class="anomaly-marker">Jun 1 Warunggunung</span> Stall 4,220s — CDN issue</li>
+<li><span class="anomaly-marker">Jun 11 Warunggunung</span> Stall 10,000s + Success 33.3% — worst day</li>
+<li><span class="anomaly-marker">Jun 6 Kalanganyar</span> FF 49s — outlier spike</li>
+</ul>
+</div>
+</div>
+
+</div>
+
+<script>
+const dates = ["Jun 1", "Jun 2", "Jun 3", "Jun 4", "Jun 5", "Jun 6", "Jun 7", "Jun 8", "Jun 9", "Jun 10", "Jun 11", "Jun 12", "Jun 13", "Jun 14"];
+const kecs = ["RANGKASBITUNG", "WARUNGGUNUNG", "MAJA", "KALANGANYAR"];
+const colors = ["#42a5f5", "#66bb6a", "#ffa726", "#ab47bc"];
+const videoData = [{"kec": "RANGKASBITUNG", "date": "2026-06-01", "n": 9, "ff": 15.2, "stall": 0, "tput": 4.7, "success": 55.6}, {"kec": "RANGKASBITUNG", "date": "2026-06-02", "n": 8, "ff": 4, "stall": 0, "tput": 22, "success": 100}, {"kec": "RANGKASBITUNG", "date": "2026-06-03", "n": 9, "ff": 6.8, "stall": 1042.2, "tput": 9, "success": 100}, {"kec": "RANGKASBITUNG", "date": "2026-06-04", "n": 8, "ff": 6.8, "stall": 839.4, "tput": 16, "success": 100}, {"kec": "RANGKASBITUNG", "date": "2026-06-05", "n": 3, "ff": 13.7, "stall": 0, "tput": 143.5, "success": 100}, {"kec": "RANGKASBITUNG", "date": "2026-06-06", "n": 6, "ff": 3.8, "stall": 739.5, "tput": 9.4, "success": 83.3}, {"kec": "RANGKASBITUNG", "date": "2026-06-07", "n": 9, "ff": 3.4, "stall": 0, "tput": 12, "success": 88.9}, {"kec": "RANGKASBITUNG", "date": "2026-06-08", "n": 3, "ff": 3.7, "stall": 0, "tput": 4.7, "success": 33.3}, {"kec": "RANGKASBITUNG", "date": "2026-06-09", "n": 8, "ff": 217.1, "stall": 0, "tput": 15.7, "success": 100}, {"kec": "RANGKASBITUNG", "date": "2026-06-10", "n": 9, "ff": 23.4, "stall": 1047.9, "tput": 9.9, "success": 88.9}, {"kec": "RANGKASBITUNG", "date": "2026-06-11", "n": 12, "ff": 9.2, "stall": 388.2, "tput": 11.6, "success": 91.7}, {"kec": "RANGKASBITUNG", "date": "2026-06-12", "n": 16, "ff": 9.9, "stall": 4227.8, "tput": 16.2, "success": 93.8}, {"kec": "RANGKASBITUNG", "date": "2026-06-13", "n": 9, "ff": 8.1, "stall": 0, "tput": 35.4, "success": 100}, {"kec": "RANGKASBITUNG", "date": "2026-06-14", "n": 6, "ff": 7.8, "stall": 0, "tput": 9.4, "success": 100}, {"kec": "WARUNGGUNUNG", "date": "2026-06-01", "n": 4, "ff": 5.8, "stall": 4220, "tput": 13.1, "success": 75}, {"kec": "WARUNGGUNUNG", "date": "2026-06-02", "n": 3, "ff": 5, "stall": 0, "tput": 14.6, "success": 100}, {"kec": "WARUNGGUNUNG", "date": "2026-06-04", "n": 1, "ff": 28, "stall": 0, "tput": 2.4, "success": 100}, {"kec": "WARUNGGUNUNG", "date": "2026-06-06", "n": 1, "ff": 2, "stall": 0, "tput": 67.5, "success": 100}, {"kec": "WARUNGGUNUNG", "date": "2026-06-07", "n": 2, "ff": 4, "stall": 0, "tput": 25.9, "success": 100}, {"kec": "WARUNGGUNUNG", "date": "2026-06-09", "n": 5, "ff": 4, "stall": 0, "tput": 10.9, "success": 80}, {"kec": "WARUNGGUNUNG", "date": "2026-06-10", "n": 4, "ff": 7.5, "stall": 0, "tput": 4.1, "success": 75}, {"kec": "WARUNGGUNUNG", "date": "2026-06-11", "n": 3, "ff": 10, "stall": 10000, "tput": 1.4, "success": 33.3}, {"kec": "WARUNGGUNUNG", "date": "2026-06-12", "n": 2, "ff": 4, "stall": 0, "tput": 27.2, "success": 100}, {"kec": "WARUNGGUNUNG", "date": "2026-06-13", "n": 4, "ff": 39.8, "stall": 0, "tput": 7.3, "success": 100}, {"kec": "WARUNGGUNUNG", "date": "2026-06-14", "n": 1, "ff": 4, "stall": 0, "tput": 14.5, "success": 100}, {"kec": "MAJA", "date": "2026-06-01", "n": 3, "ff": 7.7, "stall": 0, "tput": 8.9, "success": 66.7}, {"kec": "MAJA", "date": "2026-06-02", "n": 2, "ff": 5, "stall": 0, "tput": 14, "success": 100}, {"kec": "MAJA", "date": "2026-06-03", "n": 6, "ff": 36.2, "stall": 0, "tput": 15.4, "success": 100}, {"kec": "MAJA", "date": "2026-06-05", "n": 4, "ff": 4, "stall": 0, "tput": 7.1, "success": 75}, {"kec": "MAJA", "date": "2026-06-06", "n": 1, "ff": 11, "stall": 0, "tput": 24.4, "success": 100}, {"kec": "MAJA", "date": "2026-06-07", "n": 3, "ff": 11.7, "stall": 0, "tput": 11.6, "success": 100}, {"kec": "MAJA", "date": "2026-06-08", "n": 3, "ff": 9.3, "stall": 0, "tput": 8.1, "success": 100}, {"kec": "MAJA", "date": "2026-06-09", "n": 1, "ff": 4, "stall": 0, "tput": 14.4, "success": 100}, {"kec": "MAJA", "date": "2026-06-10", "n": 4, "ff": 29.8, "stall": 0, "tput": 9.7, "success": 100}, {"kec": "MAJA", "date": "2026-06-11", "n": 1, "ff": 13, "stall": 0, "tput": 8.6, "success": 100}, {"kec": "MAJA", "date": "2026-06-12", "n": 2, "ff": 3, "stall": 0, "tput": 21.6, "success": 100}, {"kec": "MAJA", "date": "2026-06-13", "n": 4, "ff": 6.2, "stall": 0, "tput": 7.1, "success": 100}, {"kec": "MAJA", "date": "2026-06-14", "n": 3, "ff": 14.7, "stall": 0, "tput": 11.8, "success": 100}, {"kec": "KALANGANYAR", "date": "2026-06-01", "n": 2, "ff": 3.5, "stall": 0, "tput": 24.4, "success": 100}, {"kec": "KALANGANYAR", "date": "2026-06-02", "n": 1, "ff": 15, "stall": 0, "tput": 36.6, "success": 100}, {"kec": "KALANGANYAR", "date": "2026-06-04", "n": 3, "ff": 6.3, "stall": 0, "tput": 20.5, "success": 100}, {"kec": "KALANGANYAR", "date": "2026-06-05", "n": 1, "ff": 0, "stall": 0, "tput": 1.8, "success": 0}, {"kec": "KALANGANYAR", "date": "2026-06-06", "n": 2, "ff": 49, "stall": 0, "tput": 8.5, "success": 100}, {"kec": "KALANGANYAR", "date": "2026-06-09", "n": 3, "ff": 4.7, "stall": 0, "tput": 22.3, "success": 100}, {"kec": "KALANGANYAR", "date": "2026-06-10", "n": 2, "ff": 3, "stall": 0, "tput": 18.1, "success": 100}, {"kec": "KALANGANYAR", "date": "2026-06-11", "n": 1, "ff": 4, "stall": 0, "tput": 62.7, "success": 100}, {"kec": "KALANGANYAR", "date": "2026-06-12", "n": 2, "ff": 6, "stall": 0, "tput": 12, "success": 100}, {"kec": "KALANGANYAR", "date": "2026-06-13", "n": 1, "ff": 30, "stall": 0, "tput": 18.5, "success": 100}, {"kec": "KALANGANYAR", "date": "2026-06-14", "n": 2, "ff": 3, "stall": 0, "tput": 19.5, "success": 100}];
+
+function getData(data, kec, field) {
+  return dates.map((_, i) => {
+    const d = data.find(r => r.kec === kec && r.date === 'Jun ' + (i+1));
+    return d ? d[field] : null;
+  });
+}
+
+const chartOpts = (yLabel) => ({
+  responsive: true,
+  plugins: { legend: { display: false } },
+  scales: {
+    x: { ticks: { color: '#8b949e', font: { size: 10 } }, grid: { color: '#21262d' } },
+    y: { title: { display: true, text: yLabel, color: '#8b949e' }, ticks: { color: '#8b949e' }, grid: { color: '#21262d' } }
+  },
+  elements: { point: { radius: 4, hoverRadius: 6 }, line: { tension: 0.3 } }
+});
+
+function makeChart(id, field, yLabel) {
+  new Chart(document.getElementById(id), {
+    type: 'line',
+    data: {
+      labels: dates,
+      datasets: kecs.map((kec, i) => ({
+        label: kec,
+        data: getData(videoData, kec, field),
+        borderColor: colors[i],
+        backgroundColor: colors[i] + '33',
+        fill: false,
+        spanGaps: true
+      }))
+    },
+    options: chartOpts(yLabel)
+  });
+}
+
+makeChart('chart_ff', 'ff', 'Seconds');
+makeChart('chart_stall', 'stall', 'Seconds');
+makeChart('chart_tput', 'tput', 'Mbps');
+makeChart('chart_success', 'success', '%');
+</script></body></html>

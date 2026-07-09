@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Opensignal Video – Weight Score per Provider MA7</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 20px; background: #fff; }
+  .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; padding-bottom: 10px; border-bottom: 3px solid #E74C3C; }
+  .header h1 { font-size: 22px; color: #222; }
+  .logo { font-size: 20px; font-weight: bold; color: #E74C3C; }
+  .subtitle { color: #666; font-size: 13px; margin-bottom: 15px; }
+  .subtitle span { background: #f0f0f0; padding: 3px 10px; border-radius: 4px; margin-right: 8px; }
+  .legend { margin-bottom: 15px; font-size: 12px; color: #555; }
+  .legend span { margin-right: 15px; }
+  .legend .swatch { display: inline-block; width: 12px; height: 12px; border-radius: 2px; vertical-align: middle; margin-right: 3px; }
+  .note { color: #888; font-size: 12px; margin-bottom: 10px; }
+  table { border-collapse: collapse; width: 100%; font-size: 12px; }
+  th { background: #f5f5f5; padding: 8px 6px; text-align: center; font-weight: 600; border-bottom: 2px solid #ddd; position: sticky; top: 0; }
+  th.op-t { background: #E74C3C; color: white; }
+  th.op-x { background: #4A90D9; color: white; }
+  th.op-i { background: #F5A623; color: white; }
+  td { padding: 6px; text-align: center; border-bottom: 1px solid #eee; }
+  td.prov { text-align: left; font-weight: 500; white-space: nowrap; }
+  td.rank { font-weight: 600; color: #888; width: 35px; }
+  td.records { color: #888; font-size: 11px; }
+  td.score { font-weight: 600; }
+  .score-good { color: #27ae60; }
+  .score-ok { color: #2ecc71; }
+  .score-avg { color: #f39c12; }
+  .score-poor { color: #e74c3c; }
+  tr:hover { background: #f9f9f9; }
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>Opensignal Video – Weight Score per Provider MA7</h1>
+  <div class="logo">XLSMART</div>
+</div>
+<div class="subtitle">
+  <span>📅 13 Jun – 19 Jun 2026</span>
+  <span>📶 4G+5G</span>
+  <span>🎬 ABR Video</span>
+  <span>📍 34 Provinces</span>
+</div>
+<div class="legend">
+  <b>Score = (Buffer% / Max × 50) + (StallTime / Max × 50)</b> — lower = better<br>
+  <span><span class="swatch" style="background:#27ae60"></span>≤20 Excellent</span>
+  <span><span class="swatch" style="background:#2ecc71"></span>21-30 Good</span>
+  <span><span class="swatch" style="background:#f39c12"></span>31-40 Average</span>
+  <span><span class="swatch" style="background:#e74c3c"></span>>40 Poor</span>
+</div>
+<div class="note">📌 Sorted by <b>XL Score</b> (highest first = worst XL performance at top)</div>
+
+<table>
+<thead>
+  <tr>
+    <th rowspan="2">Rank</th>
+    <th rowspan="2">location_province</th>
+    <th rowspan="2">Avg Score</th>
+    <th rowspan="2">Total</th>
+    <th class="op-t" colspan="4">Telkomsel</th>
+    <th class="op-x" colspan="4">XL</th>
+    <th class="op-i" colspan="4">Indosat</th>
+  </tr>
+  <tr>
+    <th class="op-t">Score</th><th class="op-t">Buffer</th><th class="op-t">Stall</th><th class="op-t">Records</th>
+    <th class="op-x">Score</th><th class="op-x">Buffer</th><th class="op-x">Stall</th><th class="op-x">Records</th>
+    <th class="op-i">Score</th><th class="op-i">Buffer</th><th class="op-i">Stall</th><th class="op-i">Records</th>
+  </tr>
+</thead>
+<tbody>
+<tr><td class="rank">1</td><td class="prov">MALUKU</td><td class="score score-avg">31.0</td><td class="records">476</td><td class="score score-ok">23.0</td><td>0.13%</td><td>146.8s</td><td class="records">432</td><td class="score score-poor">64.9</td><td>0.25%</td><td>599.0s</td><td class="records">4</td><td class="score score-good">5.0</td><td>0.05%</td><td>0.0s</td><td class="records">40</td></tr>
+<tr><td class="rank">2</td><td class="prov">SULAWESI UTARA</td><td class="score score-avg">31.1</td><td class="records">1.7K</td><td class="score score-ok">22.1</td><td>0.12%</td><td>152.2s</td><td class="records">1.3K</td><td class="score score-poor">59.2</td><td>0.30%</td><td>431.7s</td><td class="records">194</td><td class="score score-good">11.9</td><td>0.04%</td><td>118.2s</td><td class="records">246</td></tr>
+<tr><td class="rank">3</td><td class="prov">PAPUA BARAT</td><td class="score score-avg">35.9</td><td class="records">576</td><td class="score score-avg">35.4</td><td>0.16%</td><td>293.6s</td><td class="records">555</td><td class="score score-poor">50.0</td><td>0.50%</td><td>0.0s</td><td class="records">2</td><td class="score score-ok">22.4</td><td>0.05%</td><td>256.4s</td><td class="records">19</td></tr>
+<tr><td class="rank">4</td><td class="prov">KALIMANTAN TIMUR</td><td class="score score-ok">27.6</td><td class="records">6.6K</td><td class="score score-ok">23.1</td><td>0.10%</td><td>202.3s</td><td class="records">4.9K</td><td class="score score-poor">42.0</td><td>0.11%</td><td>464.8s</td><td class="records">553</td><td class="score score-good">17.8</td><td>0.06%</td><td>170.8s</td><td class="records">1.1K</td></tr>
+<tr><td class="rank">5</td><td class="prov">KALIMANTAN SELATAN</td><td class="score score-ok">22.1</td><td class="records">4.7K</td><td class="score score-good">17.9</td><td>0.08%</td><td>150.9s</td><td class="records">3.0K</td><td class="score score-avg">36.1</td><td>0.10%</td><td>385.6s</td><td class="records">897</td><td class="score score-good">12.5</td><td>0.05%</td><td>116.3s</td><td class="records">846</td></tr>
+<tr><td class="rank">6</td><td class="prov">GORONTALO</td><td class="score score-avg">37.7</td><td class="records">622</td><td class="score score-good">15.2</td><td>0.13%</td><td>29.5s</td><td class="records">528</td><td class="score score-avg">35.9</td><td>0.29%</td><td>105.9s</td><td class="records">52</td><td class="score score-poor">61.9</td><td>0.12%</td><td>750.0s</td><td class="records">42</td></tr>
+<tr><td class="rank">7</td><td class="prov">SULAWESI SELATAN</td><td class="score score-ok">20.9</td><td class="records">4.9K</td><td class="score score-good">19.7</td><td>0.09%</td><td>163.0s</td><td class="records">3.2K</td><td class="score score-avg">34.1</td><td>0.07%</td><td>405.9s</td><td class="records">855</td><td class="score score-good">9.0</td><td>0.03%</td><td>84.6s</td><td class="records">841</td></tr>
+<tr><td class="rank">8</td><td class="prov">KALIMANTAN TENGAH</td><td class="score score-ok">23.4</td><td class="records">2.7K</td><td class="score score-ok">24.8</td><td>0.10%</td><td>214.6s</td><td class="records">2.0K</td><td class="score score-avg">32.1</td><td>0.11%</td><td>310.5s</td><td class="records">210</td><td class="score score-good">13.2</td><td>0.07%</td><td>86.7s</td><td class="records">537</td></tr>
+<tr><td class="rank">9</td><td class="prov">KEPULAUAN BANGKA BELITUNG</td><td class="score score-good">16.6</td><td class="records">947</td><td class="score score-good">11.0</td><td>0.07%</td><td>57.3s</td><td class="records">582</td><td class="score score-ok">27.9</td><td>0.08%</td><td>299.7s</td><td class="records">240</td><td class="score score-good">10.9</td><td>0.06%</td><td>67.4s</td><td class="records">125</td></tr>
+<tr><td class="rank">10</td><td class="prov">SUMATERA BARAT</td><td class="score score-ok">21.1</td><td class="records">2.6K</td><td class="score score-ok">22.1</td><td>0.09%</td><td>190.3s</td><td class="records">2.1K</td><td class="score score-ok">22.9</td><td>0.07%</td><td>245.4s</td><td class="records">304</td><td class="score score-good">18.3</td><td>0.07%</td><td>170.5s</td><td class="records">202</td></tr>
+<tr><td class="rank">11</td><td class="prov">NUSA TENGGARA TIMUR</td><td class="score score-good">18.5</td><td class="records">1.1K</td><td class="score score-ok">27.2</td><td>0.11%</td><td>247.2s</td><td class="records">892</td><td class="score score-ok">22.4</td><td>0.04%</td><td>283.5s</td><td class="records">113</td><td class="score score-good">5.9</td><td>0.06%</td><td>0.0s</td><td class="records">85</td></tr>
+<tr><td class="rank">12</td><td class="prov">LAMPUNG</td><td class="score score-ok">22.7</td><td class="records">2.9K</td><td class="score score-avg">32.1</td><td>0.13%</td><td>285.1s</td><td class="records">1.6K</td><td class="score score-ok">22.2</td><td>0.07%</td><td>233.3s</td><td class="records">454</td><td class="score score-good">13.9</td><td>0.04%</td><td>144.0s</td><td class="records">806</td></tr>
+<tr><td class="rank">13</td><td class="prov">KALIMANTAN BARAT</td><td class="score score-good">19.9</td><td class="records">3.3K</td><td class="score score-ok">23.9</td><td>0.11%</td><td>198.7s</td><td class="records">2.1K</td><td class="score score-ok">21.2</td><td>0.08%</td><td>203.1s</td><td class="records">315</td><td class="score score-good">14.6</td><td>0.07%</td><td>114.8s</td><td class="records">902</td></tr>
+<tr><td class="rank">14</td><td class="prov">BALI</td><td class="score score-good">14.8</td><td class="records">6.1K</td><td class="score score-good">13.4</td><td>0.06%</td><td>118.9s</td><td class="records">2.8K</td><td class="score score-ok">21.1</td><td>0.05%</td><td>242.5s</td><td class="records">2.1K</td><td class="score score-good">9.7</td><td>0.03%</td><td>100.8s</td><td class="records">1.2K</td></tr>
+<tr><td class="rank">15</td><td class="prov">JAWA BARAT</td><td class="score score-good">16.3</td><td class="records">43.5K</td><td class="score score-good">16.5</td><td>0.06%</td><td>152.7s</td><td class="records">22.5K</td><td class="score score-ok">21.1</td><td>0.07%</td><td>214.2s</td><td class="records">9.1K</td><td class="score score-good">11.3</td><td>0.04%</td><td>106.4s</td><td class="records">11.9K</td></tr>
+<tr><td class="rank">16</td><td class="prov">RIAU</td><td class="score score-ok">21.5</td><td class="records">4.3K</td><td class="score score-ok">23.0</td><td>0.09%</td><td>204.8s</td><td class="records">3.5K</td><td class="score score-good">18.9</td><td>0.07%</td><td>175.4s</td><td class="records">527</td><td class="score score-ok">22.5</td><td>0.05%</td><td>260.1s</td><td class="records">232</td></tr>
+<tr><td class="rank">17</td><td class="prov">KEPULAUAN RIAU</td><td class="score score-ok">20.2</td><td class="records">2.9K</td><td class="score score-good">14.3</td><td>0.07%</td><td>109.1s</td><td class="records">2.2K</td><td class="score score-good">18.6</td><td>0.06%</td><td>189.8s</td><td class="records">370</td><td class="score score-ok">27.7</td><td>0.05%</td><td>346.2s</td><td class="records">371</td></tr>
+<tr><td class="rank">18</td><td class="prov">NUSA TENGGARA BARAT</td><td class="score score-good">11.4</td><td class="records">2.0K</td><td class="score score-good">11.4</td><td>0.05%</td><td>96.0s</td><td class="records">883</td><td class="score score-good">18.4</td><td>0.06%</td><td>181.4s</td><td class="records">956</td><td class="score score-good">4.4</td><td>0.04%</td><td>0.0s</td><td class="records">137</td></tr>
+<tr><td class="rank">19</td><td class="prov">KALIMANTAN UTARA</td><td class="score score-ok">21.0</td><td class="records">648</td><td class="score score-good">17.8</td><td>0.10%</td><td>113.1s</td><td class="records">548</td><td class="score score-good">17.4</td><td>0.17%</td><td>0.0s</td><td class="records">23</td><td class="score score-ok">27.9</td><td>0.10%</td><td>262.2s</td><td class="records">77</td></tr>
+<tr><td class="rank">20</td><td class="prov">SUMATERA SELATAN</td><td class="score score-ok">22.6</td><td class="records">4.0K</td><td class="score score-avg">31.0</td><td>0.12%</td><td>285.2s</td><td class="records">2.8K</td><td class="score score-good">16.1</td><td>0.09%</td><td>111.9s</td><td class="records">523</td><td class="score score-ok">20.6</td><td>0.07%</td><td>203.0s</td><td class="records">706</td></tr>
+<tr><td class="rank">21</td><td class="prov">BANTEN</td><td class="score score-good">14.6</td><td class="records">12.9K</td><td class="score score-good">13.1</td><td>0.05%</td><td>122.5s</td><td class="records">6.4K</td><td class="score score-good">15.6</td><td>0.05%</td><td>153.1s</td><td class="records">3.3K</td><td class="score score-good">15.2</td><td>0.04%</td><td>162.8s</td><td class="records">3.3K</td></tr>
+<tr><td class="rank">22</td><td class="prov">JAWA TIMUR</td><td class="score score-good">13.1</td><td class="records">35.9K</td><td class="score score-good">14.5</td><td>0.05%</td><td>149.3s</td><td class="records">17.7K</td><td class="score score-good">13.3</td><td>0.04%</td><td>138.9s</td><td class="records">6.7K</td><td class="score score-good">11.6</td><td>0.04%</td><td>108.3s</td><td class="records">11.5K</td></tr>
+<tr><td class="rank">23</td><td class="prov">JAMBI</td><td class="score score-ok">23.9</td><td class="records">1.8K</td><td class="score score-poor">41.1</td><td>0.13%</td><td>421.8s</td><td class="records">1.4K</td><td class="score score-good">13.1</td><td>0.06%</td><td>106.7s</td><td class="records">217</td><td class="score score-good">17.3</td><td>0.07%</td><td>150.6s</td><td class="records">219</td></tr>
+<tr><td class="rank">24</td><td class="prov">DKI JAKARTA</td><td class="score score-good">12.5</td><td class="records">23.6K</td><td class="score score-good">14.6</td><td>0.05%</td><td>143.9s</td><td class="records">12.1K</td><td class="score score-good">12.6</td><td>0.05%</td><td>119.8s</td><td class="records">5.3K</td><td class="score score-good">10.2</td><td>0.03%</td><td>102.3s</td><td class="records">6.2K</td></tr>
+<tr><td class="rank">25</td><td class="prov">SUMATERA UTARA</td><td class="score score-good">14.8</td><td class="records">7.6K</td><td class="score score-good">16.6</td><td>0.08%</td><td>126.6s</td><td class="records">5.5K</td><td class="score score-good">11.4</td><td>0.05%</td><td>100.0s</td><td class="records">1.3K</td><td class="score score-good">16.4</td><td>0.04%</td><td>185.2s</td><td class="records">797</td></tr>
+<tr><td class="rank">26</td><td class="prov">JAWA TENGAH</td><td class="score score-good">13.6</td><td class="records">23.3K</td><td class="score score-good">16.2</td><td>0.07%</td><td>133.8s</td><td class="records">10.7K</td><td class="score score-good">11.3</td><td>0.05%</td><td>98.9s</td><td class="records">5.0K</td><td class="score score-good">13.4</td><td>0.05%</td><td>132.5s</td><td class="records">7.7K</td></tr>
+<tr><td class="rank">27</td><td class="prov">DAERAH ISTIMEWA YOGYAKARTA</td><td class="score score-good">15.1</td><td class="records">4.6K</td><td class="score score-good">17.2</td><td>0.07%</td><td>151.2s</td><td class="records">2.3K</td><td class="score score-good">9.3</td><td>0.03%</td><td>90.7s</td><td class="records">1.1K</td><td class="score score-good">18.8</td><td>0.05%</td><td>201.7s</td><td class="records">1.2K</td></tr>
+<tr><td class="rank">28</td><td class="prov">PAPUA</td><td class="score score-good">14.9</td><td class="records">1.5K</td><td class="score score-ok">27.2</td><td>0.11%</td><td>247.5s</td><td class="records">1.4K</td><td class="score score-good">9.1</td><td>0.09%</td><td>0.0s</td><td class="records">11</td><td class="score score-good">8.6</td><td>0.06%</td><td>37.8s</td><td class="records">99</td></tr>
+<tr><td class="rank">29</td><td class="prov">SULAWESI TENGAH</td><td class="score score-good">14.2</td><td class="records">1.4K</td><td class="score score-ok">24.8</td><td>0.11%</td><td>201.0s</td><td class="records">986</td><td class="score score-good">7.0</td><td>0.07%</td><td>0.0s</td><td class="records">128</td><td class="score score-good">10.9</td><td>0.03%</td><td>113.0s</td><td class="records">264</td></tr>
+<tr><td class="rank">30</td><td class="prov">BENGKULU</td><td class="score score-good">13.6</td><td class="records">698</td><td class="score score-ok">24.8</td><td>0.09%</td><td>232.7s</td><td class="records">487</td><td class="score score-good">6.9</td><td>0.03%</td><td>63.5s</td><td class="records">76</td><td class="score score-good">9.0</td><td>0.06%</td><td>46.7s</td><td class="records">135</td></tr>
+<tr><td class="rank">31</td><td class="prov">SULAWESI TENGGARA</td><td class="score score-good">10.9</td><td class="records">1.3K</td><td class="score score-ok">21.5</td><td>0.10%</td><td>165.8s</td><td class="records">1.0K</td><td class="score score-good">6.6</td><td>0.04%</td><td>34.4s</td><td class="records">140</td><td class="score score-good">4.5</td><td>0.04%</td><td>0.0s</td><td class="records">134</td></tr>
+<tr><td class="rank">32</td><td class="prov">ACEH</td><td class="score score-good">8.3</td><td class="records">2.4K</td><td class="score score-good">16.2</td><td>0.11%</td><td>81.7s</td><td class="records">2.1K</td><td class="score score-good">2.3</td><td>0.02%</td><td>9.6s</td><td class="records">235</td><td class="score score-good">6.4</td><td>0.06%</td><td>0.0s</td><td class="records">78</td></tr>
+<tr><td class="rank">33</td><td class="prov">MALUKU UTARA</td><td class="score score-ok">25.6</td><td class="records">691</td><td class="score score-avg">37.1</td><td>0.14%</td><td>344.7s</td><td class="records">671</td><td class="score score-good">0.0</td><td>0.00%</td><td>0.0s</td><td class="records">1</td><td class="score score-avg">39.7</td><td>0.16%</td><td>359.3s</td><td class="records">19</td></tr>
+<tr><td class="rank">34</td><td class="prov">SULAWESI BARAT</td><td class="score score-good">14.2</td><td class="records">319</td><td class="score score-poor">42.5</td><td>0.11%</td><td>466.2s</td><td class="records">237</td><td class="score score-good">0.0</td><td>0.00%</td><td>0.0s</td><td class="records">27</td><td class="score score-good">0.0</td><td>0.00%</td><td>0.0s</td><td class="records">55</td></tr>
+
+</tbody>
+</table>
+</body>
+</html>

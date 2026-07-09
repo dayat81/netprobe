@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TCP Latency — National Dashboard</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',Tahoma,sans-serif;padding:20px;background:#1a1a2e;color:#e0e0e0}
+.header{display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;padding-bottom:12px;border-bottom:3px solid #4A90D9}
+.header h1{font-size:22px;color:#fff}
+.logo{font-size:18px;font-weight:bold;color:#4A90D9}
+.subtitle{color:#aaa;font-size:13px;margin-bottom:18px}
+.subtitle span{background:#2a2a4a;padding:4px 12px;border-radius:4px;margin-right:8px;display:inline-block;margin-bottom:4px}
+.cards{display:flex;gap:15px;margin-bottom:20px;flex-wrap:wrap}
+.card{background:#16213e;border:1px solid #2a2a5a;border-radius:8px;padding:15px 20px;flex:1;min-width:140px;text-align:center}
+.card .value{font-size:26px;font-weight:700;color:#4A90D9}
+.card .label{font-size:11px;color:#888;margin-top:5px;text-transform:uppercase}
+.card.good{background:#1a3d1a;border-color:#27ae60}
+.card.good .value{color:#27ae60}
+.card.alert{background:#3d1f1f;border-color:#e74c3c}
+.card.alert .value{color:#e74c3c}
+.section{margin-bottom:25px}
+.section h2{font-size:16px;color:#4A90D9;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid #2a2a5a}
+table{border-collapse:collapse;width:100%;font-size:12px}
+th{background:#16213e;color:#4A90D9;padding:8px 6px;text-align:center;font-weight:600;border-bottom:2px solid #4A90D9;position:sticky;top:0}
+td{padding:7px 6px;text-align:center;border-bottom:1px solid #2a2a4a}
+tr:hover{background:#1a2a4a}
+.lat-good{color:#27ae60;font-weight:700}
+.lat-ok{color:#2ecc71;font-weight:600}
+.lat-warn{color:#f39c12;font-weight:600}
+.lat-bad{color:#e74c3c;font-weight:700}
+.insight{background:#16213e;border-left:4px solid #4A90D9;padding:12px 16px;border-radius:0 6px 6px 0;margin-bottom:12px;font-size:13px;line-height:1.6}
+.insight.ok{border-left-color:#27ae60}
+.insight.warn{border-left-color:#f39c12}
+.insight strong{color:#fff}
+.footer{margin-top:25px;padding:12px;background:#16213e;border-radius:6px;font-size:11px;color:#666;text-align:center}
+.bar-row{display:flex;align-items:center;gap:8px;margin:6px 0}
+.bar-label{width:80px;font-size:12px;font-weight:600;text-align:right}
+.bar-track{flex:1;height:28px;background:#2a2a4a;border-radius:4px;overflow:hidden;position:relative}
+.bar-fill{height:100%;border-radius:4px;display:flex;align-items:center;padding-left:8px;font-size:11px;font-weight:700;color:#fff}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>🌐 TCP Latency — National Dashboard</h1>
+  <div class="logo">XLSMART</div>
+</div>
+
+<div class="subtitle">
+  <span>📅 15 Jun – 21 Jun 2026 (MA7)</span>
+  <span>📶 TCP Latency (ms)</span>
+  <span>🇮🇩 35 Provinsi</span>
+  <span>📊 269,922 tests</span>
+</div>
+
+<div class="cards">
+  <div class="card good">
+    <div class="value">59ms</div>
+    <div class="label">Best Avg: Tri</div>
+  </div>
+  <div class="card">
+    <div class="value">66ms</div>
+    <div class="label">XL Avg Latency</div>
+  </div>
+  <div class="card alert">
+    <div class="value">72ms</div>
+    <div class="label">Worst Avg: Telkomsel</div>
+  </div>
+  <div class="card">
+    <div class="value">1ms</div>
+    <div class="label">XL Best Single</div>
+  </div>
+</div>
+
+<!-- BAR CHART -->
+<div class="section">
+  <h2>📊 TCP Latency — Semua Operator (Nasional, ms)</h2>
+  <p style="font-size:12px;color:#888;margin-bottom:12px">Average TCP latency per operator. Lebih rendah = lebih baik.</p>
+
+  <div class="bar-row">
+    <span class="bar-label" style="color:#2ecc71">3</span>
+    <div class="bar-track">
+      <div class="bar-fill" style="width:82.24971796246535%;background:linear-gradient(90deg,#27ae60,#27ae60dd)">58.9ms</div>
+    </div>
+    <span style="width:90px;font-size:11px;color:#888">33,569 tests</span>
+  </div>
+  <div class="bar-row">
+    <span class="bar-label" style="color:#f1c40f">Indosat</span>
+    <div class="bar-track">
+      <div class="bar-fill" style="width:84.88800766583711%;background:linear-gradient(90deg,#2ecc71,#2ecc71dd)">60.8ms</div>
+    </div>
+    <span style="width:90px;font-size:11px;color:#888">55,452 tests</span>
+  </div>
+  <div class="bar-row">
+    <span class="bar-label" style="color:#4A90D9">XL</span>
+    <div class="bar-track">
+      <div class="bar-fill" style="width:92.17359365851058%;background:linear-gradient(90deg,#f39c12,#f39c12dd)">66.0ms</div>
+    </div>
+    <span style="width:90px;font-size:11px;color:#888">43,553 tests</span>
+  </div>
+  <div class="bar-row">
+    <span class="bar-label" style="color:#9b59b6">Smartfren</span>
+    <div class="bar-track">
+      <div class="bar-fill" style="width:98.14267939563885%;background:linear-gradient(90deg,#e74c3c,#e74c3cdd)">70.3ms</div>
+    </div>
+    <span style="width:90px;font-size:11px;color:#888">13,696 tests</span>
+  </div>
+  <div class="bar-row">
+    <span class="bar-label" style="color:#e74c3c">Telkomsel</span>
+    <div class="bar-track">
+      <div class="bar-fill" style="width:100.0%;background:linear-gradient(90deg,#e74c3c,#e74c3cdd)">71.6ms</div>
+    </div>
+    <span style="width:90px;font-size:11px;color:#888">123,652 tests</span>
+  </div>
+  <div style="margin-top:10px;display:flex;gap:20px;font-size:11px;color:#888">
+    <span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#27ae60"></span> &lt;60ms Excellent</span>
+    <span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#2ecc71"></span> 60-65ms Good</span>
+    <span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#f39c12"></span> 65-70ms Average</span>
+    <span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#e74c3c"></span> &gt;70ms Poor</span>
+  </div>
+</div>
+
+<!-- NATIONAL TABLE -->
+<div class="section">
+  <h2>📋 Operator Comparison — Nasional</h2>
+  <table>
+    <thead>
+      <tr><th style="text-align:left">Operator</th><th>Tests</th><th>Avg Latency</th><th>Avg Min</th><th>Best</th><th>Worst</th><th>Status</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td style="text-align:left;font-weight:600;color:#2ecc71">3</td>
+        <td>33,569</td>
+        <td class="lat-good">58.9 ms</td>
+        <td>38.4 ms</td>
+        <td class="lat-good">0.5 ms</td>
+        <td class="lat-bad">23,763.5 ms</td>
+        <td style="text-align:left;color:#27ae60;font-weight:600">✅ Excellent</td>
+      </tr>
+      <tr>
+        <td style="text-align:left;font-weight:600;color:#f1c40f">Indosat</td>
+        <td>55,452</td>
+        <td class="lat-ok">60.8 ms</td>
+        <td>39.8 ms</td>
+        <td class="lat-good">1.0 ms</td>
+        <td class="lat-bad">31,767.1 ms</td>
+        <td style="text-align:left;color:#27ae60;font-weight:600">✅ Good</td>
+      </tr>
+      <tr>
+        <td style="text-align:left;font-weight:600;color:#4A90D9">XL</td>
+        <td>43,553</td>
+        <td class="lat-warn">66.0 ms</td>
+        <td>45.0 ms</td>
+        <td class="lat-good">1.4 ms</td>
+        <td class="lat-bad">65,989.4 ms</td>
+        <td style="text-align:left;color:#f39c12;font-weight:600">⚠️ Average</td>
+      </tr>
+      <tr>
+        <td style="text-align:left;font-weight:600;color:#9b59b6">Smartfren</td>
+        <td>13,696</td>
+        <td class="lat-bad">70.3 ms</td>
+        <td>47.1 ms</td>
+        <td class="lat-good">2.6 ms</td>
+        <td class="lat-bad">14,750.5 ms</td>
+        <td style="text-align:left;color:#e74c3c;font-weight:600">❌ Poor</td>
+      </tr>
+      <tr>
+        <td style="text-align:left;font-weight:600;color:#e74c3c">Telkomsel</td>
+        <td>123,652</td>
+        <td class="lat-bad">71.6 ms</td>
+        <td>47.6 ms</td>
+        <td class="lat-good">1.6 ms</td>
+        <td class="lat-bad">1,808,174.4 ms</td>
+        <td style="text-align:left;color:#e74c3c;font-weight:600">❌ Poor</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- XL PER PROVINCE -->
+<div class="section">
+  <h2>🔵 XL TCP Latency per Provinsi (sorted worst first)</h2>
+  <p style="font-size:12px;color:#888;margin-bottom:12px">Provinsi dengan latency tinggi = area yang perlu optimasi. Min 10 tests.</p>
+  <table>
+    <thead>
+      <tr><th style="text-align:left">Provinsi</th><th>XL Tests</th><th>XL Avg (ms)</th><th>XL Min (ms)</th><th style="text-align:left">Status</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td style="text-align:left;font-weight:500">SULAWESI UTARA</td>
+        <td>186</td>
+        <td class="lat-bad">125.0</td>
+        <td>93.6</td>
+        <td style="text-align:left;color:#e74c3c;font-weight:600">❌ Poor</td>
+      </tr>
+      <tr>
+        <td style="text-align:left;font-weight:500">SULAWESI TENGAH</td>
+        <td>174</td>
+        <td class="lat-bad">121.0</td>
+        <td>69.7</td>
+        <td style="text-align:left;color:#e74c3c;font-weight:600">❌ Poor</td>
+      </tr>
+      <tr>
+        <td style="text-align:left;font-weight:500">GORONTALO</td>
+        <td>53</td>
+        <td class="lat-bad">117.5</td>
+        <td>102.9</td>
+        <td style="text-align:left;color:#e74c3c;font-weight:600">❌ Poor</td>
+      </tr>
+      <tr>
+        <td style="text-align:left;font-weight:500">SUMATERA SELATAN</td>
+        <td>545</td>
+        <td class="lat-bad">108.3</td>
+        <td>64.7</td>
+        <td style="text-align:left;color:#e74c3c;font-weight:600">❌ Poor</td>
+      </tr>
+      <tr>
+        <td style="text-align:left;font-weight:500">SULAWESI TENGGARA</td>
+        <td>125</td>
+        <td class="lat-bad">88.0</td>
+        <td>73.1</td>
+        <td style="text-align:left;color:#e74c3c;font-weight:600">❌ Poor</td>
+      </tr>
+      <tr>
+        <td style="text-align:left;font-weight:500">BENGKULU</td>
+        <td>84</td>
+        <td class="lat-bad">86.7</td>
+        <td>55.9</td>
+        <td style="text-align:left;color:#e74c3c;font-weight:600">❌ Poor</td>
+      </tr>
+      <tr>
+        <td style="text-align:left;font-weight:500">KALIMANTAN TENGAH</td>
+        <td>224</td>
+        <td class="lat-bad">85.7</td>
+        <td>61.3</td>
+        <td style="text-align:left;color:#e74c3c;font-weight:600">❌ Poor</td>
+      </tr>
+      <tr>
+        <td style="text-align:left;font-weight:500">KEPULAUAN BANGKA BELITUNG</td>
+        <td>281</td>
+        <td class="lat-bad">82.9</td>
+        <td>63.1</td>
+        <td style="text-align:left;color:#e74c3c;font-weight:600">❌ Poor</td>
+      </tr>
+      <tr>
+        <td style="text-align:left;font-weight:500">KALIMANTAN UTARA</td>
+        <td>20</td>
+        <td class="lat-bad">80.8</td>
+        <td>65.0</td>
+        <td style="text-align:left;color:#e74c3c;font-weight:600">❌ Poor</td>
+      </tr>
+      <tr>
+        <td style="text-align:left;font-weight:500">KALIMANTAN TIMUR</td>
+        <td>564</td>
+        <td class="lat-bad">76.9</td>
+        <td>62.1</td>
+        <td style="text-align:left;color:#e74c3c;font-weight:600">❌ Poor</td>
+      </tr>
+      <tr>
+        <td style="text-align:left;font-weight:500">SULAWESI BARAT</td>
+        <td>36</td>
+        <td class="lat-bad">74.5</td>
+        <td>59.2</td>
+        <td style="text-align:left;color:#e74c3c;font-weight:600">❌ Poor</td>
+      </tr>
+      <tr>
+        <td style="text-align:left;font-weight:500">SUMATERA BARAT</td>
+        <td>403</td>
+        <td class="lat-bad">74.3</td>
+        <td>51.5</td>
+        <td style="text-align:left;color:#e74c3c;font-weight:600">❌ Poor</td>
+      </tr>
+      <tr>
+        <td style="text-align:left;font-weight:500">KALIMANTAN SELATAN</td>
+        <td>866</td>
+        <td class="lat-bad">71.8</td>
+        <td>41.3</td>
+        <td style="text-align:left;color:#e74c3c;font-weight:600">❌ Poor</td>
+      </tr>
+      <tr>
+        <td style="text-align:left;font-weight:500">KALIMANTAN BARAT</td>
+        <td>269</td>
+        <td class="lat-bad">71.3</td>
+        <td>44.8</td>
+        <td style="text-align:left;color:#e74c3c;font-weight:600">❌ Poor</td>
+      </tr>
+      <tr>
+        <td style="text-align:left;font-weight:500">RIAU</td>
+        <td>594</td>
+        <td class="lat-bad">71.3</td>
+        <td>46.4</td>
+        <td style="text-align:left;color:#e74c3c;font-weight:600">❌ Poor</td>
+      </tr>
+      <tr>
+        <td style="text-align:left;font-weight:500">JAWA TENGAH</td>
+        <td>4,983</td>
+        <td class="lat-bad">71.2</td>
+        <td>50.0</td>
+        <td style="text-align:left;color:#e74c3c;font-weight:600">❌ Poor</td>
+      </tr>
+      <tr>
+        <td style="text-align:left;font-weight:500">NUSA TENGGARA BARAT</td>
+        <td>983</td>
+        <td class="lat-bad">71.2</td>
+        <td>53.1</td>
+        <td style="text-align:left;color:#e74c3c;font-weight:600">❌ Poor</td>
+      </tr>
+      <tr>
+        <td style="text-align:left;font-weight:500">LAMPUNG</td>
+        <td>460</td>
+        <td class="lat-warn">69.6</td>
+        <td>53.5</td>
+        <td style="text-align:left;color:#f39c12;font-weight:600">⚠️ Average</td>
+      </tr>
+      <tr>
+        <td style="text-align:left;font-weight:500">NUSA TENGGARA TIMUR</td>
+        <td>103</td>
+        <td class="lat-warn">69.6</td>
+        <td>48.2</td>
+        <td style="text-align:left;color:#f39c12;font-weight:600">⚠️ Average</td>
+      </tr>
+      <tr>
+        <td style="text-align:left;font-weight:500">JAMBI</td>
+        <td>215</td>
+        <td class="lat-warn">67.1</td>
+        <td>51.9</td>
+        <td style="text-align:left;color:#f39c12;font-weight:600">⚠️ Average</td>
+      </tr>
+      <tr>
+        <td style="text-align:left;font-weight:500">JAWA TIMUR</td>
+        <td>6,579</td>
+        <td class="lat-ok">64.5</td>
+        <td>46.6</td>
+        <td style="text-align:left;color:#27ae60;font-weight:600">✅ Good</td>
+      </tr>
+      <tr>
+        <td style="text-align:left;font-weight:500">SULAWESI SELATAN</td>
+        <td>967</td>
+        <td class="lat-ok">64.5</td>
+        <td>45.9</td>
+        <td style="text-align:left;color:#27ae60;font-weight:600">✅ Good</td>
+      </tr>
+      <tr>
+        <td style="text-align:left;font-weight:500">JAWA BARAT</td>
+        <td>9,524</td>
+        <td class="lat-ok">63.3</td>
+        <td>40.3</td>
+        <td style="text-align:left;color:#27ae60;font-weight:600">✅ Good</td>
+      </tr>
+      <tr>
+        <td style="text-align:left;font-weight:500">DAERAH ISTIMEWA YOGYAKARTA</td>
+        <td>1,228</td>
+        <td class="lat-ok">63.0</td>
+        <td>44.3</td>
+        <td style="text-align:left;color:#27ae60;font-weight:600">✅ Good</td>
+      </tr>
+      <tr>
+        <td style="text-align:left;font-weight:500">SUMATERA UTARA</td>
+        <td>1,487</td>
+        <td class="lat-ok">63.0</td>
+        <td>42.7</td>
+        <td style="text-align:left;color:#27ae60;font-weight:600">✅ Good</td>
+      </tr>
+      <tr>
+        <td style="text-align:left;font-weight:500">BANTEN</td>
+        <td>3,689</td>
+        <td class="lat-ok">61.9</td>
+        <td>40.9</td>
+        <td style="text-align:left;color:#27ae60;font-weight:600">✅ Good</td>
+      </tr>
+      <tr>
+        <td style="text-align:left;font-weight:500">DKI JAKARTA</td>
+        <td>5,903</td>
+        <td class="lat-ok">61.0</td>
+        <td>40.2</td>
+        <td style="text-align:left;color:#27ae60;font-weight:600">✅ Good</td>
+      </tr>
+      <tr>
+        <td style="text-align:left;font-weight:500">BALI</td>
+        <td>2,180</td>
+        <td class="lat-good">57.8</td>
+        <td>40.1</td>
+        <td style="text-align:left;color:#27ae60;font-weight:600">✅ Excellent</td>
+      </tr>
+      <tr>
+        <td style="text-align:left;font-weight:500">KEPULAUAN RIAU</td>
+        <td>417</td>
+        <td class="lat-good">57.1</td>
+        <td>39.3</td>
+        <td style="text-align:left;color:#27ae60;font-weight:600">✅ Excellent</td>
+      </tr>
+      <tr>
+        <td style="text-align:left;font-weight:500">ACEH</td>
+        <td>248</td>
+        <td class="lat-good">55.2</td>
+        <td>42.8</td>
+        <td style="text-align:left;color:#27ae60;font-weight:600">✅ Excellent</td>
+      </tr>
+      <tr>
+        <td style="text-align:left;font-weight:500">PAPUA</td>
+        <td>10</td>
+        <td class="lat-good">36.3</td>
+        <td>29.4</td>
+        <td style="text-align:left;color:#27ae60;font-weight:600">✅ Excellent</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- INSIGHTS -->
+<div class="section">
+  <h2>🔍 Key Insights</h2>
+  <div class="insight ok">
+    <strong>✅ Tri TCP Latency Terbaik: 59ms</strong> — Rata-rata latency paling rendah di antara semua operator. Indosat juga bagus (61ms).
+  </div>
+  <div class="insight">
+    <strong>🔵 XL: 66ms</strong> — Peringkat ke-3 dari 5 operator. Lebih baik dari Smartfren dan Telkomsel. Best single test: 1ms.
+  </div>
+  <div class="insight warn">
+    <strong>⚠️ Telkomsel TCP Terburuk: 72ms</strong> — Meskipun punya sample terbanyak (123,652 tests), Telkomsel punya rata-rata latency tertinggi.
+  </div>
+</div>
+
+<div class="footer">
+  Data: OpenSignal MyDashboards API • Period: 15-21 Jun 2026 • TCP Latency<br>
+  Generated: Jun 21, 2026 • osig.netprobe.xyz
+</div>
+
+</body>
+</html>

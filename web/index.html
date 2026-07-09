@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OSIG — OpenSignal Monitoring</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #0d1117; color: #c9d1d9; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; min-height: 100vh; }
+  .header { background: linear-gradient(135deg, #161b22 0%, #0d1117 100%); border-bottom: 1px solid #30363d; padding: 2rem; text-align: center; }
+  .header h1 { font-size: 2rem; color: #58a6ff; margin-bottom: 0.5rem; }
+  .header p { color: #8b949e; font-size: 0.95rem; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.5rem; max-width: 1200px; margin: 2rem auto; padding: 0 1.5rem; }
+  .card { background: #161b22; border: 1px solid #30363d; border-radius: 12px; padding: 1.5rem; transition: all 0.2s ease; cursor: pointer; text-decoration: none; color: inherit; display: block; }
+  .card:hover { border-color: #58a6ff; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(88,166,255,0.15); }
+  .card .icon { font-size: 2rem; margin-bottom: 0.75rem; }
+  .card h2 { color: #e6edf3; font-size: 1.1rem; margin-bottom: 0.4rem; }
+  .card p { color: #8b949e; font-size: 0.85rem; line-height: 1.5; }
+  .badge { display: inline-block; background: #1f6feb22; color: #58a6ff; font-size: 0.7rem; padding: 2px 8px; border-radius: 12px; margin-top: 0.5rem; }
+  .footer { text-align: center; padding: 2rem; color: #484f58; font-size: 0.8rem; border-top: 1px solid #21262d; margin-top: 2rem; }
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>📡 OSIG — OpenSignal Monitoring</h1>
+  <p>XL Smartfren · Network Quality Dashboards</p>
+</div>
+<div class="grid">
+
+  <a class="card" href="dashboard_weight_score.html">
+    <div class="icon">⚖️</div>
+        <div class="card">
+          <a href="dashboard_udp_server_loss.html">📡 UDP Loss by Server</a>
+        <div class="card">
+          <a href="dashboard_udp_server_ip_loss.html">📡 UDP Loss by Server IP</a>
+          <p>UDP packet loss trend per server IP address (Apr-Jun 2026)</p>
+          <span class="badge">CHART</span>
+        </div>
+          <p>UDP packet loss trend per nmbdn.com test server (Apr-Jun 2026)</p>
+          <span class="badge">CHART</span>
+        </div>
+    <h2>Weight Score</h2>
+    <p>National &amp; provincial weighted score combining Buffer Count + Stall Time metrics per operator.</p>
+    <span class="badge">KEY METRIC</span>
+  </a>
+
+  <a class="card" href="dashboard_national_score.html">
+    <div class="icon">🇮🇩</div>
+        <div class="card">
+          <a href="dashboard_udp_server_loss.html">📡 UDP Loss by Server</a>
+        <div class="card">
+          <a href="dashboard_udp_server_ip_loss.html">📡 UDP Loss by Server IP</a>
+          <p>UDP packet loss trend per server IP address (Apr-Jun 2026)</p>
+          <span class="badge">CHART</span>
+        </div>
+          <p>UDP packet loss trend per nmbdn.com test server (Apr-Jun 2026)</p>
+          <span class="badge">CHART</span>
+        </div>
+    <h2>National Score</h2>
+    <p>National-level Weight Score comparison — current MA7 vs previous MA7, week-over-week.</p>
+    <span class="badge">WEEK-OVER-WEEK</span>
+  </a>
+
+  <a class="card" href="dashboard_buffer_count.html">
+    <div class="icon">📊</div>
+        <div class="card">
+          <a href="dashboard_udp_server_loss.html">📡 UDP Loss by Server</a>
+        <div class="card">
+          <a href="dashboard_udp_server_ip_loss.html">📡 UDP Loss by Server IP</a>
+          <p>UDP packet loss trend per server IP address (Apr-Jun 2026)</p>
+          <span class="badge">CHART</span>
+        </div>
+          <p>UDP packet loss trend per nmbdn.com test server (Apr-Jun 2026)</p>
+          <span class="badge">CHART</span>
+        </div>
+    <h2>Buffer Count</h2>
+    <p>Video buffering events per operator across provinces. Lower is better.</p>
+  </a>
+
+  <a class="card" href="dashboard_stall_time.html">
+    <div class="icon">⏱️</div>
+        <div class="card">
+          <a href="dashboard_udp_server_loss.html">📡 UDP Loss by Server</a>
+        <div class="card">
+          <a href="dashboard_udp_server_ip_loss.html">📡 UDP Loss by Server IP</a>
+          <p>UDP packet loss trend per server IP address (Apr-Jun 2026)</p>
+          <span class="badge">CHART</span>
+        </div>
+          <p>UDP packet loss trend per nmbdn.com test server (Apr-Jun 2026)</p>
+          <span class="badge">CHART</span>
+        </div>
+    <h2>Stall Time</h2>
+    <p>Video stall duration (seconds) per operator. Lower is better.</p>
+  </a>
+
+  <a class="card" href="dashboard_udp_game.html">
+    <div class="icon">🎮</div>
+        <div class="card">
+          <a href="dashboard_udp_server_loss.html">📡 UDP Loss by Server</a>
+        <div class="card">
+          <a href="dashboard_udp_server_ip_loss.html">📡 UDP Loss by Server IP</a>
+          <p>UDP packet loss trend per server IP address (Apr-Jun 2026)</p>
+          <span class="badge">CHART</span>
+        </div>
+          <p>UDP packet loss trend per nmbdn.com test server (Apr-Jun 2026)</p>
+          <span class="badge">CHART</span>
+        </div>
+    <h2>UDP Game</h2>
+    <p>UDP gaming latency &amp; quality metrics per operator — real-time gaming experience.</p>
+  </a>
+
+  <a class="card" href="dashboard_voice_dns.html">
+    <div class="icon">📞</div>
+        <div class="card">
+          <a href="dashboard_udp_server_loss.html">📡 UDP Loss by Server</a>
+        <div class="card">
+          <a href="dashboard_udp_server_ip_loss.html">📡 UDP Loss by Server IP</a>
+          <p>UDP packet loss trend per server IP address (Apr-Jun 2026)</p>
+          <span class="badge">CHART</span>
+        </div>
+          <p>UDP packet loss trend per nmbdn.com test server (Apr-Jun 2026)</p>
+          <span class="badge">CHART</span>
+        </div>
+    <h2>Voice DNS</h2>
+    <p>Voice &amp; DNS resolution latency per operator. Lower is better.</p>
+  </a>
+
+  <a class="card" href="dashboard_sulut_xl.html">
+    <div class="icon">🌴</div>
+        <div class="card">
+          <a href="dashboard_udp_server_loss.html">📡 UDP Loss by Server</a>
+        <div class="card">
+          <a href="dashboard_udp_server_ip_loss.html">📡 UDP Loss by Server IP</a>
+          <p>UDP packet loss trend per server IP address (Apr-Jun 2026)</p>
+          <span class="badge">CHART</span>
+        </div>
+          <p>UDP packet loss trend per nmbdn.com test server (Apr-Jun 2026)</p>
+          <span class="badge">CHART</span>
+        </div>
+    <h2>Sulut XL Detail</h2>
+    <p>Detailed XL performance breakdown in Sulawesi Utara by kecamatan.</p>
+  </a>
+
+  <a class="card" href="dashboard_minahasa_utara_xl.html">
+    <div class="icon">📍</div>
+        <div class="card">
+          <a href="dashboard_udp_server_loss.html">📡 UDP Loss by Server</a>
+        <div class="card">
+          <a href="dashboard_udp_server_ip_loss.html">📡 UDP Loss by Server IP</a>
+          <p>UDP packet loss trend per server IP address (Apr-Jun 2026)</p>
+          <span class="badge">CHART</span>
+        </div>
+          <p>UDP packet loss trend per nmbdn.com test server (Apr-Jun 2026)</p>
+          <span class="badge">CHART</span>
+        </div>
+    <h2>Minahasa Utara XL</h2>
+    <p>Per-site XL analysis for Minahasa Utara — signal &amp; quality metrics.</p>
+  </a>
+
+  <a class="card" href="kauditan_map.html">
+    <div class="icon">🗺️</div>
+        <div class="card">
+          <a href="dashboard_udp_server_loss.html">📡 UDP Loss by Server</a>
+        <div class="card">
+          <a href="dashboard_udp_server_ip_loss.html">📡 UDP Loss by Server IP</a>
+          <p>UDP packet loss trend per server IP address (Apr-Jun 2026)</p>
+          <span class="badge">CHART</span>
+        </div>
+          <p>UDP packet loss trend per nmbdn.com test server (Apr-Jun 2026)</p>
+          <span class="badge">CHART</span>
+        </div>
+    <h2>Kauditan Map</h2>
+    <p>Interactive map — 4 XL test locations in Kauditan, Minahasa Utara. Stall hotspot analysis.</p>
+    <span class="badge">INTERACTIVE MAP</span>
+  </a>
+
+  <a class="card" href="dashboard_kauditan.html">
+    <div class="icon">📍</div>
+        <div class="card">
+          <a href="dashboard_udp_server_loss.html">📡 UDP Loss by Server</a>
+        <div class="card">
+          <a href="dashboard_udp_server_ip_loss.html">📡 UDP Loss by Server IP</a>
+          <p>UDP packet loss trend per server IP address (Apr-Jun 2026)</p>
+          <span class="badge">CHART</span>
+        </div>
+          <p>UDP packet loss trend per nmbdn.com test server (Apr-Jun 2026)</p>
+          <span class="badge">CHART</span>
+        </div>
+    <h2>Kauditan Dashboard</h2>
+    <p>All-operator site monitoring — RSRP, Buffer, Stall per day. XL 30,000s stall analysis.</p>
+    <span class="badge">ALL OPERATORS</span>
+  </a>
+
+  <a class="card" href="dashboard_video_quality.html">
+    <div class="icon">🎬</div>
+        <div class="card">
+          <a href="dashboard_udp_server_loss.html">📡 UDP Loss by Server</a>
+        <div class="card">
+          <a href="dashboard_udp_server_ip_loss.html">📡 UDP Loss by Server IP</a>
+          <p>UDP packet loss trend per server IP address (Apr-Jun 2026)</p>
+          <span class="badge">CHART</span>
+        </div>
+          <p>UDP packet loss trend per nmbdn.com test server (Apr-Jun 2026)</p>
+          <span class="badge">CHART</span>
+        </div>
+    <h2>Video Quality National</h2>
+    <p>HD vs SD video rate per operator across 35 provinces. Resolution distribution analysis.</p>
+    <span class="badge">NATIONAL</span>
+  </a>
+
+  <a class="card" href="dashboard_tcp_latency.html">
+    <div class="icon">🌐</div>
+        <div class="card">
+          <a href="dashboard_udp_server_loss.html">📡 UDP Loss by Server</a>
+        <div class="card">
+          <a href="dashboard_udp_server_ip_loss.html">📡 UDP Loss by Server IP</a>
+          <p>UDP packet loss trend per server IP address (Apr-Jun 2026)</p>
+          <span class="badge">CHART</span>
+        </div>
+          <p>UDP packet loss trend per nmbdn.com test server (Apr-Jun 2026)</p>
+          <span class="badge">CHART</span>
+        </div>
+    <h2>TCP Latency National</h2>
+    <p>TCP latency per operator across 35 provinces. Lower latency = better browsing &amp; gaming.</p>
+    <span class="badge">NATIONAL</span>
+  </a>
+
+  <a class="card" href="dashboard_coverage.html">
+    <div class="icon">📶</div>
+        <div class="card">
+          <a href="dashboard_udp_server_loss.html">📡 UDP Loss by Server</a>
+        <div class="card">
+          <a href="dashboard_udp_server_ip_loss.html">📡 UDP Loss by Server IP</a>
+          <p>UDP packet loss trend per server IP address (Apr-Jun 2026)</p>
+          <span class="badge">CHART</span>
+        </div>
+          <p>UDP packet loss trend per nmbdn.com test server (Apr-Jun 2026)</p>
+          <span class="badge">CHART</span>
+        </div>
+    <h2>Coverage National</h2>
+    <p>RSRP, RSRQ, RSSNR, CQI per operator across 35 provinces. Signal strength &amp; quality.</p>
+    <span class="badge">NATIONAL</span>
+  </a>
+
+  <a class="card" href="dashboard_consistency.html">
+    <div class="icon">📏</div>
+        <div class="card">
+          <a href="dashboard_udp_server_loss.html">📡 UDP Loss by Server</a>
+        <div class="card">
+          <a href="dashboard_udp_server_ip_loss.html">📡 UDP Loss by Server IP</a>
+          <p>UDP packet loss trend per server IP address (Apr-Jun 2026)</p>
+          <span class="badge">CHART</span>
+        </div>
+          <p>UDP packet loss trend per nmbdn.com test server (Apr-Jun 2026)</p>
+          <span class="badge">CHART</span>
+        </div>
+    <h2>Consistency National</h2>
+    <p>Completion rate &amp; packet loss per operator. Reliability &amp; network stability.</p>
+    <span class="badge">NATIONAL</span>
+  </a>
+
+  <a class="card" href="dashboard_5g.html">
+    <div class="icon">📡</div>
+        <div class="card">
+          <a href="dashboard_udp_server_loss.html">📡 UDP Loss by Server</a>
+        <div class="card">
+          <a href="dashboard_udp_server_ip_loss.html">📡 UDP Loss by Server IP</a>
+          <p>UDP packet loss trend per server IP address (Apr-Jun 2026)</p>
+          <span class="badge">CHART</span>
+        </div>
+          <p>UDP packet loss trend per nmbdn.com test server (Apr-Jun 2026)</p>
+          <span class="badge">CHART</span>
+        </div>
+    <h2>5G Experience National</h2>
+    <p>5G vs 4G comparison — speed, latency, availability per operator across 35 provinces.</p>
+    <span class="badge">5G</span>
+  </a>
+
+  <a class="card" href="dashboard_198_18_packetloss.html">
+    <div class="icon">🔍</div>
+        <div class="card">
+          <a href="dashboard_udp_server_loss.html">📡 UDP Loss by Server</a>
+        <div class="card">
+          <a href="dashboard_udp_server_ip_loss.html">📡 UDP Loss by Server IP</a>
+          <p>UDP packet loss trend per server IP address (Apr-Jun 2026)</p>
+          <span class="badge">CHART</span>
+        </div>
+          <p>UDP packet loss trend per nmbdn.com test server (Apr-Jun 2026)</p>
+          <span class="badge">CHART</span>
+        </div>
+    <h2>198.18.x.x Packet Loss</h2>
+    <p>Cloudflare WARP / localhost test IPs — false positive packet loss analysis. WARP vs Real server comparison.</p>
+    <span class="badge">DIAGNOSTIC</span>
+  </a>
+
+  <a class="card" href="dashboard_sumatra_packetloss.html">
+    <div class="icon">🏝️</div>
+        <div class="card">
+          <a href="dashboard_udp_server_loss.html">📡 UDP Loss by Server</a>
+        <div class="card">
+          <a href="dashboard_udp_server_ip_loss.html">📡 UDP Loss by Server IP</a>
+          <p>UDP packet loss trend per server IP address (Apr-Jun 2026)</p>
+          <span class="badge">CHART</span>
+        </div>
+          <p>UDP packet loss trend per nmbdn.com test server (Apr-Jun 2026)</p>
+          <span class="badge">CHART</span>
+        </div>
+    <h2>Sumatra Packet Loss</h2>
+    <p>Packet loss (Lost% &amp; Discard%) per provinsi Sumatra — semua operator, sorted by XL worst first.</p>
+    <span class="badge">REGIONAL</span>
+  </a>
+
+  <a class="card" href="dashboard_sumatra_timeseries.html">
+    <div class="icon">📈</div>
+        <div class="card">
+          <a href="dashboard_udp_server_loss.html">📡 UDP Loss by Server</a>
+        <div class="card">
+          <a href="dashboard_udp_server_ip_loss.html">📡 UDP Loss by Server IP</a>
+          <p>UDP packet loss trend per server IP address (Apr-Jun 2026)</p>
+          <span class="badge">CHART</span>
+        </div>
+          <p>UDP packet loss trend per nmbdn.com test server (Apr-Jun 2026)</p>
+          <span class="badge">CHART</span>
+        </div>
+    <h2>Sumatra Timeseries</h2>
+    <p>Daily packet loss trend — XL Smart vs IOH vs Telkomsel. Chart.js interactive.</p>
+    <span class="badge">TIMESERIES</span>
+  </a>
+
+  <a class="card" href="dashboard_xlsmart_server_trend.html">
+    <div class="icon">🔵</div>
+        <div class="card">
+          <a href="dashboard_udp_server_loss.html">📡 UDP Loss by Server</a>
+        <div class="card">
+          <a href="dashboard_udp_server_ip_loss.html">📡 UDP Loss by Server IP</a>
+          <p>UDP packet loss trend per server IP address (Apr-Jun 2026)</p>
+          <span class="badge">CHART</span>
+        </div>
+          <p>UDP packet loss trend per nmbdn.com test server (Apr-Jun 2026)</p>
+          <span class="badge">CHART</span>
+        </div>
+    <h2>XL Smart by Server IP</h2>
+    <p>Packet loss trend per AWS test server — XL Smart Sumatra. Top 7 endpoints.</p>
+    <span class="badge">SERVER TREND</span>
+  </a>
+
+  <a class="card" href="dashboard_knn_clusters.html">
+    <div class="icon">🧠</div>
+        <div class="card">
+          <a href="dashboard_udp_server_loss.html">📡 UDP Loss by Server</a>
+        <div class="card">
+          <a href="dashboard_udp_server_ip_loss.html">📡 UDP Loss by Server IP</a>
+          <p>UDP packet loss trend per server IP address (Apr-Jun 2026)</p>
+          <span class="badge">CHART</span>
+        </div>
+          <p>UDP packet loss trend per nmbdn.com test server (Apr-Jun 2026)</p>
+          <span class="badge">CHART</span>
+        </div>
+    <h2>KNN Cluster Analysis</h2>
+    <p>Machine learning clustering — 251 test points, 3 clusters, PCA scatter, outlier detection.</p>
+    <span class="badge">ML CLUSTERING</span>
+  </a>
+
+</div>
+<div class="footer">
+  OSIG Monitoring · XL Smartfren · Data from OpenSignal
+</div>
+</body>
+</html>

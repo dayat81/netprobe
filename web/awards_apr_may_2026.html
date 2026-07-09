@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mobile Experience Awards — Indonesia, April-May 2026</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: 'Inter', 'Segoe UI', system-ui, sans-serif; background: #0a0e1a; color: #d0d5e0; }
+.header { background: linear-gradient(135deg, #0d1b2a 0%, #1b2838 100%); padding: 40px 0; text-align: center; position: relative; overflow: hidden; }
+.header::before { content: ''; position: absolute; inset: 0; background: url("data:image/svg+xml,%3Csvg width='60' height='60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%234A90D9' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4z'/%3E%3C/g%3E%3C/svg%3E"); }
+.header-inner { position: relative; z-index: 1; }
+.header .logo { font-size: 14px; color: #4A90D9; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 12px; }
+.header h1 { font-size: 36px; font-weight: 800; color: white; margin-bottom: 8px; }
+.header .sub { font-size: 16px; color: #667788; }
+.header .period { display: inline-block; background: linear-gradient(135deg, #4A90D9, #2563eb); color: white; padding: 6px 18px; border-radius: 20px; font-size: 12px; font-weight: 700; letter-spacing: 1px; margin-top: 15px; }
+.container { max-width: 1200px; margin: 0 auto; padding: 30px; }
+.table-wrap { overflow-x: auto; border-radius: 16px; border: 1px solid #1a2234; margin-bottom: 30px; }
+table { width: 100%; border-collapse: collapse; background: #111827; }
+th { padding: 14px 12px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.8px; color: #667788; border-bottom: 2px solid #1a2234; font-weight: 700; background: #0f1520; }
+td { padding: 14px 10px; border-bottom: 1px solid #1a2234; text-align: center; vertical-align: middle; }
+.cat-row td { background: var(--cat-bg); color: white; font-weight: 800; font-size: 13px; letter-spacing: 1px; text-transform: uppercase; text-align: left; padding: 10px 14px; }
+.op-row:hover { background: rgba(74, 144, 217, 0.04); }
+.op-logo { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 50%; font-weight: 800; font-size: 14px; color: white; vertical-align: middle; }
+.op-name { font-weight: 700; font-size: 14px; vertical-align: middle; margin-left: 8px; }
+.winner { display: inline-block; background: linear-gradient(135deg, #0d9488, #14b8a6); color: white; padding: 4px 10px; border-radius: 6px; font-size: 10px; font-weight: 800; letter-spacing: 0.5px; }
+.pending { display: inline-block; background: #1a2234; color: #556677; padding: 4px 8px; border-radius: 6px; font-size: 9px; font-weight: 600; }
+.detail { font-size: 10px; color: #556677; margin-top: 2px; }
+.score { font-variant-numeric: tabular-nums; font-weight: 700; }
+.summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 30px; }
+.summary-card { background: #111827; border: 1px solid #1a2234; border-radius: 12px; padding: 20px; text-align: center; }
+.summary-card .label { font-size: 11px; color: #556677; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+.summary-card .value { font-size: 28px; font-weight: 800; }
+.note { background: #111827; border: 1px solid #fbbf24; border-radius: 10px; padding: 16px; margin-bottom: 20px; font-size: 13px; color: #667788; }
+.note strong { color: #fbbf24; }
+.footer { text-align: center; padding: 30px; color: #334455; font-size: 12px; border-top: 1px solid #1a2234; margin-top: 20px; }
+</style>
+</head>
+<body>
+
+<div class="header">
+<div class="header-inner">
+  <div class="logo">🏆 Mobile Experience Awards</div>
+  <h1>Indonesia Mobile Network<br>Experience Report</h1>
+  <div class="sub">April – May 2026 · Video Detection · onx_indonesia_performance</div>
+  <div class="period">📊 June 2026</div>
+</div>
+</div>
+
+<div class="container">
+
+<div class="note">
+  <strong>⚠️ Partial Data:</strong> Server OpenSignal OOM — hanya <strong>Video Experience</strong> berhasil di-query. Metrics lainnya (Games, Speed, Latency, Coverage, Consistency) pending server recovery. Data berdasarkan <strong>70.5M+ records</strong>.
+</div>
+
+<div class="summary">
+  <div class="summary-card"><div class="label">🏆 Video Winner</div><div class="value" style="color:#4A90D9">XL</div></div>
+  <div class="summary-card"><div class="label">📊 Total Sample</div><div class="value" style="color:#4A90D9">70.5M</div></div>
+  <div class="summary-card"><div class="label">📅 Period</div><div class="value" style="color:#fbbf24">Apr-May '26</div></div>
+  <div class="summary-card"><div class="label">🥇 Best Score</div><div class="value" style="color:#4A90D9">52.3</div></div>
+</div>
+
+<!-- MAIN AWARDS TABLE -->
+<div class="table-wrap">
+<table>
+<thead>
+  <tr>
+    <th style="text-align:left;width:140px">Operator</th><th colspan="5" style="text-align:center;background:#0d9488;color:white;font-size:12px">Overall Experience</th><th colspan="5" style="text-align:center;background:#ea580c;color:white;font-size:12px">Network Quality</th><th colspan="4" style="text-align:center;background:#ca8a04;color:white;font-size:12px">Coverage</th><th colspan="2" style="text-align:center;background:#7c3aed;color:white;font-size:12px">Consistency</th></tr><tr><th style="text-align:left">Metrics →</th><th style="text-align:center;padding:6px 4px;min-width:70px"><div style="font-size:16px">🎬</div><div style="font-size:9px;white-space:nowrap;margin-top:2px">Video Experience</div></th><th style="text-align:center;padding:6px 4px;min-width:70px"><div style="font-size:16px">🎮</div><div style="font-size:9px;white-space:nowrap;margin-top:2px">Games Experience</div></th><th style="text-align:center;padding:6px 4px;min-width:70px"><div style="font-size:16px">🎤</div><div style="font-size:9px;white-space:nowrap;margin-top:2px">Voice App Experience</div></th><th style="text-align:center;padding:6px 4px;min-width:70px"><div style="font-size:16px">⬇️</div><div style="font-size:9px;white-space:nowrap;margin-top:2px">Download Speed</div></th><th style="text-align:center;padding:6px 4px;min-width:70px"><div style="font-size:16px">⬆️</div><div style="font-size:9px;white-space:nowrap;margin-top:2px">Upload Speed</div></th><th style="text-align:center;padding:6px 4px;min-width:70px"><div style="font-size:16px">📡</div><div style="font-size:9px;white-space:nowrap;margin-top:2px">TCP Latency</div></th><th style="text-align:center;padding:6px 4px;min-width:70px"><div style="font-size:16px">📊</div><div style="font-size:9px;white-space:nowrap;margin-top:2px">UDP Jitter</div></th><th style="text-align:center;padding:6px 4px;min-width:70px"><div style="font-size:16px">📉</div><div style="font-size:9px;white-space:nowrap;margin-top:2px">Packet Loss</div></th><th style="text-align:center;padding:6px 4px;min-width:70px"><div style="font-size:16px">📶</div><div style="font-size:9px;white-space:nowrap;margin-top:2px">RSRP</div></th><th style="text-align:center;padding:6px 4px;min-width:70px"><div style="font-size:16px">📡</div><div style="font-size:9px;white-space:nowrap;margin-top:2px">RSRQ</div></th><th style="text-align:center;padding:6px 4px;min-width:70px"><div style="font-size:16px">🗺️</div><div style="font-size:9px;white-space:nowrap;margin-top:2px">Coverage Exp</div></th><th style="text-align:center;padding:6px 4px;min-width:70px"><div style="font-size:16px">📡</div><div style="font-size:9px;white-space:nowrap;margin-top:2px">5G Coverage</div></th><th style="text-align:center;padding:6px 4px;min-width:70px"><div style="font-size:16px">⏱️</div><div style="font-size:9px;white-space:nowrap;margin-top:2px">Time on Network</div></th><th style="text-align:center;padding:6px 4px;min-width:70px"><div style="font-size:16px">📶</div><div style="font-size:9px;white-space:nowrap;margin-top:2px">5G Availability</div></th><th style="text-align:center;padding:6px 4px;min-width:70px"><div style="font-size:16px">🏆</div><div style="font-size:9px;white-space:nowrap;margin-top:2px">Consistent Quality</div></th><th style="text-align:center;padding:6px 4px;min-width:70px"><div style="font-size:16px">🛡️</div><div style="font-size:9px;white-space:nowrap;margin-top:2px">Reliability</div></th></tr></thead><tbody><tr class="op-row"><td style="text-align:left"><span class="op-logo" style="background:#4A90D9">X</span><span class="op-name">XL</span></td><td><span class="winner">WINNER</span><div class="detail">Score 52.3</div></td><td><span class="pending">PENDING</span></td><td><span class="pending">PENDING</span></td><td><span class="pending">PENDING</span></td><td><span class="pending">PENDING</span></td><td><span class="pending">PENDING</span></td><td><span class="pending">PENDING</span></td><td><span class="pending">PENDING</span></td><td><span class="pending">PENDING</span></td><td><span class="pending">PENDING</span></td><td><span class="pending">PENDING</span></td><td><span class="pending">PENDING</span></td><td><span class="pending">PENDING</span></td><td><span class="pending">PENDING</span></td><td><span class="pending">PENDING</span></td><td><span class="pending">PENDING</span></td></tr><tr class="op-row"><td style="text-align:left"><span class="op-logo" style="background:#F5A623">I</span><span class="op-name">Indosat</span></td><td><span class="score" style="color:#F5A623;font-size:16px">55.0</span></td><td><span class="pending">PENDING</span></td><td><span class="pending">PENDING</span></td><td><span class="pending">PENDING</span></td><td><span class="pending">PENDING</span></td><td><span class="pending">PENDING</span></td><td><span class="pending">PENDING</span></td><td><span class="pending">PENDING</span></td><td><span class="pending">PENDING</span></td><td><span class="pending">PENDING</span></td><td><span class="pending">PENDING</span></td><td><span class="pending">PENDING</span></td><td><span class="pending">PENDING</span></td><td><span class="pending">PENDING</span></td><td><span class="pending">PENDING</span></td><td><span class="pending">PENDING</span></td></tr><tr class="op-row"><td style="text-align:left"><span class="op-logo" style="background:#E74C3C">T</span><span class="op-name">Telkomsel</span></td><td><span class="score" style="color:#E74C3C;font-size:16px">59.0</span></td><td><span class="pending">PENDING</span></td><td><span class="pending">PENDING</span></td><td><span class="pending">PENDING</span></td><td><span class="pending">PENDING</span></td><td><span class="pending">PENDING</span></td><td><span class="pending">PENDING</span></td><td><span class="pending">PENDING</span></td><td><span class="pending">PENDING</span></td><td><span class="pending">PENDING</span></td><td><span class="pending">PENDING</span></td><td><span class="pending">PENDING</span></td><td><span class="pending">PENDING</span></td><td><span class="pending">PENDING</span></td><td><span class="pending">PENDING</span></td><td><span class="pending">PENDING</span></td></tr><tr class="op-row"><td style="text-align:left"><span class="op-logo" style="background:#9B59B6">3</span><span class="op-name">Tri</span></td><td><span class="score" style="color:#9B59B6;font-size:16px">62.0</span></td><td><span class="pending">PENDING</span></td><td><span class="pending">PENDING</span></td><td><span class="pending">PENDING</span></td><td><span class="pending">PENDING</span></td><td><span class="pending">PENDING</span></td><td><span class="pending">PENDING</span></td><td><span class="pending">PENDING</span></td><td><span class="pending">PENDING</span></td><td><span class="pending">PENDING</span></td><td><span class="pending">PENDING</span></td><td><span class="pending">PENDING</span></td><td><span class="pending">PENDING</span></td><td><span class="pending">PENDING</span></td><td><span class="pending">PENDING</span></td><td><span class="pending">PENDING</span></td></tr><tr class="op-row"><td style="text-align:left"><span class="op-logo" style="background:#E67E22">S</span><span class="op-name">Smartfren</span></td><td><span class="score" style="color:#E67E22;font-size:16px">100.0</span></td><td><span class="pending">PENDING</span></td><td><span class="pending">PENDING</span></td><td><span class="pending">PENDING</span></td><td><span class="pending">PENDING</span></td><td><span class="pending">PENDING</span></td><td><span class="pending">PENDING</span></td><td><span class="pending">PENDING</span></td><td><span class="pending">PENDING</span></td><td><span class="pending">PENDING</span></td><td><span class="pending">PENDING</span></td><td><span class="pending">PENDING</span></td><td><span class="pending">PENDING</span></td><td><span class="pending">PENDING</span></td><td><span class="pending">PENDING</span></td><td><span class="pending">PENDING</span></td></tr></tbody>
+</table>
+</div>
+
+<!-- DETAIL TABLE -->
+<h2 style="color:white;font-size:20px;margin-bottom:15px">📊 Video Experience — Detail</h2>
+<div class="table-wrap">
+<table>
+<thead>
+  <tr>
+    <th style="text-align:left">Rank</th>
+    <th style="text-align:left">Operator</th>
+    <th style="text-align:right">Buffer Count</th>
+    <th style="text-align:right">Stall Time</th>
+    <th style="text-align:right">Apr</th>
+    <th style="text-align:right">May</th>
+    <th style="text-align:right">Score</th>
+    <th style="text-align:right">Δ</th>
+    <th style="text-align:right">Records</th>
+  </tr>
+</thead>
+<tbody><tr style="background:rgba(74,210,122,0.04)">
+      <td style="font-size:18px">🥇</td>
+      <td style="text-align:left"><span class="op-logo" style="background:#4A90D9;width:28px;height:28px;font-size:12px">X</span><span class="op-name">XL <span class="winner">WINNER</span></span></td>
+      <td style="text-align:right" class="score">0.0989</td>
+      <td style="text-align:right" class="score">256.5s</td>
+      <td style="text-align:right;color:#667788">52.2</td>
+      <td style="text-align:right;color:#667788">52.4</td>
+      <td style="text-align:right;font-size:20px;font-weight:800;color:#4A90D9">52.3</td>
+      <td style="text-align:right;color:#667788">— +0.2</td>
+      <td style="text-align:right">11.0M</td>
+    </tr><tr style="">
+      <td style="font-size:18px">🥈</td>
+      <td style="text-align:left"><span class="op-logo" style="background:#F5A623;width:28px;height:28px;font-size:12px">I</span><span class="op-name">Indosat</span></td>
+      <td style="text-align:right" class="score">0.0934</td>
+      <td style="text-align:right" class="score">290.4s</td>
+      <td style="text-align:right;color:#667788">53.8</td>
+      <td style="text-align:right;color:#667788">56.2</td>
+      <td style="text-align:right;font-size:20px;font-weight:800;color:#F5A623">55.0</td>
+      <td style="text-align:right;color:#f87171">▲ +2.4</td>
+      <td style="text-align:right">16.1M</td>
+    </tr><tr style="">
+      <td style="font-size:18px">🥉</td>
+      <td style="text-align:left"><span class="op-logo" style="background:#E74C3C;width:28px;height:28px;font-size:12px">T</span><span class="op-name">Telkomsel</span></td>
+      <td style="text-align:right" class="score">0.1144</td>
+      <td style="text-align:right" class="score">283.8s</td>
+      <td style="text-align:right;color:#667788">57.4</td>
+      <td style="text-align:right;color:#667788">60.5</td>
+      <td style="text-align:right;font-size:20px;font-weight:800;color:#E74C3C">59.0</td>
+      <td style="text-align:right;color:#f87171">▲ +3.1</td>
+      <td style="text-align:right">30.6M</td>
+    </tr><tr style="">
+      <td style="font-size:18px">④</td>
+      <td style="text-align:left"><span class="op-logo" style="background:#9B59B6;width:28px;height:28px;font-size:12px">3</span><span class="op-name">Tri</span></td>
+      <td style="text-align:right" class="score">0.0974</td>
+      <td style="text-align:right" class="score">342.1s</td>
+      <td style="text-align:right;color:#667788">60.3</td>
+      <td style="text-align:right;color:#667788">63.7</td>
+      <td style="text-align:right;font-size:20px;font-weight:800;color:#9B59B6">62.0</td>
+      <td style="text-align:right;color:#f87171">▲ +3.4</td>
+      <td style="text-align:right">9.1M</td>
+    </tr><tr style="">
+      <td style="font-size:18px">⑤</td>
+      <td style="text-align:left"><span class="op-logo" style="background:#E67E22;width:28px;height:28px;font-size:12px">S</span><span class="op-name">Smartfren</span></td>
+      <td style="text-align:right" class="score">0.2225</td>
+      <td style="text-align:right" class="score">426.7s</td>
+      <td style="text-align:right;color:#667788">100.0</td>
+      <td style="text-align:right;color:#667788">100.0</td>
+      <td style="text-align:right;font-size:20px;font-weight:800;color:#E67E22">100.0</td>
+      <td style="text-align:right;color:#667788">— +0.0</td>
+      <td style="text-align:right">3.6M</td>
+    </tr></tbody>
+</table>
+</div>
+
+<div class="footer">
+  <p><strong>Mobile Network Experience Report</strong> · April–May 2026 · Indonesia</p>
+  <p>Generated by Telcoagent · June 2026 · onx_indonesia_performance · 70.5M+ records</p>
+</div>
+
+</div>
+</body>
+</html>

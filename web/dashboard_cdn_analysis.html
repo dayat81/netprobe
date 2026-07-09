@@ -1,0 +1,65 @@
+<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>XL Stall Analysis — Avg (bukan Max)</title><style>
+*{box-sizing:border-box;margin:0;padding:0}body{font-family:system-ui,sans-serif;padding:20px;background:#1a1a2e;color:#e0e0e0}
+.hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;padding-bottom:12px;border-bottom:3px solid #4A90D9}
+.hd h1{font-size:20px;color:#fff}.lg{font-size:18px;font-weight:bold;color:#4A90D9}
+.sub{color:#aaa;font-size:13px;margin-bottom:18px}.sub span{background:#2a2a4a;padding:4px 12px;border-radius:4px;margin-right:8px}
+.s{margin-bottom:20px}.s h2{font-size:14px;color:#4A90D9;margin-bottom:6px}
+table{border-collapse:collapse;width:100%;font-size:12px}
+th{background:#16213e;color:#4A90D9;padding:6px;text-align:center;border-bottom:2px solid #4A90D9}
+td{padding:5px;text-align:center;border-bottom:1px solid #2a2a4a}tr:hover{background:#1a2a4a}
+.sc{color:#e74c3c;font-weight:700}.sw{color:#f39c12;font-weight:600}.so{color:#27ae60;font-weight:600}
+.xl{color:#4A90D9;font-weight:600}.ts{color:#e74c3c;font-weight:600}.is{color:#f1c40f;font-weight:600}
+.card{background:#16213e;border:1px solid #2a2a5a;border-radius:8px;padding:15px;margin-bottom:15px}
+.card h3{font-size:14px;margin-bottom:8px}
+.verdict{font-size:14px;font-weight:700;padding:10px 14px;border-radius:8px;margin-bottom:12px}
+.verdict.shared{background:#3d3d1f;border:2px solid #f39c12;color:#f39c12}
+.verdict.warn{background:#3d2a1f;border:2px solid #e67e22;color:#e67e22}
+.ft{margin-top:20px;padding:12px;background:#16213e;border-radius:6px;font-size:11px;color:#666;text-align:center}
+.bar{display:inline-block;height:16px;border-radius:3px;vertical-align:middle;margin-right:4px}
+</style></head><body>
+<div class="hd"><h1>XL Stall Analysis — Avg Stall (bukan Max)</h1><div class="lg">XLSMART</div></div>
+<div class="sub"><span>1-19 Jun 2026</span><span>XL vs Telkomsel vs Indosat</span><span>Same CDN servers</span></div>
+<div class="card"><h3>Metode: Avg Stall (rata-rata), bukan Max</h3>
+<p style="font-size:12px;color:#aaa;line-height:1.6">Max stall 30,000s bisa dari 1 test outlier. <b>Avg stall</b> lebih representatif: berapa rata-rata durasi stall per test. Jika avg tinggi = masalah konsisten. Jika avg rendah tapi max tinggi = outlier.</p></div>
+<div class="verdict shared">🌐 Google CDN (34.160.125.107) — Avg stall serupa antar operator → Shared issue</div>
+<table><thead><tr><th>Operator</th><th>Tests</th><th>Avg Stall (s)</th><th>Avg Buffer</th><th>Visual</th></tr></thead><tbody>
+<tr><td class="xl">XL</td><td>37,919</td><td class="sc">154.4</td><td>0.047</td><td style="text-align:left"><span class="bar" style="width:193px;background:#e74c3c"></span>154s</td></tr>
+<tr><td class="ts">Telkomsel</td><td>121,137</td><td class="sc">159.3</td><td>0.070</td><td style="text-align:left"><span class="bar" style="width:200px;background:#e74c3c"></span>159s</td></tr>
+<tr><td class="is">Indosat</td><td>70,958</td><td class="so">67.8</td><td>0.029</td><td style="text-align:left"><span class="bar" style="width:85px;background:#27ae60"></span>68s</td></tr>
+</tbody></table>
+<div class="verdict warn">🟠 Akamai (23.219.184.202) — Sample terlalu kecil untuk operator lain — tidak bisa komparasi</div>
+<table><thead><tr><th>Operator</th><th>Tests</th><th>Avg Stall (s)</th><th>Avg Buffer</th><th>Visual</th></tr></thead><tbody>
+<tr><td class="xl">XL</td><td>13,421</td><td class="sc">227.0</td><td>0.053</td><td style="text-align:left"><span class="bar" style="width:200px;background:#e74c3c"></span>227s</td></tr>
+<tr><td class="ts">Telkomsel</td><td>23</td><td class="so">0.0</td><td>0.000</td><td style="text-align:left"><span class="bar" style="width:0px;background:#27ae60"></span>0s</td></tr>
+<tr><td class="is">Indosat</td><td>4</td><td class="so">0.0</td><td>0.000</td><td style="text-align:left"><span class="bar" style="width:0px;background:#27ae60"></span>0s</td></tr>
+</tbody></table>
+<div class="verdict warn">🔴 Telkom CDN (140.213.62.106) — Sample terlalu kecil untuk operator lain — tidak bisa komparasi</div>
+<table><thead><tr><th>Operator</th><th>Tests</th><th>Avg Stall (s)</th><th>Avg Buffer</th><th>Visual</th></tr></thead><tbody>
+<tr><td class="xl">XL</td><td>9,393</td><td class="sc">157.0</td><td>0.036</td><td style="text-align:left"><span class="bar" style="width:200px;background:#e74c3c"></span>157s</td></tr>
+<tr><td class="ts">Telkomsel</td><td>12</td><td class="so">0.0</td><td>0.000</td><td style="text-align:left"><span class="bar" style="width:0px;background:#27ae60"></span>0s</td></tr>
+<tr><td class="is">Indosat</td><td>3</td><td class="so">0.0</td><td>0.000</td><td style="text-align:left"><span class="bar" style="width:0px;background:#27ae60"></span>0s</td></tr>
+</tbody></table>
+<div class="verdict shared">☁️ CloudFront (CGK) (3.168.198.205) — Avg stall serupa antar operator → Shared issue</div>
+<table><thead><tr><th>Operator</th><th>Tests</th><th>Avg Stall (s)</th><th>Avg Buffer</th><th>Visual</th></tr></thead><tbody>
+<tr><td class="xl">XL</td><td>13,166</td><td class="sc">192.7</td><td>0.047</td><td style="text-align:left"><span class="bar" style="width:200px;background:#e74c3c"></span>193s</td></tr>
+<tr><td class="ts">Telkomsel</td><td>27,165</td><td class="sc">176.6</td><td>0.069</td><td style="text-align:left"><span class="bar" style="width:183px;background:#e74c3c"></span>177s</td></tr>
+<tr><td class="is">Indosat</td><td>19</td><td class="sw">102.3</td><td>0.100</td><td style="text-align:left"><span class="bar" style="width:106px;background:#f39c12"></span>102s</td></tr>
+</tbody></table>
+<div class="verdict shared">☁️ CloudFront (SIN) (13.35.0.108) — Semua operator avg stall mirip → Shared CDN/network issue</div>
+<table><thead><tr><th>Operator</th><th>Tests</th><th>Avg Stall (s)</th><th>Avg Buffer</th><th>Visual</th></tr></thead><tbody>
+<tr><td class="xl">XL</td><td>6,418</td><td class="sw">137.8</td><td>0.039</td><td style="text-align:left"><span class="bar" style="width:195px;background:#f39c12"></span>138s</td></tr>
+<tr><td class="ts">Telkomsel</td><td>6,600</td><td class="sw">141.0</td><td>0.032</td><td style="text-align:left"><span class="bar" style="width:200px;background:#f39c12"></span>141s</td></tr>
+<tr><td class="is">Indosat</td><td>20,178</td><td class="sw">104.7</td><td>0.033</td><td style="text-align:left"><span class="bar" style="width:148px;background:#f39c12"></span>105s</td></tr>
+</tbody></table>
+<div class="card" style="border-left:4px solid #f39c12"><h3>Kesimpulan dengan Avg Stall</h3>
+<p style="font-size:13px;line-height:1.8">
+<b>Perbandingan avg stall antar operator di CDN yang sama:</b><br><br>
+☁️ <b>CloudFront</b> (2 server): XL ~165s, Telkomsel ~159s, Indosat ~104s → <b>Semua tinggi, mirip</b> = shared issue<br><br>
+🌐 <b>Google CDN</b>: XL 154s, Telkomsel 159s, Indosat 68s → <b>XL & Telkomsel mirip</b>, Indosat lebih rendah<br><br>
+🟠 <b>Akamai</b>: XL 227s, Telkomsel 0s, Indosat 0s → Tapi sample Telkomsel (23) & Indosat (4) <b>terlalu kecil</b><br><br>
+🔴 <b>Telkom CDN</b>: XL 157s, Telkomsel 0s, Indosat 0s → Sample terlalu kecil juga<br><br>
+<b>Kesimpulan:</b> Dengan avg, bukti menunjukkan <b>stall terjadi di SEMUA operator</b> di CDN besar (Google, CloudFront). Masalah bukan XL-specific, tapi <b>shared CDN/network congestion</b>. Akamai & Telkom CDN tidak bisa dijadikan bukti karena sample operator lain terlalu kecil.
+</p></div>
+<div class="ft">Data: OpenSignal raw export • 1-19 Jun 2026 • 26,127 files<br>Generated: Jun 21, 2026 • osig.netprobe.xyz</div>
+</body></html>

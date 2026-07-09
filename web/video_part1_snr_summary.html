@@ -1,0 +1,112 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><title>Video Tests - Part 1</title><style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #0a0a1a; color: #e0e0e0; font-family: 'Segoe UI', sans-serif; padding: 20px; }
+h1 { color: #fff; text-align: center; margin-bottom: 8px; font-size: 22px; }
+.subtitle { color: #888; text-align: center; margin-bottom: 20px; font-size: 13px; }
+.cards { display: flex; gap: 12px; justify-content: center; margin-bottom: 20px; flex-wrap: wrap; }
+.card { background: #1a1a2e; border-radius: 10px; padding: 16px; min-width: 180px; text-align: center; border: 1px solid #333; }
+.card .op-name { font-size: 16px; font-weight: bold; margin-bottom: 6px; }
+.card .stat { font-size: 26px; font-weight: bold; }
+.card .label { font-size: 11px; color: #888; margin-top: 2px; }
+.card .row { display: flex; justify-content: space-between; margin-top: 6px; font-size: 12px; }
+.card .row .val { font-weight: bold; }
+.section { background: #1a1a2e; border-radius: 10px; padding: 16px; margin-bottom: 16px; border: 1px solid #333; }
+.section h2 { color: #fff; margin-bottom: 12px; font-size: 16px; }
+table { width: 100%; border-collapse: collapse; font-size: 12px; }
+th { background: #252540; color: #aaa; padding: 8px 6px; text-align: left; font-weight: 600; border-bottom: 2px solid #444; }
+td { padding: 6px; border-bottom: 1px solid #222; }
+tr:hover { background: #1e1e35; }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.badge { padding: 2px 8px; border-radius: 8px; font-size: 10px; font-weight: bold; }
+.badge-green { background: #1a3a1a; color: #4caf50; }
+.badge-yellow { background: #3a3a1a; color: #ffeb3b; }
+.badge-red { background: #3a1a1a; color: #f44336; }
+.chart-bar { display: flex; align-items: center; margin: 4px 0; }
+.chart-label { width: 90px; font-size: 11px; text-align: right; padding-right: 8px; }
+.bar-container { width: 120px; background: #252540; border-radius: 4px; height: 18px; display: inline-block; }
+.bar-inner { height: 100%; border-radius: 4px; }
+.snr-meter { width: 100%; height: 20px; background: linear-gradient(to right, #f44336, #ff9800, #ffeb3b, #8bc34a, #4caf50); border-radius: 10px; position: relative; margin: 8px 0; }
+.scroll-table { max-height: 500px; overflow-y: auto; }
+</style></head><body>
+<h1>🎬 OpenSignal Video Test Dashboard</h1>
+<p class="subtitle">Data: 1-3 Juni 2026 | 126,810 video tests | 4,916 kecamatan</p>
+<div class="cards">
+
+<div class="card" style="border-top: 3px solid #e74c3c">
+    <div class="op-name" style="color: #e74c3c">Telkomsel</div>
+    <div class="stat">47,666</div>
+    <div class="label">Video Tests (with SNR)</div>
+    <div class="row"><span>Avg SNR</span><span class="val" style="color:#ffeb3b">8.04 dB</span></div>
+    <div class="row"><span>RSRP</span><span class="val">-92.2 dBm</span></div>
+    <div class="row"><span>RSRQ</span><span class="val">-11.0 dB</span></div>
+    <div class="row"><span>SNR Good (10+)</span><span class="val" style="color:#4caf50">18,993</span></div>
+    <div class="row"><span>SNR Fair (0-10)</span><span class="val" style="color:#ffeb3b">23,334</span></div>
+    <div class="row"><span>SNR Poor (&lt;0)</span><span class="val" style="color:#f44336">5,339</span></div>
+</div>
+
+<div class="card" style="border-top: 3px solid #3498db">
+    <div class="op-name" style="color: #3498db">XL</div>
+    <div class="stat">30,636</div>
+    <div class="label">Video Tests (with SNR)</div>
+    <div class="row"><span>Avg SNR</span><span class="val" style="color:#ffeb3b">5.45 dB</span></div>
+    <div class="row"><span>RSRP</span><span class="val">-93.9 dBm</span></div>
+    <div class="row"><span>RSRQ</span><span class="val">-13.2 dB</span></div>
+    <div class="row"><span>SNR Good (10+)</span><span class="val" style="color:#4caf50">8,560</span></div>
+    <div class="row"><span>SNR Fair (0-10)</span><span class="val" style="color:#ffeb3b">15,198</span></div>
+    <div class="row"><span>SNR Poor (&lt;0)</span><span class="val" style="color:#f44336">6,878</span></div>
+</div>
+
+<div class="card" style="border-top: 3px solid #f39c12">
+    <div class="op-name" style="color: #f39c12">Indosat</div>
+    <div class="stat">41,582</div>
+    <div class="label">Video Tests (with SNR)</div>
+    <div class="row"><span>Avg SNR</span><span class="val" style="color:#ffeb3b">3.47 dB</span></div>
+    <div class="row"><span>RSRP</span><span class="val">-94.4 dBm</span></div>
+    <div class="row"><span>RSRQ</span><span class="val">-14.0 dB</span></div>
+    <div class="row"><span>SNR Good (10+)</span><span class="val" style="color:#4caf50">8,137</span></div>
+    <div class="row"><span>SNR Fair (0-10)</span><span class="val" style="color:#ffeb3b">20,713</span></div>
+    <div class="row"><span>SNR Poor (&lt;0)</span><span class="val" style="color:#f44336">12,732</span></div>
+</div>
+</div><div class="grid2"><div class="section"><h2>📶 SNR Distribution by Operator</h2>
+    <div style="margin-bottom:12px">
+        <div style="font-size:13px;font-weight:bold;color:#e74c3c;margin-bottom:4px">Telkomsel <span style="color:#888;font-weight:normal">(47,666 tests)</span></div>
+        <div style="display:flex;height:24px;border-radius:6px;overflow:hidden">
+            <div style="width:39.84601183233332%;background:#4caf50;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:bold" title="Good: 18993">40%</div>
+            <div style="width:48.95313221163932%;background:#ffeb3b;color:#333;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:bold" title="Fair: 23334">49%</div>
+            <div style="width:11.200855956027358%;background:#f44336;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:bold" title="Poor: 5339">11%</div>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:10px;color:#666;margin-top:2px">
+            <span style="color:#4caf50">Good ≥10dB: 18,993</span>
+            <span style="color:#ffeb3b">Fair 0-10dB: 23,334</span>
+            <span style="color:#f44336">Poor &lt;0dB: 5,339</span>
+        </div>
+    </div>
+
+    <div style="margin-bottom:12px">
+        <div style="font-size:13px;font-weight:bold;color:#3498db;margin-bottom:4px">XL <span style="color:#888;font-weight:normal">(30,636 tests)</span></div>
+        <div style="display:flex;height:24px;border-radius:6px;overflow:hidden">
+            <div style="width:27.940984462723595%;background:#4caf50;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:bold" title="Good: 8560">28%</div>
+            <div style="width:49.608303956130044%;background:#ffeb3b;color:#333;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:bold" title="Fair: 15198">50%</div>
+            <div style="width:22.450711581146365%;background:#f44336;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:bold" title="Poor: 6878">22%</div>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:10px;color:#666;margin-top:2px">
+            <span style="color:#4caf50">Good ≥10dB: 8,560</span>
+            <span style="color:#ffeb3b">Fair 0-10dB: 15,198</span>
+            <span style="color:#f44336">Poor &lt;0dB: 6,878</span>
+        </div>
+    </div>
+
+    <div style="margin-bottom:12px">
+        <div style="font-size:13px;font-weight:bold;color:#f39c12;margin-bottom:4px">Indosat <span style="color:#888;font-weight:normal">(41,582 tests)</span></div>
+        <div style="display:flex;height:24px;border-radius:6px;overflow:hidden">
+            <div style="width:19.568563320667597%;background:#4caf50;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:bold" title="Good: 8137">20%</div>
+            <div style="width:49.81241883507287%;background:#ffeb3b;color:#333;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:bold" title="Fair: 20713">50%</div>
+            <div style="width:30.619017844259535%;background:#f44336;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:bold" title="Poor: 12732">31%</div>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:10px;color:#666;margin-top:2px">
+            <span style="color:#4caf50">Good ≥10dB: 8,137</span>
+            <span style="color:#ffeb3b">Fair 0-10dB: 20,713</span>
+            <span style="color:#f44336">Poor &lt;0dB: 12,732</span>
+        </div>
+    </div>
+</div><div class="section"><h2>🌐 SNR by Platform</h2><table><tr><th>Operator</th><th>Platform</th><th>Tests</th><th>Avg SNR</th><th>RSRP</th><th>Avg FF</th><th>Throughput</th><th>Success</th></tr><tr><td style="color:#f39c12;font-weight:bold">Indosat</td><td>CLOUDFRONT</td><td>27,128</td><td style="color:#ffeb3b;font-weight:bold">3.43 dB</td><td>-94.4 dBm</td><td>10.48s</td><td>15.48 Mbps</td><td><span class="badge badge-yellow">89.9%</span></td></tr><tr><td style="color:#f39c12;font-weight:bold">Indosat</td><td>AKAMAI</td><td>7,285</td><td style="color:#ffeb3b;font-weight:bold">3.64 dB</td><td>-94.3 dBm</td><td>10.52s</td><td>19.42 Mbps</td><td><span class="badge badge-yellow">89.3%</span></td></tr><tr><td style="color:#f39c12;font-weight:bold">Indosat</td><td>GOOGLECLOUD</td><td>7,169</td><td style="color:#ffeb3b;font-weight:bold">3.47 dB</td><td>-94.7 dBm</td><td>9.18s</td><td>17.08 Mbps</td><td><span class="badge badge-yellow">89.5%</span></td></tr><tr><td style="color:#e74c3c;font-weight:bold">Telkomsel</td><td>CLOUDFRONT</td><td>30,627</td><td style="color:#ffeb3b;font-weight:bold">8.08 dB</td><td>-92.2 dBm</td><td>10.29s</td><td>17.49 Mbps</td><td><span class="badge badge-green">91.9%</span></td></tr><tr><td style="color:#e74c3c;font-weight:bold">Telkomsel</td><td>AKAMAI</td><td>8,530</td><td style="color:#ffeb3b;font-weight:bold">8.02 dB</td><td>-92.2 dBm</td><td>12.98s</td><td>20.8 Mbps</td><td><span class="badge badge-green">92.7%</span></td></tr><tr><td style="color:#e74c3c;font-weight:bold">Telkomsel</td><td>GOOGLECLOUD</td><td>8,509</td><td style="color:#ffeb3b;font-weight:bold">7.94 dB</td><td>-92.1 dBm</td><td>8.79s</td><td>20.95 Mbps</td><td><span class="badge badge-green">92.0%</span></td></tr><tr><td style="color:#3498db;font-weight:bold">XL</td><td>CLOUDFRONT</td><td>20,019</td><td style="color:#ffeb3b;font-weight:bold">5.36 dB</td><td>-94.0 dBm</td><td>11.57s</td><td>19.09 Mbps</td><td><span class="badge badge-green">90.7%</span></td></tr><tr><td style="color:#3498db;font-weight:bold">XL</td><td>AKAMAI</td><td>5,314</td><td style="color:#ffeb3b;font-weight:bold">5.64 dB</td><td>-93.6 dBm</td><td>10.84s</td><td>24.17 Mbps</td><td><span class="badge badge-green">92.9%</span></td></tr><tr><td style="color:#3498db;font-weight:bold">XL</td><td>GOOGLECLOUD</td><td>5,303</td><td style="color:#ffeb3b;font-weight:bold">5.6 dB</td><td>-93.6 dBm</td><td>9.31s</td><td>21.36 Mbps</td><td><span class="badge badge-green">90.4%</span></td></tr></table></div></div></body></html>

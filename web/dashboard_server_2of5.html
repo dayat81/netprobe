@@ -1,0 +1,273 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><title>2/5</title><style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0a1a;color:#e0e0e0;font-family:'Segoe UI',sans-serif;padding:20px;width:1200px}
+h1{color:#00d4ff;font-size:22px;margin-bottom:5px;text-align:center}
+h2{color:#ff6b6b;font-size:18px;margin:20px 0 10px;border-bottom:2px solid #ff6b6b;padding-bottom:5px}
+h3{color:#4ecdc4;font-size:14px;margin:12px 0 6px}
+.subtitle{color:#888;text-align:center;margin-bottom:15px;font-size:12px}
+.summary-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px}
+.card{background:linear-gradient(135deg,#1a1a2e,#16213e);border-radius:10px;padding:12px;border:1px solid #333}
+.card-title{color:#aaa;font-size:10px;text-transform:uppercase;letter-spacing:1px}
+.card-value{color:#00d4ff;font-size:24px;font-weight:bold;margin:4px 0}
+.card-detail{color:#888;font-size:11px}
+table{width:100%;border-collapse:collapse;margin:8px 0;font-size:11px}
+th{background:#1a1a2e;color:#00d4ff;padding:6px 5px;text-align:left;border-bottom:2px solid #00d4ff;font-size:10px}
+td{padding:5px;border-bottom:1px solid #222}
+tr:hover{background:#1a1a3e}
+.badge{display:inline-block;padding:2px 6px;border-radius:8px;font-size:9px;font-weight:bold}
+.badge-red{background:#ff4444;color:white}
+.badge-yellow{background:#ffaa00;color:#333}
+.badge-green{background:#44ff44;color:#333}
+.badge-blue{background:#4488ff;color:white}
+.platform-cf{color:#ff9900;font-weight:bold}
+.platform-ak{color:#ff4444;font-weight:bold}
+.platform-gc{color:#44ff44;font-weight:bold}
+.section{background:#0f0f25;border-radius:8px;padding:12px;margin:10px 0;border:1px solid #333}
+.insight-box{background:#1a1a3e;border-left:4px solid #ff6b6b;padding:8px 12px;margin:8px 0;border-radius:0 6px 6px 0;font-size:12px}
+.insight-box.good{border-left-color:#44ff44}
+.stall-bar{height:12px;border-radius:2px;display:inline-block;vertical-align:middle}
+footer{text-align:center;color:#555;font-size:10px;margin-top:15px;padding-top:10px;border-top:1px solid #222}
+</style></head><body>
+<h1>🔍 Edge Location Detail — All Operators</h1>
+<p class="subtitle">Video Server IP Analysis — OpenSignal Indonesia — 1-14 Juni 2026</p>
+<div class="section" style="max-height:800px;overflow-y:auto">
+<table><thead><tr>
+<th>Op</th><th>Platform</th><th>Edge Location</th><th>Tests</th><th>IPs</th>
+<th>Avg FF (s)</th><th>Avg Stall (s)</th><th>%>100s</th><th>%>500s</th><th>%>1000s</th><th>Avg Tput</th><th>Kab</th>
+</tr></thead><tbody>
+<tr>
+<td><span class="badge badge-yellow">IOH</span></td><td class="platform-cf">CLOUDFRONT</td><td>CF Global</td>
+<td>119,229</td><td>64</td>
+<td><span class="badge badge-yellow">11.64</span></td><td><span class="badge badge-red">353.98</span></td>
+<td>3.8%</td><td>3.7%</td><td>3.6%</td>
+<td>15.28</td><td>472</td></tr><tr>
+<td><span class="badge badge-yellow">IOH</span></td><td class="platform-gc">GOOGLECLOUD</td><td>Google ID</td>
+<td>36,408</td><td>2</td>
+<td><span class="badge badge-yellow">10.4</span></td><td><span class="badge badge-green">58.5</span></td>
+<td>0.6%</td><td>0.6%</td><td>0.6%</td>
+<td>16.6</td><td>448</td></tr><tr>
+<td><span class="badge badge-yellow">IOH</span></td><td class="platform-ak">AKAMAI</td><td>AKAMAI ID</td>
+<td>23,027</td><td>64</td>
+<td><span class="badge badge-yellow">10.86</span></td><td><span class="badge badge-yellow">149.55</span></td>
+<td>1.7%</td><td>1.7%</td><td>1.6%</td>
+<td>18.32</td><td>449</td></tr><tr>
+<td><span class="badge badge-yellow">IOH</span></td><td class="platform-cf">CLOUDFRONT</td><td>SIN2 (Singapore)</td>
+<td>13,810</td><td>10</td>
+<td><span class="badge badge-yellow">11.81</span></td><td><span class="badge badge-red">494.92</span></td>
+<td>5.5%</td><td>5.5%</td><td>5.4%</td>
+<td>14.65</td><td>422</td></tr><tr>
+<td><span class="badge badge-yellow">IOH</span></td><td class="platform-ak">AKAMAI</td><td>THREE CDN</td>
+<td>12,469</td><td>10</td>
+<td><span class="badge badge-yellow">11.37</span></td><td><span class="badge badge-yellow">142.68</span></td>
+<td>1.5%</td><td>1.5%</td><td>1.4%</td>
+<td>20.13</td><td>292</td></tr><tr>
+<td><span class="badge badge-yellow">IOH</span></td><td class="platform-cf">CLOUDFRONT</td><td>(empty)</td>
+<td>2,590</td><td>1</td>
+<td><span class="badge badge-green">4.39</span></td><td><span class="badge badge-red">401.82</span></td>
+<td>2.1%</td><td>2%</td><td>2%</td>
+<td>7.15</td><td>330</td></tr><tr>
+<td><span class="badge badge-yellow">IOH</span></td><td class="platform-ak">AKAMAI</td><td>(empty)</td>
+<td>719</td><td>1</td>
+<td><span class="badge badge-green">3.24</span></td><td><span class="badge badge-yellow">276.33</span></td>
+<td>1.3%</td><td>1.3%</td><td>1.3%</td>
+<td>6.97</td><td>211</td></tr><tr>
+<td><span class="badge badge-yellow">IOH</span></td><td class="platform-gc">GOOGLECLOUD</td><td>(empty)</td>
+<td>691</td><td>1</td>
+<td><span class="badge badge-green">2.89</span></td><td><span class="badge badge-green">75.62</span></td>
+<td>0.9%</td><td>0.9%</td><td>0.9%</td>
+<td>7.42</td><td>209</td></tr><tr>
+<td><span class="badge badge-yellow">IOH</span></td><td class="platform-ak">AKAMAI</td><td>Other</td>
+<td>669</td><td>225</td>
+<td><span class="badge badge-yellow">11.19</span></td><td><span class="badge badge-red">347.18</span></td>
+<td>3%</td><td>2.8%</td><td>2.7%</td>
+<td>16.68</td><td>179</td></tr><tr>
+<td><span class="badge badge-yellow">IOH</span></td><td class="platform-cf">CLOUDFRONT</td><td>CF SG</td>
+<td>437</td><td>25</td>
+<td><span class="badge badge-green">9.02</span></td><td><span class="badge badge-yellow">156.93</span></td>
+<td>1.6%</td><td>1.6%</td><td>1.6%</td>
+<td>18.29</td><td>174</td></tr><tr>
+<td><span class="badge badge-yellow">IOH</span></td><td class="platform-cf">CLOUDFRONT</td><td>Other</td>
+<td>284</td><td>150</td>
+<td><span class="badge badge-green">6.28</span></td><td><span class="badge badge-red">376.83</span></td>
+<td>7%</td><td>6.7%</td><td>6.7%</td>
+<td>10.37</td><td>113</td></tr><tr>
+<td><span class="badge badge-yellow">IOH</span></td><td class="platform-cf">CLOUDFRONT</td><td>CF SIN52/PNQ</td>
+<td>128</td><td>4</td>
+<td><span class="badge badge-green">6.12</span></td><td><span class="badge badge-yellow">174.78</span></td>
+<td>1.6%</td><td>1.6%</td><td>1.6%</td>
+<td>22.16</td><td>76</td></tr><tr>
+<td><span class="badge badge-yellow">IOH</span></td><td class="platform-cf">CLOUDFRONT</td><td>IPv6 6to4</td>
+<td>87</td><td>18</td>
+<td><span class="badge badge-yellow">13.37</span></td><td><span class="badge badge-red">1092.22</span></td>
+<td>2.3%</td><td>2.3%</td><td>2.3%</td>
+<td>2.61</td><td>34</td></tr><tr>
+<td><span class="badge badge-yellow">IOH</span></td><td class="platform-ak">AKAMAI</td><td>AKAMAI IPv6</td>
+<td>83</td><td>37</td>
+<td><span class="badge badge-green">6.52</span></td><td><span class="badge badge-yellow">141.43</span></td>
+<td>1.2%</td><td>1.2%</td><td>1.2%</td>
+<td>13.6</td><td>59</td></tr><tr>
+<td><span class="badge badge-yellow">IOH</span></td><td class="platform-cf">CLOUDFRONT</td><td>KUL51 (KL)</td>
+<td>60</td><td>8</td>
+<td><span class="badge badge-green">4.9</span></td><td><span class="badge badge-red">620.4</span></td>
+<td>6.7%</td><td>6.7%</td><td>6.7%</td>
+<td>17.3</td><td>42</td></tr><tr>
+<td><span class="badge badge-red">TSEL</span></td><td class="platform-cf">CLOUDFRONT</td><td>CF Global</td>
+<td>85,533</td><td>75</td>
+<td><span class="badge badge-red">21.09</span></td><td><span class="badge badge-red">381.69</span></td>
+<td>4.1%</td><td>4.1%</td><td>3.9%</td>
+<td>16.17</td><td>513</td></tr><tr>
+<td><span class="badge badge-red">TSEL</span></td><td class="platform-gc">GOOGLECLOUD</td><td>Google ID</td>
+<td>36,032</td><td>2</td>
+<td><span class="badge badge-green">9.61</span></td><td><span class="badge badge-yellow">131.7</span></td>
+<td>1.3%</td><td>1.3%</td><td>1.2%</td>
+<td>19.93</td><td>506</td></tr><tr>
+<td><span class="badge badge-red">TSEL</span></td><td class="platform-cf">CLOUDFRONT</td><td>Other</td>
+<td>34,307</td><td>209</td>
+<td><span class="badge badge-yellow">11.17</span></td><td><span class="badge badge-yellow">195.69</span></td>
+<td>2.1%</td><td>2.1%</td><td>2%</td>
+<td>19.26</td><td>458</td></tr><tr>
+<td><span class="badge badge-red">TSEL</span></td><td class="platform-cf">CLOUDFRONT</td><td>IPv6 6to4</td>
+<td>28,630</td><td>37</td>
+<td><span class="badge badge-red">27.02</span></td><td><span class="badge badge-yellow">254.61</span></td>
+<td>2.6%</td><td>2.6%</td><td>2.5%</td>
+<td>19.22</td><td>307</td></tr><tr>
+<td><span class="badge badge-red">TSEL</span></td><td class="platform-ak">AKAMAI</td><td>AKAMAI IPv6</td>
+<td>26,765</td><td>276</td>
+<td><span class="badge badge-red">38.16</span></td><td><span class="badge badge-yellow">143.8</span></td>
+<td>1.3%</td><td>1.3%</td><td>1.2%</td>
+<td>21.42</td><td>495</td></tr><tr>
+<td><span class="badge badge-red">TSEL</span></td><td class="platform-ak">AKAMAI</td><td>Other</td>
+<td>13,970</td><td>353</td>
+<td><span class="badge badge-yellow">11.92</span></td><td><span class="badge badge-yellow">200.33</span></td>
+<td>1.9%</td><td>1.8%</td><td>1.8%</td>
+<td>18.95</td><td>491</td></tr><tr>
+<td><span class="badge badge-red">TSEL</span></td><td class="platform-gc">GOOGLECLOUD</td><td>IPv6 6to4</td>
+<td>7,279</td><td>1</td>
+<td><span class="badge badge-red">44.36</span></td><td><span class="badge badge-green">86.38</span></td>
+<td>0.9%</td><td>0.9%</td><td>0.8%</td>
+<td>23.41</td><td>204</td></tr><tr>
+<td><span class="badge badge-red">TSEL</span></td><td class="platform-cf">CLOUDFRONT</td><td>SIN2 (Singapore)</td>
+<td>6,490</td><td>16</td>
+<td><span class="badge badge-yellow">13.06</span></td><td><span class="badge badge-red">438.99</span></td>
+<td>5.1%</td><td>5%</td><td>4.8%</td>
+<td>14.71</td><td>388</td></tr><tr>
+<td><span class="badge badge-red">TSEL</span></td><td class="platform-cf">CLOUDFRONT</td><td>(empty)</td>
+<td>3,869</td><td>1</td>
+<td><span class="badge badge-green">3.8</span></td><td><span class="badge badge-red">517.39</span></td>
+<td>1.8%</td><td>1.8%</td><td>1.7%</td>
+<td>7.15</td><td>434</td></tr><tr>
+<td><span class="badge badge-red">TSEL</span></td><td class="platform-ak">AKAMAI</td><td>AKAMAI ID</td>
+<td>3,080</td><td>56</td>
+<td><span class="badge badge-yellow">12.15</span></td><td><span class="badge badge-yellow">161.65</span></td>
+<td>1.5%</td><td>1.5%</td><td>1.5%</td>
+<td>18.78</td><td>365</td></tr><tr>
+<td><span class="badge badge-red">TSEL</span></td><td class="platform-gc">GOOGLECLOUD</td><td>(empty)</td>
+<td>1,140</td><td>1</td>
+<td><span class="badge badge-green">3.54</span></td><td><span class="badge badge-yellow">232.97</span></td>
+<td>1.2%</td><td>1.2%</td><td>1.1%</td>
+<td>7.92</td><td>320</td></tr><tr>
+<td><span class="badge badge-red">TSEL</span></td><td class="platform-cf">CLOUDFRONT</td><td>AKAMAI IPv6</td>
+<td>997</td><td>97</td>
+<td><span class="badge badge-red">295.62</span></td><td><span class="badge badge-yellow">104.69</span></td>
+<td>2.5%</td><td>2.4%</td><td>2.1%</td>
+<td>16.67</td><td>100</td></tr><tr>
+<td><span class="badge badge-red">TSEL</span></td><td class="platform-ak">AKAMAI</td><td>(empty)</td>
+<td>981</td><td>1</td>
+<td><span class="badge badge-green">2.51</span></td><td><span class="badge badge-yellow">179.03</span></td>
+<td>0.8%</td><td>0.8%</td><td>0.8%</td>
+<td>9.38</td><td>310</td></tr><tr>
+<td><span class="badge badge-red">TSEL</span></td><td class="platform-ak">AKAMAI</td><td>IPv6 6to4</td>
+<td>468</td><td>13</td>
+<td><span class="badge badge-green">6.52</span></td><td><span class="badge badge-yellow">145.85</span></td>
+<td>1.1%</td><td>1.1%</td><td>1.1%</td>
+<td>26.54</td><td>70</td></tr><tr>
+<td><span class="badge badge-red">TSEL</span></td><td class="platform-gc">GOOGLECLOUD</td><td>AKAMAI IPv6</td>
+<td>283</td><td>8</td>
+<td><span class="badge badge-green">7.71</span></td><td><span class="badge badge-yellow">265.11</span></td>
+<td>2.5%</td><td>2.1%</td><td>2.1%</td>
+<td>18.5</td><td>61</td></tr><tr>
+<td><span class="badge badge-red">TSEL</span></td><td class="platform-cf">CLOUDFRONT</td><td>CF SG</td>
+<td>76</td><td>30</td>
+<td><span class="badge badge-green">6.05</span></td><td><span class="badge badge-green">0.0</span></td>
+<td>0%</td><td>0%</td><td>0%</td>
+<td>12.41</td><td>58</td></tr><tr>
+<td><span class="badge badge-red">TSEL</span></td><td class="platform-cf">CLOUDFRONT</td><td>KUL51 (KL)</td>
+<td>54</td><td>8</td>
+<td><span class="badge badge-green">7.8</span></td><td><span class="badge badge-green">0.0</span></td>
+<td>0%</td><td>0%</td><td>0%</td>
+<td>19.77</td><td>41</td></tr><tr>
+<td><span class="badge badge-blue">XL</span></td><td class="platform-cf">CLOUDFRONT</td><td>CF Global</td>
+<td>38,580</td><td>54</td>
+<td><span class="badge badge-yellow">13.38</span></td><td><span class="badge badge-red">339.18</span></td>
+<td>3.3%</td><td>3.2%</td><td>3.1%</td>
+<td>18.13</td><td>403</td></tr><tr>
+<td><span class="badge badge-blue">XL</span></td><td class="platform-cf">CLOUDFRONT</td><td>IPv6 6to4</td>
+<td>37,266</td><td>59</td>
+<td><span class="badge badge-yellow">10.94</span></td><td><span class="badge badge-red">303.41</span></td>
+<td>3%</td><td>3%</td><td>2.9%</td>
+<td>18.96</td><td>419</td></tr><tr>
+<td><span class="badge badge-blue">XL</span></td><td class="platform-gc">GOOGLECLOUD</td><td>Google ID</td>
+<td>15,519</td><td>3</td>
+<td><span class="badge badge-yellow">12.75</span></td><td><span class="badge badge-yellow">142.77</span></td>
+<td>1.2%</td><td>1.2%</td><td>1.2%</td>
+<td>20.33</td><td>408</td></tr><tr>
+<td><span class="badge badge-blue">XL</span></td><td class="platform-cf">CLOUDFRONT</td><td>Other</td>
+<td>11,140</td><td>147</td>
+<td><span class="badge badge-yellow">11.54</span></td><td><span class="badge badge-yellow">175.57</span></td>
+<td>1.5%</td><td>1.5%</td><td>1.5%</td>
+<td>22.64</td><td>267</td></tr><tr>
+<td><span class="badge badge-blue">XL</span></td><td class="platform-gc">GOOGLECLOUD</td><td>IPv6 6to4</td>
+<td>10,930</td><td>1</td>
+<td><span class="badge badge-green">8.44</span></td><td><span class="badge badge-yellow">176.54</span></td>
+<td>1.4%</td><td>1.4%</td><td>1.4%</td>
+<td>22.22</td><td>374</td></tr><tr>
+<td><span class="badge badge-blue">XL</span></td><td class="platform-ak">AKAMAI</td><td>AKAMAI ID</td>
+<td>9,799</td><td>44</td>
+<td><span class="badge badge-red">36.98</span></td><td><span class="badge badge-yellow">216.75</span></td>
+<td>1.5%</td><td>1.5%</td><td>1.4%</td>
+<td>23.04</td><td>332</td></tr><tr>
+<td><span class="badge badge-blue">XL</span></td><td class="platform-ak">AKAMAI</td><td>Other</td>
+<td>8,816</td><td>279</td>
+<td><span class="badge badge-yellow">12.23</span></td><td><span class="badge badge-yellow">223.24</span></td>
+<td>1.7%</td><td>1.7%</td><td>1.6%</td>
+<td>23.27</td><td>307</td></tr><tr>
+<td><span class="badge badge-blue">XL</span></td><td class="platform-cf">CLOUDFRONT</td><td>SIN2 (Singapore)</td>
+<td>8,404</td><td>14</td>
+<td><span class="badge badge-yellow">12.72</span></td><td><span class="badge badge-red">457.38</span></td>
+<td>4.2%</td><td>4.2%</td><td>4%</td>
+<td>15.47</td><td>383</td></tr><tr>
+<td><span class="badge badge-blue">XL</span></td><td class="platform-ak">AKAMAI</td><td>AKAMAI IPv6</td>
+<td>8,237</td><td>222</td>
+<td><span class="badge badge-green">8.86</span></td><td><span class="badge badge-yellow">188.58</span></td>
+<td>1.6%</td><td>1.6%</td><td>1.5%</td>
+<td>24.78</td><td>350</td></tr><tr>
+<td><span class="badge badge-blue">XL</span></td><td class="platform-cf">CLOUDFRONT</td><td>(empty)</td>
+<td>2,111</td><td>1</td>
+<td><span class="badge badge-green">5.0</span></td><td><span class="badge badge-red">347.86</span></td>
+<td>1.6%</td><td>1.6%</td><td>1.6%</td>
+<td>8.64</td><td>286</td></tr><tr>
+<td><span class="badge badge-blue">XL</span></td><td class="platform-cf">CLOUDFRONT</td><td>KUL51 (KL)</td>
+<td>871</td><td>8</td>
+<td><span class="badge badge-yellow">12.46</span></td><td><span class="badge badge-red">480.98</span></td>
+<td>4.8%</td><td>4.8%</td><td>4.6%</td>
+<td>15.7</td><td>91</td></tr><tr>
+<td><span class="badge badge-blue">XL</span></td><td class="platform-cf">CLOUDFRONT</td><td>CF SIN52/PNQ</td>
+<td>834</td><td>7</td>
+<td><span class="badge badge-yellow">10.19</span></td><td><span class="badge badge-yellow">103.75</span></td>
+<td>0.6%</td><td>0.6%</td><td>0.6%</td>
+<td>20.93</td><td>76</td></tr><tr>
+<td><span class="badge badge-blue">XL</span></td><td class="platform-gc">GOOGLECLOUD</td><td>(empty)</td>
+<td>572</td><td>1</td>
+<td><span class="badge badge-green">1.77</span></td><td><span class="badge badge-green">65.12</span></td>
+<td>0.5%</td><td>0.5%</td><td>0.5%</td>
+<td>8.52</td><td>185</td></tr><tr>
+<td><span class="badge badge-blue">XL</span></td><td class="platform-ak">AKAMAI</td><td>(empty)</td>
+<td>486</td><td>1</td>
+<td><span class="badge badge-green">3.38</span></td><td><span class="badge badge-green">80.98</span></td>
+<td>0.4%</td><td>0.4%</td><td>0.4%</td>
+<td>11.57</td><td>166</td></tr><tr>
+<td><span class="badge badge-blue">XL</span></td><td class="platform-cf">CLOUDFRONT</td><td>CF SG</td>
+<td>266</td><td>20</td>
+<td><span class="badge badge-yellow">10.82</span></td><td><span class="badge badge-yellow">167.19</span></td>
+<td>2.3%</td><td>2.3%</td><td>2.3%</td>
+<td>21.06</td><td>97</td></tr></tbody></table></div><footer>2/5 — Edge Location Detail</footer></body></html>

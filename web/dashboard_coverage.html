@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Coverage — National Dashboard</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',Tahoma,sans-serif;padding:20px;background:#1a1a2e;color:#e0e0e0}
+.header{display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;padding-bottom:12px;border-bottom:3px solid #4A90D9}
+.header h1{font-size:22px;color:#fff}
+.logo{font-size:18px;font-weight:bold;color:#4A90D9}
+.subtitle{color:#aaa;font-size:13px;margin-bottom:18px}
+.subtitle span{background:#2a2a4a;padding:4px 12px;border-radius:4px;margin-right:8px;display:inline-block;margin-bottom:4px}
+.cards{display:flex;gap:15px;margin-bottom:20px;flex-wrap:wrap}
+.card{background:#16213e;border:1px solid #2a2a5a;border-radius:8px;padding:15px 20px;flex:1;min-width:140px;text-align:center}
+.card .value{font-size:26px;font-weight:700;color:#4A90D9}
+.card .label{font-size:11px;color:#888;margin-top:5px;text-transform:uppercase}
+.card.good{background:#1a3d1a;border-color:#27ae60}
+.card.good .value{color:#27ae60}
+.section{margin-bottom:25px}
+.section h2{font-size:16px;color:#4A90D9;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid #2a2a5a}
+table{border-collapse:collapse;width:100%;font-size:12px}
+th{background:#16213e;color:#4A90D9;padding:8px 6px;text-align:center;font-weight:600;border-bottom:2px solid #4A90D9;position:sticky;top:0}
+td{padding:7px 6px;text-align:center;border-bottom:1px solid #2a2a4a}
+tr:hover{background:#1a2a4a}
+.sig-good{color:#27ae60;font-weight:700}
+.sig-ok{color:#2ecc71;font-weight:600}
+.sig-warn{color:#f39c12;font-weight:600}
+.sig-bad{color:#e74c3c;font-weight:700}
+.insight{background:#16213e;border-left:4px solid #4A90D9;padding:12px 16px;border-radius:0 6px 6px 0;margin-bottom:12px;font-size:13px;line-height:1.6}
+.insight.warn{border-left-color:#f39c12}
+.insight strong{color:#fff}
+.footer{margin-top:25px;padding:12px;background:#16213e;border-radius:6px;font-size:11px;color:#666;text-align:center}
+.bar-row{display:flex;align-items:center;gap:8px;margin:6px 0}
+.bar-label{width:80px;font-size:12px;font-weight:600;text-align:right}
+.bar-track{flex:1;height:28px;background:#2a2a4a;border-radius:4px;overflow:hidden;position:relative}
+.bar-fill{height:100%;border-radius:4px;display:flex;align-items:center;justify-content:flex-end;padding-right:8px;font-size:11px;font-weight:700;color:#fff}
+.metric-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:15px;margin-bottom:15px}
+.metric-box{background:#16213e;border:1px solid #2a2a5a;border-radius:8px;padding:14px}
+.metric-box h3{font-size:13px;color:#4A90D9;margin-bottom:8px}
+.metric-box .desc{font-size:10px;color:#666;margin-bottom:6px}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>📶 Coverage — National Dashboard</h1>
+  <div class="logo">XLSMART</div>
+</div>
+
+<div class="subtitle">
+  <span>📅 15 Jun – 21 Jun 2026 (MA7)</span>
+  <span>📶 RSRP · RSRQ · RSSNR · CQI</span>
+  <span>🇮🇩 35 Provinsi</span>
+  <span>📊 8,237,410 tests</span>
+</div>
+
+<div class="cards">
+  <div class="card good">
+    <div class="value">-94 dBm</div>
+    <div class="label">Best RSRP: Telkomsel</div>
+  </div>
+  <div class="card">
+    <div class="value">-95 dBm</div>
+    <div class="label">XL RSRP</div>
+  </div>
+  <div class="card">
+    <div class="value">6 dB</div>
+    <div class="label">XL RSSNR</div>
+  </div>
+  <div class="card">
+    <div class="value">10.1</div>
+    <div class="label">XL CQI</div>
+  </div>
+</div>
+
+<div class="metric-grid">
+  <div class="metric-box"><h3>📶 RSRP (dBm)</h3><div class="desc">Reference Signal Received Power. Higher = better. -80 excellent, -100 good, -110 weak.</div>
+    <div class="bar-row"><span class="bar-label" style="color:#e74c3c;width:70px">Telkomsel</span><div class="bar-track"><div class="bar-fill" style="width:66%;background:#27ae60">-93.6</div></div></div>
+    <div class="bar-row"><span class="bar-label" style="color:#4A90D9;width:70px">XL</span><div class="bar-track"><div class="bar-fill" style="width:63%;background:#27ae60">-94.9</div></div></div>
+    <div class="bar-row"><span class="bar-label" style="color:#f1c40f;width:70px">Indosat</span><div class="bar-track"><div class="bar-fill" style="width:60%;background:#2ecc71">-95.8</div></div></div>
+    <div class="bar-row"><span class="bar-label" style="color:#2ecc71;width:70px">3</span><div class="bar-track"><div class="bar-fill" style="width:63%;background:#27ae60">-94.8</div></div></div>
+    <div class="bar-row"><span class="bar-label" style="color:#9b59b6;width:70px">Smartfren</span><div class="bar-track"><div class="bar-fill" style="width:62%;background:#2ecc71">-95.2</div></div></div>
+  </div>
+  <div class="metric-box"><h3>📊 RSRQ (dB)</h3><div class="desc">Reference Signal Received Quality. Higher = better. -3 excellent, -10 good, -15 poor.</div>
+    <div class="bar-row"><span class="bar-label" style="color:#e74c3c;width:70px">Telkomsel</span><div class="bar-track"><div class="bar-fill" style="width:52%;background:#27ae60">-11.1</div></div></div>
+    <div class="bar-row"><span class="bar-label" style="color:#4A90D9;width:70px">XL</span><div class="bar-track"><div class="bar-fill" style="width:40%;background:#f39c12">-13.2</div></div></div>
+    <div class="bar-row"><span class="bar-label" style="color:#f1c40f;width:70px">Indosat</span><div class="bar-track"><div class="bar-fill" style="width:36%;background:#f39c12">-13.9</div></div></div>
+    <div class="bar-row"><span class="bar-label" style="color:#2ecc71;width:70px">3</span><div class="bar-track"><div class="bar-fill" style="width:37%;background:#f39c12">-13.7</div></div></div>
+    <div class="bar-row"><span class="bar-label" style="color:#9b59b6;width:70px">Smartfren</span><div class="bar-track"><div class="bar-fill" style="width:40%;background:#f39c12">-13.2</div></div></div>
+  </div>
+  <div class="metric-box"><h3>📡 RSSNR (dB)</h3><div class="desc">Reference Signal to Noise Ratio. Higher = better. 20+ excellent, 10 good, 0 poor.</div>
+    <div class="bar-row"><span class="bar-label" style="color:#e74c3c;width:70px">Telkomsel</span><div class="bar-track"><div class="bar-fill" style="width:41%;background:#27ae60">8.2</div></div></div>
+    <div class="bar-row"><span class="bar-label" style="color:#4A90D9;width:70px">XL</span><div class="bar-track"><div class="bar-fill" style="width:28%;background:#2ecc71">5.6</div></div></div>
+    <div class="bar-row"><span class="bar-label" style="color:#f1c40f;width:70px">Indosat</span><div class="bar-track"><div class="bar-fill" style="width:19%;background:#f39c12">3.9</div></div></div>
+    <div class="bar-row"><span class="bar-label" style="color:#2ecc71;width:70px">3</span><div class="bar-track"><div class="bar-fill" style="width:20%;background:#f39c12">4.1</div></div></div>
+    <div class="bar-row"><span class="bar-label" style="color:#9b59b6;width:70px">Smartfren</span><div class="bar-track"><div class="bar-fill" style="width:27%;background:#2ecc71">5.4</div></div></div>
+  </div>
+  <div class="metric-box"><h3>🎯 CQI (0-15)</h3><div class="desc">Channel Quality Indicator. Higher = better. 15 best, 10 good, 5 poor.</div>
+    <div class="bar-row"><span class="bar-label" style="color:#e74c3c;width:70px">Telkomsel</span><div class="bar-track"><div class="bar-fill" style="width:66%;background:#2ecc71">10.0</div></div></div>
+    <div class="bar-row"><span class="bar-label" style="color:#4A90D9;width:70px">XL</span><div class="bar-track"><div class="bar-fill" style="width:67%;background:#27ae60">10.1</div></div></div>
+    <div class="bar-row"><span class="bar-label" style="color:#f1c40f;width:70px">Indosat</span><div class="bar-track"><div class="bar-fill" style="width:64%;background:#2ecc71">9.7</div></div></div>
+    <div class="bar-row"><span class="bar-label" style="color:#2ecc71;width:70px">3</span><div class="bar-track"><div class="bar-fill" style="width:65%;background:#2ecc71">9.8</div></div></div>
+    <div class="bar-row"><span class="bar-label" style="color:#9b59b6;width:70px">Smartfren</span><div class="bar-track"><div class="bar-fill" style="width:68%;background:#27ae60">10.2</div></div></div>
+  </div>
+</div>
+
+<div class="section">
+  <h2>📋 Operator Comparison — Nasional</h2>
+  <table>
+    <thead>
+      <tr><th style="text-align:left">Operator</th><th>Tests</th><th>RSRP (dBm)</th><th>RSRQ (dB)</th><th>RSSNR (dB)</th><th>CQI</th><th>Rank</th></tr>
+    </thead>
+    <tbody>
+      <tr><td style="text-align:left;font-weight:600;color:#e74c3c">Telkomsel</td><td>3,599,949</td><td class="sig-good">-93.6</td><td>-11.1</td><td>8.2</td><td>10.0</td><td>🥇</td></tr>
+      <tr><td style="text-align:left;font-weight:600;color:#2ecc71">3</td><td>1,033,685</td><td class="sig-good">-94.8</td><td>-13.7</td><td>4.1</td><td>9.8</td><td>🥈</td></tr>
+      <tr><td style="text-align:left;font-weight:600;color:#4A90D9">XL</td><td>1,298,305</td><td class="sig-good">-94.9</td><td>-13.2</td><td>5.6</td><td>10.1</td><td>🥉</td></tr>
+      <tr><td style="text-align:left;font-weight:600;color:#9b59b6">Smartfren</td><td>425,130</td><td class="sig-ok">-95.2</td><td>-13.2</td><td>5.4</td><td>10.2</td><td>#4</td></tr>
+      <tr><td style="text-align:left;font-weight:600;color:#f1c40f">Indosat</td><td>1,880,341</td><td class="sig-ok">-95.8</td><td>-13.9</td><td>3.9</td><td>9.7</td><td>#5</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="section">
+  <h2>🔵 XL RSRP per Provinsi (sorted worst first, min 50 tests)</h2>
+  <table>
+    <thead>
+      <tr><th style="text-align:left">Provinsi</th><th>Tests</th><th>RSRP</th><th>RSRQ</th><th>RSSNR</th><th>CQI</th><th style="text-align:left">Status</th></tr>
+    </thead>
+    <tbody>
+      <tr><td style="text-align:left;font-weight:500">KALIMANTAN UTARA</td><td>709</td><td class="sig-warn">-100.0</td><td>-11.1</td><td>10.0</td><td>11.2</td><td style="text-align:left;color:#f39c12;font-weight:600">⚠️ Fair</td></tr>
+      <tr><td style="text-align:left;font-weight:500">SULAWESI BARAT</td><td>1,910</td><td class="sig-warn">-99.4</td><td>-12.4</td><td>8.8</td><td>10.8</td><td style="text-align:left;color:#f39c12;font-weight:600">⚠️ Fair</td></tr>
+      <tr><td style="text-align:left;font-weight:500">JAMBI</td><td>7,767</td><td class="sig-warn">-99.2</td><td>-12.3</td><td>8.5</td><td>10.6</td><td style="text-align:left;color:#f39c12;font-weight:600">⚠️ Fair</td></tr>
+      <tr><td style="text-align:left;font-weight:500">MALUKU</td><td>111</td><td class="sig-warn">-99.1</td><td>-12.5</td><td>8.8</td><td>7.0</td><td style="text-align:left;color:#f39c12;font-weight:600">⚠️ Fair</td></tr>
+      <tr><td style="text-align:left;font-weight:500">PAPUA</td><td>395</td><td class="sig-warn">-98.4</td><td>-12.4</td><td>8.0</td><td>8.1</td><td style="text-align:left;color:#f39c12;font-weight:600">⚠️ Fair</td></tr>
+      <tr><td style="text-align:left;font-weight:500">BENGKULU</td><td>3,110</td><td class="sig-warn">-98.3</td><td>-11.9</td><td>8.7</td><td>11.0</td><td style="text-align:left;color:#f39c12;font-weight:600">⚠️ Fair</td></tr>
+      <tr><td style="text-align:left;font-weight:500">SUMATERA BARAT</td><td>15,805</td><td class="sig-warn">-98.2</td><td>-12.8</td><td>7.2</td><td>10.3</td><td style="text-align:left;color:#f39c12;font-weight:600">⚠️ Fair</td></tr>
+      <tr><td style="text-align:left;font-weight:500">ACEH</td><td>10,358</td><td class="sig-ok">-97.9</td><td>-12.1</td><td>8.3</td><td>10.7</td><td style="text-align:left;color:#2ecc71;font-weight:600">✅ Good</td></tr>
+      <tr><td style="text-align:left;font-weight:500">PAPUA BARAT</td><td>89</td><td class="sig-ok">-97.7</td><td>-12.0</td><td>8.6</td><td>9.2</td><td style="text-align:left;color:#2ecc71;font-weight:600">✅ Good</td></tr>
+      <tr><td style="text-align:left;font-weight:500">RIAU</td><td>21,312</td><td class="sig-ok">-97.6</td><td>-12.4</td><td>7.9</td><td>10.7</td><td style="text-align:left;color:#2ecc71;font-weight:600">✅ Good</td></tr>
+      <tr><td style="text-align:left;font-weight:500">KALIMANTAN TENGAH</td><td>6,873</td><td class="sig-ok">-97.5</td><td>-11.8</td><td>9.1</td><td>11.0</td><td style="text-align:left;color:#2ecc71;font-weight:600">✅ Good</td></tr>
+      <tr><td style="text-align:left;font-weight:500">LAMPUNG</td><td>20,667</td><td class="sig-ok">-97.4</td><td>-12.5</td><td>7.8</td><td>10.2</td><td style="text-align:left;color:#2ecc71;font-weight:600">✅ Good</td></tr>
+      <tr><td style="text-align:left;font-weight:500">NUSA TENGGARA TIMUR</td><td>3,134</td><td class="sig-ok">-97.3</td><td>-12.9</td><td>7.1</td><td>9.9</td><td style="text-align:left;color:#2ecc71;font-weight:600">✅ Good</td></tr>
+      <tr><td style="text-align:left;font-weight:500">SULAWESI TENGGARA</td><td>6,232</td><td class="sig-ok">-97.0</td><td>-12.0</td><td>8.9</td><td>10.8</td><td style="text-align:left;color:#2ecc71;font-weight:600">✅ Good</td></tr>
+      <tr><td style="text-align:left;font-weight:500">SULAWESI TENGAH</td><td>6,344</td><td class="sig-ok">-97.0</td><td>-12.8</td><td>6.9</td><td>10.1</td><td style="text-align:left;color:#2ecc71;font-weight:600">✅ Good</td></tr>
+      <tr><td style="text-align:left;font-weight:500">KALIMANTAN BARAT</td><td>9,134</td><td class="sig-ok">-96.9</td><td>-11.4</td><td>9.7</td><td>10.8</td><td style="text-align:left;color:#2ecc71;font-weight:600">✅ Good</td></tr>
+      <tr><td style="text-align:left;font-weight:500">SULAWESI UTARA</td><td>4,548</td><td class="sig-ok">-96.9</td><td>-12.7</td><td>7.2</td><td>10.4</td><td style="text-align:left;color:#2ecc71;font-weight:600">✅ Good</td></tr>
+      <tr><td style="text-align:left;font-weight:500">SULAWESI SELATAN</td><td>43,846</td><td class="sig-ok">-96.8</td><td>-13.4</td><td>6.3</td><td>10.3</td><td style="text-align:left;color:#2ecc71;font-weight:600">✅ Good</td></tr>
+      <tr><td style="text-align:left;font-weight:500">SUMATERA SELATAN</td><td>20,682</td><td class="sig-ok">-96.6</td><td>-12.7</td><td>7.7</td><td>10.5</td><td style="text-align:left;color:#2ecc71;font-weight:600">✅ Good</td></tr>
+      <tr><td style="text-align:left;font-weight:500">GORONTALO</td><td>2,175</td><td class="sig-ok">-96.3</td><td>-11.7</td><td>8.5</td><td>10.3</td><td style="text-align:left;color:#2ecc71;font-weight:600">✅ Good</td></tr>
+      <tr><td style="text-align:left;font-weight:500">SUMATERA UTARA</td><td>36,764</td><td class="sig-ok">-96.1</td><td>-13.0</td><td>5.9</td><td>10.0</td><td style="text-align:left;color:#2ecc71;font-weight:600">✅ Good</td></tr>
+      <tr><td style="text-align:left;font-weight:500">KALIMANTAN TIMUR</td><td>16,898</td><td class="sig-ok">-95.7</td><td>-11.9</td><td>7.9</td><td>10.7</td><td style="text-align:left;color:#2ecc71;font-weight:600">✅ Good</td></tr>
+      <tr><td style="text-align:left;font-weight:500">KEPULAUAN RIAU</td><td>12,103</td><td class="sig-ok">-95.6</td><td>-12.8</td><td>6.6</td><td>10.3</td><td style="text-align:left;color:#2ecc71;font-weight:600">✅ Good</td></tr>
+      <tr><td style="text-align:left;font-weight:500">KEPULAUAN BANGKA BELITUNG</td><td>9,146</td><td class="sig-ok">-95.5</td><td>-12.2</td><td>8.7</td><td>11.1</td><td style="text-align:left;color:#2ecc71;font-weight:600">✅ Good</td></tr>
+      <tr><td style="text-align:left;font-weight:500">KALIMANTAN SELATAN</td><td>28,190</td><td class="sig-ok">-95.5</td><td>-13.0</td><td>6.4</td><td>10.3</td><td style="text-align:left;color:#2ecc71;font-weight:600">✅ Good</td></tr>
+      <tr><td style="text-align:left;font-weight:500">NUSA TENGGARA BARAT</td><td>53,624</td><td class="sig-ok">-95.1</td><td>-13.1</td><td>6.6</td><td>10.5</td><td style="text-align:left;color:#2ecc71;font-weight:600">✅ Good</td></tr>
+      <tr><td style="text-align:left;font-weight:500">JAWA BARAT</td><td>293,455</td><td class="sig-good">-94.9</td><td>-13.7</td><td>4.5</td><td>9.9</td><td style="text-align:left;color:#27ae60;font-weight:600">✅ Excellent</td></tr>
+      <tr><td style="text-align:left;font-weight:500">JAWA TENGAH</td><td>144,879</td><td class="sig-good">-94.7</td><td>-13.0</td><td>5.4</td><td>10.2</td><td style="text-align:left;color:#27ae60;font-weight:600">✅ Excellent</td></tr>
+      <tr><td style="text-align:left;font-weight:500">BALI</td><td>43,323</td><td class="sig-good">-94.6</td><td>-12.9</td><td>6.1</td><td>10.1</td><td style="text-align:left;color:#27ae60;font-weight:600">✅ Excellent</td></tr>
+      <tr><td style="text-align:left;font-weight:500">JAWA TIMUR</td><td>184,601</td><td class="sig-good">-94.4</td><td>-12.4</td><td>6.6</td><td>10.3</td><td style="text-align:left;color:#27ae60;font-weight:600">✅ Excellent</td></tr>
+      <tr><td style="text-align:left;font-weight:500">MALUKU UTARA</td><td>208</td><td class="sig-good">-94.3</td><td>-12.6</td><td>8.0</td><td>9.6</td><td style="text-align:left;color:#27ae60;font-weight:600">✅ Excellent</td></tr>
+      <tr><td style="text-align:left;font-weight:500">BANTEN</td><td>102,226</td><td class="sig-good">-94.2</td><td>-13.9</td><td>4.3</td><td>10.0</td><td style="text-align:left;color:#27ae60;font-weight:600">✅ Excellent</td></tr>
+      <tr><td style="text-align:left;font-weight:500">DAERAH ISTIMEWA YOGYAKARTA</td><td>34,196</td><td class="sig-good">-93.6</td><td>-12.9</td><td>5.3</td><td>10.1</td><td style="text-align:left;color:#27ae60;font-weight:600">✅ Excellent</td></tr>
+      <tr><td style="text-align:left;font-weight:500">DKI JAKARTA</td><td>149,144</td><td class="sig-good">-93.0</td><td>-13.9</td><td>4.3</td><td>9.9</td><td style="text-align:left;color:#27ae60;font-weight:600">✅ Excellent</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="section">
+  <h2>🔍 Key Insights</h2>
+  <div class="insight">
+    <strong>📶 Telkomsel Coverage Terbaik</strong> — RSRP -93.6 dBm, RSSNR 8.2 dB. Signal paling kuat dan noise paling rendah.
+  </div>
+  <div class="insight">
+    <strong>🔵 XL: RSRP -94.9 dBm, CQI 10.1</strong> — Selisih hanya 1.3 dB dari Telkomsel. CQI tertinggi = channel quality terbaik. Coverage kompetitif.
+  </div>
+  <div class="insight warn">
+    <strong>⚠️ Indosat Coverage Terlemah</strong> — RSRP -95.8 dBm, RSSNR 3.9 dB. Signal paling lemah, noise paling tinggi.
+  </div>
+</div>
+
+<div class="footer">
+  Data: OpenSignal MyDashboards API • Period: 15-21 Jun 2026<br>
+  Generated: Jun 21, 2026 • osig.netprobe.xyz
+</div>
+
+</body>
+</html>

@@ -1,0 +1,182 @@
+<!DOCTYPE html><html><head><meta charset="utf-8">
+<title>Video + Gaming Dashboard</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0a1a;color:#e0e0e0;font-family:'Segoe UI',sans-serif;padding:16px}
+.header{text-align:center;margin-bottom:16px}
+.header h1{color:#fff;font-size:20px;margin-bottom:3px}
+.header .sub{color:#666;font-size:11px}
+.cards{display:flex;gap:10px;justify-content:center;margin-bottom:12px;flex-wrap:wrap}
+.card{background:linear-gradient(135deg,#1a1a2e,#16213e);border-radius:8px;padding:12px;min-width:180px;flex:1;max-width:260px;border:1px solid #2a2a4a}
+.card .top{display:flex;align-items:center;gap:6px;margin-bottom:6px}
+.card .dot{width:8px;height:8px;border-radius:50%}
+.card .name{font-size:12px;font-weight:700}
+.card .tests{font-size:18px;font-weight:800}
+.card .tests-label{font-size:8px;color:#666}
+.card .metrics{display:grid;grid-template-columns:1fr 1fr;gap:3px;margin-top:6px}
+.card .metric{background:#0d0d1a;border-radius:4px;padding:3px 5px}
+.card .metric .label{font-size:7px;color:#666;text-transform:uppercase}
+.card .metric .val{font-size:11px;font-weight:700}
+.good{color:#4caf50}.warn{color:#ffeb3b}.bad{color:#f44336}
+.section{background:#1a1a2e;border-radius:8px;padding:12px;margin-bottom:12px;border:1px solid #2a2a4a}
+.section h2{color:#fff;font-size:13px;margin-bottom:8px;display:flex;align-items:center;gap:6px}
+table{width:100%;border-collapse:collapse;font-size:10px}
+th{background:#252540;color:#999;padding:4px 5px;text-align:left;font-weight:600;border-bottom:2px solid #3a3a5a;position:sticky;top:0}
+td{padding:3px 5px;border-bottom:1px solid #1e1e35}
+tr:hover{background:#1e1e38}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.badge{padding:1px 5px;border-radius:3px;font-size:8px;font-weight:700}
+.badge-up{background:#0d2b0d;color:#4caf50}
+.badge-down{background:#2b0d0d;color:#f44336}
+.badge-flat{background:#1a1a1a;color:#888}
+.trend-container{margin-bottom:6px}
+.trend-title{font-size:9px;font-weight:600;margin-bottom:2px;color:#aaa}
+.trend-row{display:flex;align-items:center;gap:2px;margin:1px 0}
+.trend-label{width:55px;font-size:8px;text-align:right;padding-right:3px}
+.trend-bars{flex:1;display:flex;gap:1px;align-items:flex-end;height:22px}
+.trend-bar{flex:1;border-radius:1px 1px 0 0;min-width:2px;cursor:pointer;position:relative}
+.trend-bar .tip{display:none;position:absolute;bottom:100%;left:50%;transform:translateX(-50%);background:#333;padding:1px 3px;border-radius:2px;font-size:7px;white-space:nowrap;z-index:10}
+.trend-bar:hover .tip{display:block}
+.st{max-height:320px;overflow-y:auto}
+</style>
+</head><body>
+
+<div class="header">
+<h1>🎮 OpenSignal Video + Gaming Dashboard</h1>
+<div class="sub">Data: 1–14 Juni 2026 | 614,581 video tests | 76,954 UDP tests | 3 operator</div>
+</div>
+
+<!-- VIDEO CARDS -->
+<div class="cards">
+<div class="card">
+<div class="top"><div class="dot" style="background:#e74c3c"></div><div class="name" style="color:#e74c3c">Telkomsel — VIDEO</div></div>
+<div class="tests">250,000</div><div class="tests-label">Video Tests</div>
+<div class="metrics">
+<div class="metric"><div class="label">First Frame</div><div class="val bad">21.0s</div></div>
+<div class="metric"><div class="label">Throughput</div><div class="val">18.4 Mbps</div></div>
+<div class="metric"><div class="label">SNR</div><div class="val warn">7.9 dB</div></div>
+<div class="metric"><div class="label">Success</div><div class="val good">91.8%</div></div>
+<div class="metric"><div class="label">Buffer</div><div class="val">0.09</div></div>
+<div class="metric"><div class="label">Stall</div><div class="val">257</div></div>
+</div></div>
+
+<div class="card">
+<div class="top"><div class="dot" style="background:#3498db"></div><div class="name" style="color:#3498db">XL — VIDEO</div></div>
+<div class="tests">153,878</div><div class="tests-label">Video Tests</div>
+<div class="metrics">
+<div class="metric"><div class="label">First Frame</div><div class="val warn">13.2s</div></div>
+<div class="metric"><div class="label">Throughput</div><div class="val">19.9 Mbps</div></div>
+<div class="metric"><div class="label">SNR</div><div class="val warn">5.3 dB</div></div>
+<div class="metric"><div class="label">Success</div><div class="val good">91.0%</div></div>
+<div class="metric"><div class="label">Buffer</div><div class="val">0.08</div></div>
+<div class="metric"><div class="label">Stall</div><div class="val">269</div></div>
+</div></div>
+
+<div class="card">
+<div class="top"><div class="dot" style="background:#f39c12"></div><div class="name" style="color:#f39c12">Indosat — VIDEO</div></div>
+<div class="tests">210,703</div><div class="tests-label">Video Tests</div>
+<div class="metrics">
+<div class="metric"><div class="label">First Frame</div><div class="val good">11.2s</div></div>
+<div class="metric"><div class="label">Throughput</div><div class="val">16.0 Mbps</div></div>
+<div class="metric"><div class="label">SNR</div><div class="val bad">3.4 dB</div></div>
+<div class="metric"><div class="label">Success</div><div class="val warn">89.0%</div></div>
+<div class="metric"><div class="label">Buffer</div><div class="val">0.08</div></div>
+<div class="metric"><div class="label">Stall</div><div class="val">275</div></div>
+</div></div>
+</div>
+
+<!-- GAMING CARDS -->
+<div class="cards">
+<div class="card">
+<div class="top"><div class="dot" style="background:#e74c3c"></div><div class="name" style="color:#e74c3c">Telkomsel — GAMING</div></div>
+<div class="tests">20,455</div><div class="tests-label">UDP Tests</div>
+<div class="metrics">
+<div class="metric"><div class="label">UDP Latency</div><div class="val bad">31.1 ms</div></div>
+<div class="metric"><div class="label">UDP Jitter</div><div class="val good">0.0 ms</div></div>
+<div class="metric"><div class="label">Packet Loss</div><div class="val good">0.00%</div></div>
+<div class="metric"><div class="label">SNR</div><div class="val">7.9 dB</div></div>
+</div></div>
+
+<div class="card">
+<div class="top"><div class="dot" style="background:#3498db"></div><div class="name" style="color:#3498db">XL — GAMING</div></div>
+<div class="tests">19,804</div><div class="tests-label">UDP Tests</div>
+<div class="metrics">
+<div class="metric"><div class="label">UDP Latency</div><div class="val bad">31.7 ms</div></div>
+<div class="metric"><div class="label">UDP Jitter</div><div class="val good">0.0 ms</div></div>
+<div class="metric"><div class="label">Packet Loss</div><div class="val good">0.00%</div></div>
+<div class="metric"><div class="label">SNR</div><div class="val">5.3 dB</div></div>
+</div></div>
+
+<div class="card">
+<div class="top"><div class="dot" style="background:#f39c12"></div><div class="name" style="color:#f39c12">Indosat — GAMING</div></div>
+<div class="tests">20,329</div><div class="tests-label">UDP Tests</div>
+<div class="metrics">
+<div class="metric"><div class="label">UDP Latency</div><div class="val warn">30.5 ms</div></div>
+<div class="metric"><div class="label">UDP Jitter</div><div class="val good">0.0 ms</div></div>
+<div class="metric"><div class="label">Packet Loss</div><div class="val good">0.00%</div></div>
+<div class="metric"><div class="label">SNR</div><div class="val">3.4 dB</div></div>
+</div></div>
+</div>
+
+<!-- D-7 vs D-1 COMPARISON -->
+<div class="grid2">
+<div class="section"><h2>📊 Video — D-7 vs D-1</h2>
+<table><tr><th>Op</th><th>Metric</th><th>D-7</th><th>D-1</th><th>Δ</th><th>%</th><th>Trend</th></tr>
+<tr><td style="color:#e74c3c;font-weight:700">Telkomsel</td><td>First Frame</td><td>19.9</td><td>9.4</td><td style="font-weight:700">-10.50</td><td>-52.8%</td><td><span class="badge badge-up">▼</span></td></tr>
+<tr><td style="color:#e74c3c;font-weight:700">Telkomsel</td><td>Throughput</td><td>17.82</td><td>18.4</td><td style="font-weight:700">+0.58</td><td>+3.3%</td><td><span class="badge badge-up">▲</span></td></tr>
+<tr><td style="color:#e74c3c;font-weight:700">Telkomsel</td><td>SNR</td><td>7.83</td><td>8.0</td><td style="font-weight:700">+0.17</td><td>+2.2%</td><td><span class="badge badge-up">▲</span></td></tr>
+<tr><td style="color:#e74c3c;font-weight:700">Telkomsel</td><td>Success</td><td>91.4</td><td>91.6</td><td style="font-weight:700">+0.20</td><td>+0.2%</td><td><span class="badge badge-up">▲</span></td></tr>
+<tr><td style="color:#3498db;font-weight:700">XL</td><td>First Frame</td><td>10.68</td><td>30.01</td><td style="font-weight:700">+19.33</td><td>+181.0%</td><td><span class="badge badge-down">▲</span></td></tr>
+<tr><td style="color:#3498db;font-weight:700">XL</td><td>Throughput</td><td>19.69</td><td>20.06</td><td style="font-weight:700">+0.37</td><td>+1.9%</td><td><span class="badge badge-up">▲</span></td></tr>
+<tr><td style="color:#3498db;font-weight:700">XL</td><td>SNR</td><td>5.32</td><td>5.18</td><td style="font-weight:700">-0.14</td><td>-2.6%</td><td><span class="badge badge-down">▼</span></td></tr>
+<tr><td style="color:#3498db;font-weight:700">XL</td><td>Success</td><td>90.7</td><td>91.4</td><td style="font-weight:700">+0.70</td><td>+0.8%</td><td><span class="badge badge-up">▲</span></td></tr>
+<tr><td style="color:#f39c12;font-weight:700">Indosat</td><td>First Frame</td><td>10.51</td><td>11.47</td><td style="font-weight:700">+0.96</td><td>+9.1%</td><td><span class="badge badge-down">▲</span></td></tr>
+<tr><td style="color:#f39c12;font-weight:700">Indosat</td><td>Throughput</td><td>15.94</td><td>15.87</td><td style="font-weight:700">-0.07</td><td>-0.4%</td><td><span class="badge badge-down">▼</span></td></tr>
+<tr><td style="color:#f39c12;font-weight:700">Indosat</td><td>SNR</td><td>3.48</td><td>3.31</td><td style="font-weight:700">-0.17</td><td>-4.9%</td><td><span class="badge badge-down">▼</span></td></tr>
+<tr><td style="color:#f39c12;font-weight:700">Indosat</td><td>Success</td><td>89.0</td><td>88.8</td><td style="font-weight:700">-0.20</td><td>-0.2%</td><td><span class="badge badge-down">▼</span></td></tr>
+</table></div>
+
+<div class="section"><h2>🎮 Gaming — D-7 vs D-1</h2>
+<table><tr><th>Op</th><th>Metric</th><th>D-7</th><th>D-1</th><th>Δ</th><th>%</th><th>Trend</th></tr>
+<tr><td style="color:#e74c3c;font-weight:700">Telkomsel</td><td>UDP Latency</td><td>32.97</td><td>36.45</td><td style="font-weight:700">+3.48</td><td>+10.6%</td><td><span class="badge badge-down">▲</span></td></tr>
+<tr><td style="color:#e74c3c;font-weight:700">Telkomsel</td><td>Packet Loss</td><td>0.00</td><td>0.00</td><td style="font-weight:700">+0.00</td><td>—</td><td><span class="badge badge-flat">—</span></td></tr>
+<tr><td style="color:#3498db;font-weight:700">XL</td><td>UDP Latency</td><td>56.97</td><td>29.69</td><td style="font-weight:700">-27.28</td><td>-47.9%</td><td><span class="badge badge-up">▼</span></td></tr>
+<tr><td style="color:#3498db;font-weight:700">XL</td><td>Packet Loss</td><td>0.00</td><td>0.00</td><td style="font-weight:700">+0.00</td><td>—</td><td><span class="badge badge-flat">—</span></td></tr>
+<tr><td style="color:#f39c12;font-weight:700">Indosat</td><td>UDP Latency</td><td>33.55</td><td>25.08</td><td style="font-weight:700">-8.47</td><td>-25.2%</td><td><span class="badge badge-up">▼</span></td></tr>
+<tr><td style="color:#f39c12;font-weight:700">Indosat</td><td>Packet Loss</td><td>0.00</td><td>0.00</td><td style="font-weight:700">+0.00</td><td>—</td><td><span class="badge badge-flat">—</span></td></tr>
+</table></div>
+</div>
+
+<!-- WORST REGIONS -->
+<div class="grid2">
+<div class="section"><h2>🏚️ XL — Video Worst Regions</h2><div class="st"><table>
+<tr><th>#</th><th>Kabupaten</th><th>Tests</th><th>FF (s)</th><th>Tput</th><th>SNR</th><th>Stall</th><th>Success</th></tr>
+<tr><td>1</td><td><b>Kab. Jeneponto</b></td><td>75</td><td class="bad" style="font-weight:700">102.07</td><td>15.15</td><td class="warn">4.92</td><td>257.04</td><td class="warn" style="font-weight:700">88.0%</td></tr>
+<tr><td>2</td><td><b>Kota Palangka Raya</b></td><td>248</td><td class="bad" style="font-weight:700">94.54</td><td>19.55</td><td class="warn">8.71</td><td>449.28</td><td class="warn" style="font-weight:700">89.1%</td></tr>
+<tr><td>3</td><td><b>Kab. Tulang Bawang</b></td><td>53</td><td class="bad" style="font-weight:700">70.0</td><td>20.01</td><td class="warn">8.92</td><td>0.0</td><td class="good" style="font-weight:700">94.3%</td></tr>
+<tr><td>4</td><td><b>Kab. Kodya Jakarta Selatan</b></td><td>5494</td><td class="bad" style="font-weight:700">46.48</td><td>21.68</td><td class="warn">4.59</td><td>253.27</td><td class="good" style="font-weight:700">93.9%</td></tr>
+<tr><td>5</td><td><b>Kota Pasuruan</b></td><td>138</td><td class="bad" style="font-weight:700">45.34</td><td>23.51</td><td class="warn">6.72</td><td>328.05</td><td class="good" style="font-weight:700">94.2%</td></tr>
+<tr><td>6</td><td><b>Kab. Gowa</b></td><td>361</td><td class="bad" style="font-weight:700">40.89</td><td>18.29</td><td class="warn">5.36</td><td>299.61</td><td class="warn" style="font-weight:700">89.5%</td></tr>
+<tr><td>7</td><td><b>Kab. Lima Puluh Kota</b></td><td>52</td><td class="bad" style="font-weight:700">40.31</td><td>15.9</td><td class="warn">6.59</td><td>428.21</td><td class="warn" style="font-weight:700">88.5%</td></tr>
+<tr><td>8</td><td><b>Kab. Penajam Paser Utara</b></td><td>91</td><td class="bad" style="font-weight:700">34.08</td><td>18.47</td><td class="warn">7.12</td><td>261.69</td><td class="warn" style="font-weight:700">87.9%</td></tr>
+<tr><td>9</td><td><b>Kota Cimahi</b></td><td>631</td><td class="bad" style="font-weight:700">31.6</td><td>19.49</td><td class="bad">3.69</td><td>300.96</td><td class="good" style="font-weight:700">90.3%</td></tr>
+<tr><td>10</td><td><b>Kab. Konawe</b></td><td>66</td><td class="bad" style="font-weight:700">30.95</td><td>21.39</td><td class="good">11.42</td><td>0.0</td><td class="good" style="font-weight:700">93.9%</td></tr>
+</table></div></div>
+
+<div class="section"><h2>🎮 XL — Gaming Worst Kecamatan</h2><div class="st"><table>
+<tr><th>#</th><th>Kecamatan</th><th>Kabupaten</th><th>Tests</th><th>Lat (ms)</th><th>Jitter</th><th>Loss %</th><th>SNR</th></tr>
+<tr><td>1</td><td><b>KEBAYORAN BARU</b></td><td>Jakarta Selatan</td><td>28</td><td class="bad" style="font-weight:700">44.01</td><td class="good">0.0</td><td class="good">0.00</td><td>—</td></tr>
+<tr><td>2</td><td><b>SAWAH BESAR</b></td><td>Jakarta Pusat</td><td>19</td><td class="bad" style="font-weight:700">42.91</td><td class="good">0.0</td><td class="good">0.00</td><td>—</td></tr>
+<tr><td>3</td><td><b>KEMAYORAN</b></td><td>Jakarta Pusat</td><td>23</td><td class="bad" style="font-weight:700">42.23</td><td class="good">0.0</td><td class="good">0.00</td><td>—</td></tr>
+<tr><td>4</td><td><b>TANAH ABANG</b></td><td>Jakarta Pusat</td><td>37</td><td class="bad" style="font-weight:700">39.42</td><td class="good">0.0</td><td class="good">0.00</td><td>—</td></tr>
+<tr><td>5</td><td><b>PADEMANGAN</b></td><td>Jakarta Utara</td><td>22</td><td class="warn" style="font-weight:700">37.54</td><td class="good">0.0</td><td class="good">0.00</td><td>—</td></tr>
+<tr><td>6</td><td><b>TAMBORA</b></td><td>Jakarta Barat</td><td>15</td><td class="warn" style="font-weight:700">37.49</td><td class="good">0.0</td><td class="good">0.00</td><td>—</td></tr>
+<tr><td>7</td><td><b>GAMBIR</b></td><td>Jakarta Pusat</td><td>14</td><td class="warn" style="font-weight:700">36.82</td><td class="good">0.0</td><td class="good">0.00</td><td>—</td></tr>
+<tr><td>8</td><td><b>SENEN</b></td><td>Jakarta Pusat</td><td>17</td><td class="warn" style="font-weight:700">36.62</td><td class="good">0.0</td><td class="good">0.00</td><td>—</td></tr>
+<tr><td>9</td><td><b>CENGKARENG</b></td><td>Jakarta Barat</td><td>31</td><td class="warn" style="font-weight:700">36.37</td><td class="good">0.0</td><td class="good">0.00</td><td>—</td></tr>
+<tr><td>10</td><td><b>MENTENG</b></td><td>Jakarta Pusat</td><td>11</td><td class="warn" style="font-weight:700">36.09</td><td class="good">0.0</td><td class="good">0.00</td><td>—</td></tr>
+</table></div></div>
+</div>
+
+<div style="text-align:center;color:#444;font-size:9px;margin-top:12px">Data: OpenSignal ONX | ClickHouse video_tests + network_quality_national | Generated by Hermes Agent</div>
+</body></html>

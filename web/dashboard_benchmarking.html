@@ -1,0 +1,207 @@
+<!DOCTYPE html><html><head><meta charset="utf-8">
+<title>XL SMART — Benchmarking Update</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#ffffff;color:#333;font-family:'Segoe UI',sans-serif;padding:20px}
+.header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;padding-bottom:10px;border-bottom:3px solid #1a5276}
+.header h1{color:#1a5276;font-size:24px;font-weight:800}
+.header .logo{color:#1a5276;font-size:18px;font-weight:800}
+.header .logo span{color:#e74c3c}
+.grid{display:grid;grid-template-columns:200px 1fr 1fr 1fr 280px;gap:0;border:1px solid #ddd}
+.cell{padding:8px 10px;border:1px solid #eee;font-size:11px}
+.cell.header{background:#1a5276;color:#fff;font-weight:700;text-align:center;font-size:12px}
+.cell.cat{background:#2c3e50;color:#fff;font-weight:700;display:flex;align-items:center;gap:6px}
+.cell.cat .icon{font-size:16px}
+.cell.sub{background:#ecf0f1;color:#555;font-weight:600;font-size:10px;padding:4px 8px}
+.cell.xl{background:#ffebee;color:#c0392b;font-weight:700;text-align:center}
+.cell.ioh{background:#fff8e1;color:#f39c12;font-weight:700;text-align:center}
+.cell.tsel{background:#e0f2f1;color:#00897b;font-weight:700;text-align:center}
+.cell.rank{text-align:center;font-size:14px}
+.cell.highlight{background:#f3e5f5;color:#4a148c;font-size:10px;line-height:1.5}
+.cell.highlight b{color:#c0392b}
+.cell.opt{background:#f3e5f5;color:#888;font-size:10px}
+.section-header{background:#27ae60;color:#fff;font-weight:700;text-align:center;font-size:12px;padding:6px}
+.section-header.purple{background:#8e44ad}
+.r1{color:#f39c12;font-weight:800}.r2{color:#95a5a6;font-weight:800}.r3{color:#cd6133;font-weight:800}
+.score{font-size:13px;font-weight:800}
+.note{font-size:9px;color:#888;margin-top:2px}
+</style>
+</head><body>
+
+<div class="header">
+<h1>Benchmarking Update</h1>
+<div class="logo">XL <span>SMART</span></div>
+</div>
+
+<div class="grid">
+<!-- HEADERS -->
+<div class="cell header">Benchmarking KPI</div>
+<div class="cell header" style="background:#27ae60">4G Score</div>
+<div class="cell header" style="background:#27ae60">5G Score</div>
+<div class="cell header" style="background:#27ae60">Ranking</div>
+<div class="cell header" style="background:#8e44ad">Highlight</div>
+
+<!-- ===== OPENSIGNAL VIDEO ===== -->
+<div class="cell cat"><span class="icon">📹</span> Opensignal Video</div>
+<div class="cell sub" style="grid-column:2/4">XL (XL+SF) / IOH (Indosat+3) / TSEL</div>
+<div class="cell sub">4G / 5G</div>
+<div class="cell highlight"><b>Key Insights:</b></div>
+
+<!-- Video Loading Time -->
+<div class="cell sub">Video Loading Time (ms)</div>
+<div class="cell"><span class="score xl">12.72</span> <span class="score ioh">11.63</span> <span class="score tsel">21.34</span></div>
+<div class="cell"><span class="score xl">14.85</span> <span class="score ioh">9.20</span> <span class="score tsel">19.88</span></div>
+<div class="cell rank"><span class="r2">🥈</span> 4G<br><span class="r3">🥉</span> 5G<br><span class="note">4G #2, 5G #3</span></div>
+<div class="cell highlight">XL <b>No. 2 in 4G Video Loading Time</b>, but drops to #3 in 5G. IOH leads both 4G & 5G. Requires improvement in 5G video loading optimization.</div>
+
+<!-- Video Buffer Count -->
+<div class="cell sub">Video Buffer Count (%)</div>
+<div class="cell"><span class="score xl">0.09</span> <span class="score ioh">0.09</span> <span class="score tsel">0.10</span></div>
+<div class="cell"><span class="score xl">0.04</span> <span class="score ioh">0.04</span> <span class="score tsel">0.04</span></div>
+<div class="cell rank"><span class="r1">🥇</span> 4G<br><span class="r1">🥇</span> 5G<br><span class="note">4G #1, 5G #1</span></div>
+<div class="cell highlight"></div>
+
+<!-- Video Stalling Time -->
+<div class="cell sub">Video Stalling Time (ms)</div>
+<div class="cell"><span class="score xl">301.51</span> <span class="score ioh">303.90</span> <span class="score tsel">282.95</span></div>
+<div class="cell"><span class="score xl">154.89</span> <span class="score ioh">144.42</span> <span class="score tsel">118.11</span></div>
+<div class="cell rank"><span class="r2">🥈</span> 4G<br><span class="r2">🥈</span> 5G<br><span class="note">4G #2, 5G #2</span></div>
+<div class="cell highlight"></div>
+
+<!-- High Coding Rate -->
+<div class="cell sub">High Coding Rate (%)</div>
+<div class="cell"><span class="score xl">52.4</span> <span class="score ioh">53.4</span> <span class="score tsel">61.5</span></div>
+<div class="cell"><span class="score xl">88.0</span> <span class="score ioh">87.4</span> <span class="score tsel">90.0</span></div>
+<div class="cell rank"><span class="r3">🥉</span> 4G<br><span class="r2">🥈</span> 5G<br><span class="note">4G #3, 5G #2</span></div>
+<div class="cell highlight"></div>
+
+<!-- ===== OPENSIGNAL GAMING ===== -->
+<div class="cell cat"><span class="icon">🎮</span> Opensignal Gaming</div>
+<div class="cell sub" style="grid-column:2/4">XL (XL+SF) / IOH (Indosat+3) / TSEL</div>
+<div class="cell sub">4G / 5G</div>
+<div class="cell highlight"></div>
+
+<!-- UDP Latency -->
+<div class="cell sub">UDP Latency (ms)</div>
+<div class="cell"><span class="score xl">34.81</span> <span class="score ioh">29.99</span> <span class="score tsel">34.82</span></div>
+<div class="cell"><span class="score xl">29.38</span> <span class="score ioh">24.01</span> <span class="score tsel">23.83</span></div>
+<div class="cell rank"><span class="r2">🥈</span> 4G<br><span class="r3">🥉</span> 5G<br><span class="note">4G #2, 5G #3</span></div>
+<div class="cell highlight">XL strong <b>4G gaming baseline</b> (#2 Latency, #1 Jitter), but faces a <b>5G gaming gap</b>, dropping to Rank 3 in Latency. Focus on 5G SA core optimization.</div>
+
+<!-- UDP Packet Loss -->
+<div class="cell sub">UDP Packet Loss (%)</div>
+<div class="cell"><span class="score xl">1.60</span> <span class="score ioh">1.76</span> <span class="score tsel">1.67</span></div>
+<div class="cell"><span class="score xl">1.42</span> <span class="score ioh">1.45</span> <span class="score tsel">0.85</span></div>
+<div class="cell rank"><span class="r1">🥇</span> 4G<br><span class="r2">🥈</span> 5G<br><span class="note">4G #1, 5G #2</span></div>
+<div class="cell highlight"></div>
+
+<!-- UDP Jitter -->
+<div class="cell sub">UDP Jitter (ms)</div>
+<div class="cell"><span class="score xl">7.16</span> <span class="score ioh">7.35</span> <span class="score tsel">7.13</span></div>
+<div class="cell"><span class="score xl">6.09</span> <span class="score ioh">6.45</span> <span class="score tsel">6.20</span></div>
+<div class="cell rank"><span class="r2">🥈</span> 4G<br><span class="r1">🥇</span> 5G<br><span class="note">4G #2, 5G #1</span></div>
+<div class="cell highlight"></div>
+
+<!-- ===== OPENSIGNAL SPEED ===== -->
+<div class="cell cat"><span class="icon">⚡</span> Opensignal Speed</div>
+<div class="cell sub" style="grid-column:2/4">XL (XL+SF) / IOH (Indosat+3) / TSEL</div>
+<div class="cell sub">4G / 5G</div>
+<div class="cell highlight"></div>
+
+<!-- DL Speed -->
+<div class="cell sub">DL Speed (Mbps)</div>
+<div class="cell"><span class="score xl">40.97</span> <span class="score ioh">41.06</span> <span class="score tsel">55.80</span></div>
+<div class="cell"><span class="score xl">146.79</span> <span class="score ioh">67.22</span> <span class="score tsel">142.84</span></div>
+<div class="cell rank"><span class="r2">🥈</span> 4G<br><span class="r1">🥇</span> 5G<br><span class="note">4G #2, 5G #1</span></div>
+<div class="cell highlight">XL delivers a <b>dominant 5G DL Speed</b> (No. 1 at 146.8 Mbps vs TSEL 142.8 Mbps). 4G DL competitive with IOH. 5G UL needs improvement (#3).</div>
+
+<!-- UL Speed -->
+<div class="cell sub">UL Speed (Mbps)</div>
+<div class="cell"><span class="score xl">16.15</span> <span class="score ioh">16.14</span> <span class="score tsel">17.88</span></div>
+<div class="cell"><span class="score xl">28.08</span> <span class="score ioh">26.81</span> <span class="score tsel">37.60</span></div>
+<div class="cell rank"><span class="r2">🥈</span> 4G<br><span class="r2">🥈</span> 5G<br><span class="note">4G #2, 5G #2</span></div>
+<div class="cell highlight"></div>
+
+<!-- ===== CONSISTENCY QUALITY ===== -->
+<div class="cell cat"><span class="icon">🚀</span> Consistency Quality</div>
+<div class="cell sub" style="grid-column:2/4">XL (XL+SF) / IOH (Indosat+3) / TSEL</div>
+<div class="cell sub">4G / 5G</div>
+<div class="cell highlight"></div>
+
+<!-- Core Consistency -->
+<div class="cell sub">Core Consistency Quality (%)</div>
+<div class="cell"><span class="score xl">75.6</span> <span class="score ioh">73.7</span> <span class="score tsel">82.9</span></div>
+<div class="cell"><span class="score xl">85.6</span> <span class="score ioh">90.0</span> <span class="score tsel">97.8</span></div>
+<div class="cell rank"><span class="r2">🥈</span> 4G<br><span class="r3">🥉</span> 5G<br><span class="note">4G #2, 5G #3</span></div>
+<div class="cell highlight">XL need improvement both <b>4G & 5G for Core consistency</b>. 5G gap is significant (85.6% vs TSEL 97.8%).</div>
+
+<!-- RSRP -->
+<div class="cell sub">RSRP (dBm)</div>
+<div class="cell"><span class="score xl">-95.2</span> <span class="score ioh">-96.4</span> <span class="score tsel">-94.3</span></div>
+<div class="cell"><span class="score xl">-92.5</span> <span class="score ioh">-91.4</span> <span class="score tsel">-87.6</span></div>
+<div class="cell rank"><span class="r2">🥈</span> 4G<br><span class="r2">🥈</span> 5G<br><span class="note">4G #2, 5G #2</span></div>
+<div class="cell highlight"></div>
+
+<!-- SNR -->
+<div class="cell sub">SNR (dB)</div>
+<div class="cell"><span class="score xl">5.73</span> <span class="score ioh">4.63</span> <span class="score tsel">9.17</span></div>
+<div class="cell"><span class="score xl">5.00</span> <span class="score ioh">3.18</span> <span class="score tsel">7.80</span></div>
+<div class="cell rank"><span class="r2">🥈</span> 4G<br><span class="r2">🥈</span> 5G<br><span class="note">4G #2, 5G #2</span></div>
+<div class="cell highlight"></div>
+
+<!-- ===== FACEBOOK ===== -->
+<div class="cell cat"><span class="icon">📘</span> Facebook</div>
+<div class="cell sub" style="grid-column:2/4">XL (XL+SF) / IOH (Indosat+3) / TSEL</div>
+<div class="cell sub">4G / 5G</div>
+<div class="cell highlight"></div>
+
+<!-- P50 DL -->
+<div class="cell sub">P50 Throughput DL</div>
+<div class="cell"><span class="score xl">—</span> <span class="score ioh">—</span> <span class="score tsel">—</span></div>
+<div class="cell"><span class="score xl">—</span> <span class="score ioh">—</span> <span class="score tsel">—</span></div>
+<div class="cell rank">—</div>
+<div class="cell highlight">Facebook metrics not available in current dataset. XL to maintain speed leadership.</div>
+
+<!-- P50 UL -->
+<div class="cell sub">P50 Throughput UL</div>
+<div class="cell"><span class="score xl">—</span> <span class="score ioh">—</span> <span class="score tsel">—</span></div>
+<div class="cell"><span class="score xl">—</span> <span class="score ioh">—</span> <span class="score tsel">—</span></div>
+<div class="cell rank">—</div>
+<div class="cell highlight"></div>
+
+<!-- P50 RTT -->
+<div class="cell sub">P50 RTT</div>
+<div class="cell"><span class="score xl">—</span> <span class="score ioh">—</span> <span class="score tsel">—</span></div>
+<div class="cell"><span class="score xl">—</span> <span class="score ioh">—</span> <span class="score tsel">—</span></div>
+<div class="cell rank">—</div>
+<div class="cell highlight"></div>
+
+<!-- Video Stall Per Hour -->
+<div class="cell sub">Video Stall Per Hour</div>
+<div class="cell"><span class="score xl">—</span> <span class="score ioh">—</span> <span class="score tsel">—</span></div>
+<div class="cell"><span class="score xl">—</span> <span class="score ioh">—</span> <span class="score tsel">—</span></div>
+<div class="cell rank">—</div>
+<div class="cell highlight"></div>
+
+</div>
+
+<div style="margin-top:16px;padding:12px;background:#f8f9fa;border-radius:8px;border:1px solid #ddd">
+<div style="font-size:12px;font-weight:700;color:#1a5276;margin-bottom:8px">📊 Optimization Plan</div>
+<div style="font-size:10px;color:#555;line-height:1.6">
+<b>1. Video 5G:</b> Improve loading time — CDN edge caching, 5G SA optimization<br>
+<b>2. Gaming 5G:</b> Close latency gap vs TSEL — optimize 5G SA core routing, reduce jitter<br>
+<b>3. Consistency 5G:</b> Close gap vs TSEL (85.6% vs 97.8%) — expand 5G coverage, reduce weak signal areas<br>
+<b>4. Speed 5G UL:</b> Improve from #2 to #1 — carrier aggregation, MIMO optimization<br>
+<b>5. High Coding Rate 4G:</b> Improve from #3 (52.4%) to #1 — optimize video encoding pipeline
+</div>
+</div>
+
+<div style="margin-top:8px;padding:8px;background:#fff8e1;border-radius:6px;border:1px solid #f39c12">
+<div style="font-size:10px;color:#f39c12;font-weight:700">📋 Operator Grouping:</div>
+<div style="font-size:9px;color:#888">
+<b>XL</b> = XL Axiata + Smartfren | <b>IOH</b> = Indosat + 3 (Tri) | <b>TSEL</b> = Telkomsel
+</div>
+</div>
+
+<div style="text-align:center;color:#aaa;font-size:9px;margin-top:12px">Data: OpenSignal ONX | 1-14 Juni 2026 | 614K video + 988K UDP + 200K speed tests | Generated by Hermes Agent</div>
+</body></html>

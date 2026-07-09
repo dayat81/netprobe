@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>5G Experience — National Dashboard</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',Tahoma,sans-serif;padding:20px;background:#1a1a2e;color:#e0e0e0}
+.header{display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;padding-bottom:12px;border-bottom:3px solid #4A90D9}
+.header h1{font-size:22px;color:#fff}
+.logo{font-size:18px;font-weight:bold;color:#4A90D9}
+.subtitle{color:#aaa;font-size:13px;margin-bottom:18px}
+.subtitle span{background:#2a2a4a;padding:4px 12px;border-radius:4px;margin-right:8px;display:inline-block;margin-bottom:4px}
+.cards{display:flex;gap:15px;margin-bottom:20px;flex-wrap:wrap}
+.card{background:#16213e;border:1px solid #2a2a5a;border-radius:8px;padding:15px 20px;flex:1;min-width:140px;text-align:center}
+.card .value{font-size:26px;font-weight:700;color:#4A90D9}
+.card .label{font-size:11px;color:#888;margin-top:5px;text-transform:uppercase}
+.card.good{background:#1a3d1a;border-color:#27ae60}
+.card.good .value{color:#27ae60}
+.card.purple{background:#2a1a3d;border-color:#9b59b6}
+.card.purple .value{color:#9b59b6}
+.section{margin-bottom:25px}
+.section h2{font-size:16px;color:#4A90D9;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid #2a2a5a}
+table{border-collapse:collapse;width:100%;font-size:12px}
+th{background:#16213e;color:#4A90D9;padding:8px 6px;text-align:center;font-weight:600;border-bottom:2px solid #4A90D9;position:sticky;top:0}
+td{padding:7px 6px;text-align:center;border-bottom:1px solid #2a2a4a}
+tr:hover{background:#1a2a4a}
+.g5{color:#9b59b6;font-weight:700}
+.g4{color:#888}
+.good{color:#27ae60;font-weight:700}
+.ok{color:#2ecc71;font-weight:600}
+.warn{color:#f39c12;font-weight:600}
+.bad{color:#e74c3c;font-weight:700}
+.improve{color:#27ae60;font-weight:600}
+.insight{background:#16213e;border-left:4px solid #9b59b6;padding:12px 16px;border-radius:0 6px 6px 0;margin-bottom:12px;font-size:13px;line-height:1.6}
+.insight.ok{border-left-color:#27ae60}
+.insight strong{color:#fff}
+.footer{margin-top:25px;padding:12px;background:#16213e;border-radius:6px;font-size:11px;color:#666;text-align:center}
+.bar-row{display:flex;align-items:center;gap:8px;margin:6px 0}
+.bar-label{width:80px;font-size:12px;font-weight:600;text-align:right}
+.bar-track{flex:1;height:28px;background:#2a2a4a;border-radius:4px;overflow:hidden;position:relative}
+.bar-fill{height:100%;border-radius:4px;display:flex;align-items:center;justify-content:flex-end;padding-right:8px;font-size:11px;font-weight:700;color:#fff}
+.compare-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:15px;margin-bottom:15px}
+.compare-box{background:#16213e;border:1px solid #2a2a5a;border-radius:8px;padding:14px}
+.compare-box h3{font-size:13px;color:#9b59b6;margin-bottom:8px}
+.compare-box .desc{font-size:10px;color:#666;margin-bottom:6px}
+.gen-tag{display:inline-block;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;margin-right:4px}
+.gen-5g{background:#9b59b6;color:#fff}
+.gen-4g{background:#555;color:#ccc}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>📡 5G Experience — National Dashboard</h1>
+  <div class="logo">XLSMART</div>
+</div>
+
+<div class="subtitle">
+  <span>📅 15 Jun – 21 Jun 2026 (MA7)</span>
+  <span>📡 5G vs 4G</span>
+  <span>🇮🇩 35 Provinsi</span>
+  <span>📊 724,329 5G tests · 7,776,557 4G tests</span>
+</div>
+
+<div class="cards">
+  <div class="card purple">
+    <div class="value">12.0%</div>
+    <div class="label">XL 5G Availability (Best)</div>
+  </div>
+  <div class="card good">
+    <div class="value">51,452</div>
+    <div class="label">XL 5G DL (Mbps)</div>
+  </div>
+  <div class="card good">
+    <div class="value">62ms</div>
+    <div class="label">XL 5G TCP Latency</div>
+  </div>
+  <div class="card">
+    <div class="value">1.9×</div>
+    <div class="label">XL 5G vs 4G Speed</div>
+  </div>
+</div>
+
+<!-- 5G AVAILABILITY -->
+<div class="section">
+  <h2>📡 5G Availability — % waktu di 5G</h2>
+  <p style="font-size:12px;color:#888;margin-bottom:12px">Persentase test yang menggunakan 5G. Lebih tinggi = lebih banyak coverage 5G.</p>
+  <div class="bar-row"><span class="bar-label" style="color:#e74c3c">Telkomsel</span><div class="bar-track"><div class="bar-fill" style="width:61%;background:linear-gradient(90deg,#9b59b6,#8e44ad)">7.3% (269,324 tests)</div></div></div>
+  <div class="bar-row"><span class="bar-label" style="color:#4A90D9">XL</span><div class="bar-track"><div class="bar-fill" style="width:100%;background:linear-gradient(90deg,#9b59b6,#8e44ad)">12.0% (161,270 tests)</div></div></div>
+  <div class="bar-row"><span class="bar-label" style="color:#f1c40f">Indosat</span><div class="bar-track"><div class="bar-fill" style="width:74%;background:linear-gradient(90deg,#9b59b6,#8e44ad)">8.9% (173,653 tests)</div></div></div>
+  <div class="bar-row"><span class="bar-label" style="color:#2ecc71">3</span><div class="bar-track"><div class="bar-fill" style="width:65%;background:linear-gradient(90deg,#9b59b6,#8e44ad)">7.9% (84,431 tests)</div></div></div>
+  <div class="bar-row"><span class="bar-label" style="color:#9b59b6">Smartfren</span><div class="bar-track"><div class="bar-fill" style="width:67%;background:linear-gradient(90deg,#9b59b6,#8e44ad)">8.0% (35,651 tests)</div></div></div>
+</div>
+
+<!-- 5G vs 4G COMPARISON -->
+<div class="section">
+  <h2>⚡ 5G vs 4G — Perbandingan Performa</h2>
+  <table>
+    <thead>
+      <tr><th style="text-align:left">Operator</th><th>Gen</th><th>Tests</th><th>RSRP</th><th>DL Speed</th><th>TCP Latency</th><th>Buffer</th><th>Stall (s)</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td style="text-align:left;font-weight:600;color:#e74c3c">Telkomsel</td>
+        <td><span class="gen-tag gen-4g">4G</span></td>
+        <td>3,330,708</td>
+        <td>-94.1</td>
+        <td class="g4">27,461</td>
+        <td>78 ms</td>
+        <td>0.11</td>
+        <td>306</td>
+      </tr>
+      <tr>
+        <td style="text-align:left;font-weight:600;color:#e74c3c">Telkomsel</td>
+        <td><span class="gen-tag gen-5g">5G</span></td>
+        <td>269,241</td>
+        <td>-87.3</td>
+        <td class="g5">38,246</td>
+        <td>42 ms</td>
+        <td>0.04</td>
+        <td>123</td>
+      </tr>
+      <tr>
+        <td style="text-align:left;font-weight:600;color:#4A90D9">XL</td>
+        <td><span class="gen-tag gen-4g">4G</span></td>
+        <td>1,137,091</td>
+        <td>-95.3</td>
+        <td class="g4">27,187</td>
+        <td>67 ms</td>
+        <td>0.09</td>
+        <td>295</td>
+      </tr>
+      <tr>
+        <td style="text-align:left;font-weight:600;color:#4A90D9">XL</td>
+        <td><span class="gen-tag gen-5g">5G</span></td>
+        <td>161,214</td>
+        <td>-92.1</td>
+        <td class="g5">51,452</td>
+        <td>62 ms</td>
+        <td>0.05</td>
+        <td>145</td>
+      </tr>
+      <tr>
+        <td style="text-align:left;font-weight:600;color:#f1c40f">Indosat</td>
+        <td><span class="gen-tag gen-4g">4G</span></td>
+        <td>1,706,745</td>
+        <td>-96.3</td>
+        <td class="g4">21,971</td>
+        <td>64 ms</td>
+        <td>0.09</td>
+        <td>322</td>
+      </tr>
+      <tr>
+        <td style="text-align:left;font-weight:600;color:#f1c40f">Indosat</td>
+        <td><span class="gen-tag gen-5g">5G</span></td>
+        <td>173,596</td>
+        <td>-90.9</td>
+        <td class="g5">35,532</td>
+        <td>48 ms</td>
+        <td>0.04</td>
+        <td>142</td>
+      </tr>
+      <tr>
+        <td style="text-align:left;font-weight:600;color:#2ecc71">3</td>
+        <td><span class="gen-tag gen-4g">4G</span></td>
+        <td>949,283</td>
+        <td>-95.1</td>
+        <td class="g4">22,531</td>
+        <td>61 ms</td>
+        <td>0.10</td>
+        <td>362</td>
+      </tr>
+      <tr>
+        <td style="text-align:left;font-weight:600;color:#2ecc71">3</td>
+        <td><span class="gen-tag gen-5g">5G</span></td>
+        <td>84,402</td>
+        <td>-91.0</td>
+        <td class="g5">40,031</td>
+        <td>49 ms</td>
+        <td>0.04</td>
+        <td>128</td>
+      </tr>
+      <tr>
+        <td style="text-align:left;font-weight:600;color:#9b59b6">Smartfren</td>
+        <td><span class="gen-tag gen-4g">4G</span></td>
+        <td>389,487</td>
+        <td>-95.4</td>
+        <td class="g4">25,525</td>
+        <td>74 ms</td>
+        <td>0.19</td>
+        <td>408</td>
+      </tr>
+      <tr>
+        <td style="text-align:left;font-weight:600;color:#9b59b6">Smartfren</td>
+        <td><span class="gen-tag gen-5g">5G</span></td>
+        <td>35,643</td>
+        <td>-92.9</td>
+        <td class="g5">53,875</td>
+        <td>51 ms</td>
+        <td>0.08</td>
+        <td>211</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- 5G IMPROVEMENT -->
+<div class="section">
+  <h2>📈 5G Improvement vs 4G</h2>
+  <p style="font-size:12px;color:#888;margin-bottom:12px">Seberapa banyak 5G memperbaiki performa dibanding 4G.</p>
+  <table>
+    <thead>
+      <tr><th style="text-align:left">Operator</th><th>5G Avail%</th><th>RSRP Gain</th><th>Speed Gain</th><th>Latency Gain</th><th>Buffer Gain</th><th>Stall Gain</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td style="text-align:left;font-weight:600;color:#e74c3c">Telkomsel</td>
+        <td>7.3%</td>
+        <td class="improve">+6.9 dBm</td>
+        <td class="improve">1.4×</td>
+        <td class="improve">-36 ms</td>
+        <td class="improve">-61%</td>
+        <td class="improve">-60%</td>
+      </tr>
+      <tr>
+        <td style="text-align:left;font-weight:600;color:#4A90D9">XL</td>
+        <td>12.0%</td>
+        <td class="improve">+3.2 dBm</td>
+        <td class="improve">1.9×</td>
+        <td class="improve">-6 ms</td>
+        <td class="improve">-50%</td>
+        <td class="improve">-51%</td>
+      </tr>
+      <tr>
+        <td style="text-align:left;font-weight:600;color:#f1c40f">Indosat</td>
+        <td>8.9%</td>
+        <td class="improve">+5.5 dBm</td>
+        <td class="improve">1.6×</td>
+        <td class="improve">-15 ms</td>
+        <td class="improve">-53%</td>
+        <td class="improve">-56%</td>
+      </tr>
+      <tr>
+        <td style="text-align:left;font-weight:600;color:#2ecc71">3</td>
+        <td>7.9%</td>
+        <td class="improve">+4.1 dBm</td>
+        <td class="improve">1.8×</td>
+        <td class="improve">-12 ms</td>
+        <td class="improve">-60%</td>
+        <td class="improve">-65%</td>
+      </tr>
+      <tr>
+        <td style="text-align:left;font-weight:600;color:#9b59b6">Smartfren</td>
+        <td>8.0%</td>
+        <td class="improve">+2.5 dBm</td>
+        <td class="improve">2.1×</td>
+        <td class="improve">-23 ms</td>
+        <td class="improve">-57%</td>
+        <td class="improve">-48%</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- XL 5G PER PROVINCE -->
+<div class="section">
+  <h2>🔵 XL 5G per Provinsi (by test count)</h2>
+  <p style="font-size:12px;color:#888;margin-bottom:12px">Provinsi dengan 5G XL coverage. Min 10 tests.</p>
+  <table>
+    <thead>
+      <tr><th style="text-align:left">Provinsi</th><th>XL 5G Tests</th><th>RSRP</th><th>DL (Mbps)</th><th>TCP Lat (ms)</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td style="text-align:left;font-weight:500">DKI JAKARTA</td>
+        <td>38,498</td>
+        <td>-91.3</td>
+        <td class="ok">48,719</td>
+        <td>65</td>
+      </tr>
+      <tr>
+        <td style="text-align:left;font-weight:500">JAWA BARAT</td>
+        <td>30,739</td>
+        <td>-92.3</td>
+        <td class="ok">46,761</td>
+        <td>55</td>
+      </tr>
+      <tr>
+        <td style="text-align:left;font-weight:500">JAWA TIMUR</td>
+        <td>27,427</td>
+        <td>-92.3</td>
+        <td class="good">58,387</td>
+        <td>84</td>
+      </tr>
+      <tr>
+        <td style="text-align:left;font-weight:500">JAWA TENGAH</td>
+        <td>21,680</td>
+        <td>-93.0</td>
+        <td class="good">52,935</td>
+        <td>58</td>
+      </tr>
+      <tr>
+        <td style="text-align:left;font-weight:500">BANTEN</td>
+        <td>14,928</td>
+        <td>-91.8</td>
+        <td class="ok">47,734</td>
+        <td>50</td>
+      </tr>
+      <tr>
+        <td style="text-align:left;font-weight:500">DAERAH ISTIMEWA YOGYAKARTA</td>
+        <td>7,038</td>
+        <td>-91.7</td>
+        <td class="good">56,625</td>
+        <td>54</td>
+      </tr>
+      <tr>
+        <td style="text-align:left;font-weight:500">BALI</td>
+        <td>6,213</td>
+        <td>-91.8</td>
+        <td class="ok">43,712</td>
+        <td>49</td>
+      </tr>
+      <tr>
+        <td style="text-align:left;font-weight:500">SUMATERA UTARA</td>
+        <td>5,734</td>
+        <td>-93.5</td>
+        <td class="good">64,741</td>
+        <td>53</td>
+      </tr>
+      <tr>
+        <td style="text-align:left;font-weight:500">SULAWESI SELATAN</td>
+        <td>3,177</td>
+        <td>-93.2</td>
+        <td class="ok">48,390</td>
+        <td>58</td>
+      </tr>
+      <tr>
+        <td style="text-align:left;font-weight:500">KALIMANTAN SELATAN</td>
+        <td>2,046</td>
+        <td>-92.0</td>
+        <td class="good">56,829</td>
+        <td>43</td>
+      </tr>
+      <tr>
+        <td style="text-align:left;font-weight:500">KALIMANTAN TIMUR</td>
+        <td>1,484</td>
+        <td>-92.7</td>
+        <td class="good">51,445</td>
+        <td>66</td>
+      </tr>
+      <tr>
+        <td style="text-align:left;font-weight:500">SUMATERA SELATAN</td>
+        <td>273</td>
+        <td>-94.3</td>
+        <td class="ok">45,359</td>
+        <td>51</td>
+      </tr>
+      <tr>
+        <td style="text-align:left;font-weight:500">NUSA TENGGARA BARAT</td>
+        <td>247</td>
+        <td>-92.6</td>
+        <td class="ok">47,837</td>
+        <td>37</td>
+      </tr>
+      <tr>
+        <td style="text-align:left;font-weight:500">ACEH</td>
+        <td>228</td>
+        <td>-91.6</td>
+        <td class="good">59,126</td>
+        <td>37</td>
+      </tr>
+      <tr>
+        <td style="text-align:left;font-weight:500">KALIMANTAN TENGAH</td>
+        <td>187</td>
+        <td>-92.9</td>
+        <td class="ok">42,577</td>
+        <td>133</td>
+      </tr>
+      <tr>
+        <td style="text-align:left;font-weight:500">LAMPUNG</td>
+        <td>141</td>
+        <td>-91.3</td>
+        <td class="good">50,538</td>
+        <td>68</td>
+      </tr>
+      <tr>
+        <td style="text-align:left;font-weight:500">RIAU</td>
+        <td>129</td>
+        <td>-94.4</td>
+        <td class="good">64,289</td>
+        <td>118</td>
+      </tr>
+      <tr>
+        <td style="text-align:left;font-weight:500">KEPULAUAN BANGKA BELITUNG</td>
+        <td>99</td>
+        <td>-98.7</td>
+        <td class="ok">43,228</td>
+        <td>64</td>
+      </tr>
+      <tr>
+        <td style="text-align:left;font-weight:500">SULAWESI TENGGARA</td>
+        <td>97</td>
+        <td>-92.8</td>
+        <td class="good">51,306</td>
+        <td>52</td>
+      </tr>
+      <tr>
+        <td style="text-align:left;font-weight:500">KALIMANTAN BARAT</td>
+        <td>87</td>
+        <td>-92.6</td>
+        <td class="good">56,624</td>
+        <td>34</td>
+      </tr>
+      <tr>
+        <td style="text-align:left;font-weight:500">SULAWESI TENGAH</td>
+        <td>68</td>
+        <td>-93.4</td>
+        <td class="warn">36,299</td>
+        <td>0</td>
+      </tr>
+      <tr>
+        <td style="text-align:left;font-weight:500">SUMATERA BARAT</td>
+        <td>51</td>
+        <td>-87.2</td>
+        <td class="good">67,385</td>
+        <td>35</td>
+      </tr>
+      <tr>
+        <td style="text-align:left;font-weight:500">KEPULAUAN RIAU</td>
+        <td>46</td>
+        <td>-89.3</td>
+        <td class="good">51,711</td>
+        <td>64</td>
+      </tr>
+      <tr>
+        <td style="text-align:left;font-weight:500">PAPUA</td>
+        <td>42</td>
+        <td>-95.1</td>
+        <td class="bad">25,194</td>
+        <td>35</td>
+      </tr>
+      <tr>
+        <td style="text-align:left;font-weight:500">KALIMANTAN UTARA</td>
+        <td>33</td>
+        <td>-96.8</td>
+        <td class="ok">45,536</td>
+        <td>0</td>
+      </tr>
+      <tr>
+        <td style="text-align:left;font-weight:500">NUSA TENGGARA TIMUR</td>
+        <td>32</td>
+        <td>-91.0</td>
+        <td class="good">59,685</td>
+        <td>62</td>
+      </tr>
+      <tr>
+        <td style="text-align:left;font-weight:500">SULAWESI UTARA</td>
+        <td>29</td>
+        <td>-94.0</td>
+        <td class="bad">25,678</td>
+        <td>252</td>
+      </tr>
+      <tr>
+        <td style="text-align:left;font-weight:500">JAMBI</td>
+        <td>24</td>
+        <td>-88.5</td>
+        <td class="good">50,596</td>
+        <td>27</td>
+      </tr>
+      <tr>
+        <td style="text-align:left;font-weight:500">GORONTALO</td>
+        <td>22</td>
+        <td>-94.3</td>
+        <td class="warn">36,188</td>
+        <td>0</td>
+      </tr>
+      <tr>
+        <td style="text-align:left;font-weight:500">SULAWESI BARAT</td>
+        <td>17</td>
+        <td>-95.5</td>
+        <td class="good">52,609</td>
+        <td>0</td>
+      </tr>
+      <tr>
+        <td style="text-align:left;font-weight:500">BENGKULU</td>
+        <td>14</td>
+        <td>-88.1</td>
+        <td class="good">62,493</td>
+        <td>34</td>
+      </tr>
+      <tr>
+        <td style="text-align:left;font-weight:500">MALUKU</td>
+        <td>14</td>
+        <td>-91.6</td>
+        <td class="bad">27,469</td>
+        <td>36</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="section">
+  <h2>🔍 Key Insights</h2>
+  <div class="insight">
+    <strong>📡 XL 5G Availability Tertinggi: 12.0%</strong> — XL punya persentase 5G terbanyak di antara semua operator. Telkomsel 7.3%, Indosat 8.9%.
+  </div>
+  <div class="insight ok">
+    <strong>⚡ 5G Speed Boost: 1.5-2×</strong> — Semua operator dapat speed boost signifikan di 5G. Smartfren tertinggi (2.1×), XL 1.9×, Telkomsel 1.4×.
+  </div>
+  <div class="insight">
+    <strong>📉 5G Latency: 15-35ms lebih rendah</strong> — Telkomsel paling besar improvement (-36ms), XL -6ms. 5G memberikan pengalaman browsing/gaming lebih responsif.
+  </div>
+  <div class="insight">
+    <strong>🎬 5G Video Quality: 50-75% less buffering</strong> — Buffer count turun drastis di 5G. Stall time juga turun 50-65%. Video streaming jauh lebih smooth.
+  </div>
+</div>
+
+<div class="footer">
+  Data: OpenSignal MyDashboards API • Period: 15-21 Jun 2026 • 5G vs 4G<br>
+  Generated: Jun 21, 2026 • osig.netprobe.xyz
+</div>
+
+</body>
+</html>

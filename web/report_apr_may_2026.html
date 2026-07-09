@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Indonesia Mobile Video Experience — April-May 2026</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif; background: #0a0e1a; color: #d0d5e0; line-height: 1.6; }
+
+/* HERO */
+.hero { background: linear-gradient(135deg, #0d1b2a 0%, #1b2838 40%, #0d1b2a 100%); padding: 60px 0 50px; position: relative; overflow: hidden; }
+.hero::before { content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%234A90D9' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E"); opacity: 0.5; }
+.hero-inner { max-width: 1200px; margin: 0 auto; padding: 0 30px; position: relative; z-index: 1; }
+.hero .tag { display: inline-block; background: linear-gradient(135deg, #4A90D9, #2563eb); color: white; padding: 6px 16px; border-radius: 20px; font-size: 11px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 18px; }
+.hero h1 { font-size: 42px; font-weight: 800; color: white; line-height: 1.15; margin-bottom: 12px; letter-spacing: -0.5px; }
+.hero h1 span { background: linear-gradient(135deg, #4A90D9, #60a5fa); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+.hero .sub { font-size: 17px; color: #8899aa; margin-bottom: 28px; max-width: 600px; }
+.hero .meta { display: flex; gap: 32px; flex-wrap: wrap; }
+.hero .meta-item { display: flex; align-items: center; gap: 8px; font-size: 13px; color: #667788; }
+.hero .meta-icon { font-size: 18px; }
+
+/* NAV */
+.sticky-nav { background: #0f1520; border-bottom: 1px solid #1a2234; position: sticky; top: 0; z-index: 100; }
+.sticky-nav-inner { max-width: 1200px; margin: 0 auto; padding: 0 30px; display: flex; gap: 0; overflow-x: auto; scrollbar-width: none; }
+.sticky-nav-inner::-webkit-scrollbar { display: none; }
+.sticky-nav a { padding: 15px 20px; font-size: 13px; font-weight: 600; color: #556677; white-space: nowrap; border-bottom: 2px solid transparent; transition: all 0.2s; text-decoration: none; }
+.sticky-nav a:hover { color: #4A90D9; }
+.sticky-nav a.active { color: #4A90D9; border-bottom-color: #4A90D9; }
+
+/* CONTAINER */
+.container { max-width: 1200px; margin: 0 auto; padding: 0 30px; }
+
+/* SECTION */
+.section { padding: 50px 0; }
+.section-header { display: flex; align-items: center; gap: 14px; margin-bottom: 10px; }
+.section-icon { font-size: 30px; }
+.section-header h2 { font-size: 26px; font-weight: 800; color: white; }
+.section-desc { color: #667788; font-size: 14px; margin-bottom: 28px; max-width: 700px; line-height: 1.7; }
+
+/* CARDS */
+.card-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 30px; }
+.card { background: linear-gradient(135deg, #111827 0%, #0f1520 100%); border: 1px solid #1a2234; border-radius: 14px; padding: 22px; text-align: center; transition: border-color 0.3s; }
+.card:hover { border-color: #2a3a4e; }
+.card .label { font-size: 11px; text-transform: uppercase; letter-spacing: 1.2px; color: #556677; margin-bottom: 10px; font-weight: 600; }
+.card .value { font-size: 34px; font-weight: 800; letter-spacing: -1px; }
+.card .sub { font-size: 12px; color: #667788; margin-top: 6px; }
+
+/* TABLE */
+.table-wrap { overflow-x: auto; border-radius: 12px; border: 1px solid #1a2234; }
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+th { text-align: left; padding: 14px 16px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.8px; color: #556677; border-bottom: 2px solid #1a2234; font-weight: 700; background: #0f1520; }
+th.num { text-align: right; }
+td { padding: 16px; border-bottom: 1px solid #111827; }
+td.num { text-align: right; font-variant-numeric: tabular-nums; }
+td.provider { font-weight: 700; }
+tr { transition: background 0.2s; }
+tr:hover { background: rgba(74, 144, 217, 0.04); }
+tr.winner { background: rgba(74, 210, 122, 0.04); }
+.dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 8px; vertical-align: middle; }
+.badge-w { background: linear-gradient(135deg, #4ade80, #22c55e); color: #052e16; padding: 3px 10px; border-radius: 6px; font-size: 10px; font-weight: 800; vertical-align: middle; margin-left: 8px; letter-spacing: 0.5px; }
+
+/* BARS */
+.bar-section { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; }
+@media (max-width: 800px) { .bar-section { grid-template-columns: 1fr; } }
+.bar-card { background: #111827; border: 1px solid #1a2234; border-radius: 14px; padding: 24px; }
+.bar-card h3 { font-size: 16px; font-weight: 700; color: white; margin-bottom: 6px; }
+.bar-card .desc { font-size: 12px; color: #556677; margin-bottom: 18px; }
+.bar-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.bar-label { width: 100px; font-weight: 600; font-size: 13px; }
+.bar-bg { flex: 1; height: 30px; background: #0a0e1a; border-radius: 6px; overflow: hidden; }
+.bar-fill { height: 100%; border-radius: 6px; display: flex; align-items: center; padding-left: 10px; font-weight: 700; color: white; font-size: 12px; min-width: 40px; }
+.bar-val { width: 70px; text-align: right; font-weight: 700; font-size: 13px; font-variant-numeric: tabular-nums; }
+
+/* MONTHLY COMPARISON */
+.monthly-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 20px; }
+@media (max-width: 800px) { .monthly-grid { grid-template-columns: 1fr; } }
+.month-box { background: #111827; border: 1px solid #1a2234; border-radius: 10px; padding: 16px; text-align: center; }
+.month-box .month-label { font-size: 11px; color: #556677; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; font-weight: 700; }
+.month-box .month-val { font-size: 26px; font-weight: 800; }
+.month-box .month-sub { font-size: 11px; color: #667788; margin-top: 4px; }
+
+/* REGIONS */
+.region-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; }
+.region-card { background: #111827; border: 1px solid #1a2234; border-radius: 14px; padding: 20px; transition: border-color 0.3s; }
+.region-card:hover { border-color: #2a3a4e; }
+.region-name { font-size: 16px; font-weight: 800; color: white; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+.region-name .region-icon { font-size: 20px; }
+.region-ops { display: flex; flex-direction: column; gap: 8px; }
+.region-op { display: flex; align-items: center; gap: 8px; font-size: 13px; padding: 6px 10px; border-radius: 8px; transition: background 0.2s; }
+.region-op.winner { background: rgba(74, 210, 122, 0.08); }
+.region-op .rank { width: 20px; text-align: center; font-weight: 800; }
+.region-op .op-name { flex: 1; font-weight: 600; }
+.region-op .op-stall { font-variant-numeric: tabular-nums; font-weight: 700; }
+.region-op .op-score { font-variant-numeric: tabular-nums; font-weight: 700; width: 50px; text-align: right; }
+
+/* INSIGHTS */
+.insight { background: #111827; border-left: 4px solid #4A90D9; padding: 18px 22px; margin-bottom: 14px; border-radius: 0 10px 10px 0; font-size: 14px; line-height: 1.7; }
+.insight.good { border-left-color: #4ade80; }
+.insight.bad { border-left-color: #f87171; }
+.insight.warn { border-left-color: #fbbf24; }
+.insight strong { color: white; }
+
+/* FOOTER */
+.footer { text-align: center; padding: 40px 30px; color: #334455; font-size: 12px; border-top: 1px solid #1a2234; margin-top: 30px; }
+
+/* DELTA COLORS */
+.green { color: #4ade80; }
+.red { color: #f87171; }
+.yellow { color: #fbbf24; }
+.gray { color: #556677; }
+
+/* DIVIDER */
+.divider { border: none; border-top: 1px solid #1a2234; margin: 10px 0; }
+</style>
+</head>
+<body>
+
+<!-- HERO -->
+<div class="hero">
+<div class="hero-inner">
+  <div class="tag">📊 Video Network Experience Report</div>
+  <h1>Indonesia Mobile Video<br><span>Experience Analysis</span></h1>
+  <p class="sub">Analisis komprehensif performa video seluler nasional — perbandingan antar operator selama periode April–Mei 2026.</p>
+  <div class="meta">
+    <div class="meta-item"><span class="meta-icon">📅</span> 1 April – 31 Mei 2026</div>
+    <div class="meta-item"><span class="meta-icon">📶</span> 4G + 5G · ABR Video Tests</div>
+    <div class="meta-item"><span class="meta-icon">📦</span> 70,528,198 records</div>
+    <div class="meta-item"><span class="meta-icon">🕐</span> Generated 21 June 2026, 10:59 WIB</div>
+  </div>
+</div>
+</div>
+
+<!-- NAV -->
+<div class="sticky-nav">
+<div class="sticky-nav-inner">
+  <a href="#overview" class="active">Overview</a>
+  <a href="#score">Weight Score</a>
+  <a href="#buffer">Buffer Count</a>
+  <a href="#stall">Stall Time</a>
+  <a href="#monthly">Monthly Trend</a>
+  <a href="#regions">Regions</a>
+  <a href="#insights">Insights</a>
+</div>
+</div>
+
+<div class="container">
+
+<!-- OVERVIEW -->
+<div class="section" id="overview">
+  <div class="section-header"><span class="section-icon">📋</span><h2>Executive Summary</h2></div>
+  <p class="section-desc">Ringkasan performa video experience 5 operator seluler Indonesia berdasarkan Weight Score gabungan Buffer Count dan Stall Time selama periode April–Mei 2026.</p>
+  
+  <div class="card-row">
+    <div class="card">
+      <div class="label">🏆 Best Operator</div>
+      <div class="value" style="color:#4A90D9">XL</div>
+      <div class="sub">Score 52.3 · 11.0M records</div>
+    </div>
+    <div class="card">
+      <div class="label">📊 Total Sample</div>
+      <div class="value" style="color:#60a5fa">70.5M</div>
+      <div class="sub">Video test results across Indonesia</div>
+    </div>
+    <div class="card">
+      <div class="label">📉 Best–Worst Gap</div>
+      <div class="value" style="color:#fbbf24">48</div>
+      <div class="sub">XL vs Smartfren</div>
+    </div>
+    <div class="card">
+      <div class="label">📈 Largest Sample</div>
+      <div class="value" style="color:#E74C3C">Telkomsel</div>
+      <div class="sub">30.6M records</div>
+    </div>
+  </div>
+</div>
+
+<hr class="divider">
+
+<!-- WEIGHT SCORE TABLE -->
+<div class="section" id="score">
+  <div class="section-header"><span class="section-icon">⚖️</span><h2>Weight Score — Operator Rankings</h2></div>
+  <p class="section-desc">Weight Score menggabungkan Buffer Count dan Stall Time. <strong style="color:white">Semakin rendah semakin baik.</strong> Formula: (Buffer/Max × 50) + (Stall/Max × 50).</p>
+  
+  <div class="table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th>Rank</th>
+        <th>Operator</th>
+        <th class="num">Buffer Count</th>
+        <th class="num">Stall Time</th>
+        <th class="num">Apr Score</th>
+        <th class="num">May Score</th>
+        <th class="num">Weight Score</th>
+        <th class="num">Trend</th>
+        <th class="num">Records</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr class="winner">
+        <td style="font-size:18px">🥇</td>
+        <td class="provider"><span class="dot" style="background:#4A90D9"></span>XL <span class="badge-w">WINNER</span></td>
+        <td class="num">0.0989</td>
+        <td class="num">256.5s</td>
+        <td class="num" style="color:#667788">52.2</td>
+        <td class="num" style="color:#667788">52.4</td>
+        <td class="num" style="font-size:20px;font-weight:800;color:#4A90D9">52.3</td>
+        <td class="num"><span class="gray">— +0.2</span></td>
+        <td class="num">11.0M</td>
+      </tr>
+      <tr>
+        <td style="font-size:18px">🥈</td>
+        <td class="provider"><span class="dot" style="background:#F5A623"></span>Indosat</td>
+        <td class="num">0.0934</td>
+        <td class="num">290.4s</td>
+        <td class="num" style="color:#667788">53.8</td>
+        <td class="num" style="color:#667788">56.2</td>
+        <td class="num" style="font-size:20px;font-weight:800;color:#F5A623">55.0</td>
+        <td class="num"><span class="red">▲ +2.4</span></td>
+        <td class="num">16.1M</td>
+      </tr>
+      <tr>
+        <td style="font-size:18px">🥉</td>
+        <td class="provider"><span class="dot" style="background:#E74C3C"></span>Telkomsel</td>
+        <td class="num">0.1144</td>
+        <td class="num">283.8s</td>
+        <td class="num" style="color:#667788">57.4</td>
+        <td class="num" style="color:#667788">60.5</td>
+        <td class="num" style="font-size:20px;font-weight:800;color:#E74C3C">59.0</td>
+        <td class="num"><span class="red">▲ +3.1</span></td>
+        <td class="num">30.6M</td>
+      </tr>
+      <tr>
+        <td style="font-size:18px">④</td>
+        <td class="provider"><span class="dot" style="background:#9B59B6"></span>Tri</td>
+        <td class="num">0.0974</td>
+        <td class="num">342.1s</td>
+        <td class="num" style="color:#667788">60.3</td>
+        <td class="num" style="color:#667788">63.7</td>
+        <td class="num" style="font-size:20px;font-weight:800;color:#9B59B6">62.0</td>
+        <td class="num"><span class="red">▲ +3.4</span></td>
+        <td class="num">9.1M</td>
+      </tr>
+      <tr>
+        <td style="font-size:18px">⑤</td>
+        <td class="provider"><span class="dot" style="background:#E67E22"></span>Smartfren</td>
+        <td class="num">0.2225</td>
+        <td class="num">426.7s</td>
+        <td class="num" style="color:#667788">100.0</td>
+        <td class="num" style="color:#667788">100.0</td>
+        <td class="num" style="font-size:20px;font-weight:800;color:#E67E22">100.0</td>
+        <td class="num"><span class="gray">— +0.0</span></td>
+        <td class="num">3.6M</td>
+      </tr>
+    </tbody>
+  </table>
+  </div>
+</div>
+
+<hr class="divider">
+
+<!-- BUFFER & STALL BARS -->
+<div class="section" id="buffer">
+  <div class="section-header"><span class="section-icon">📊</span><h2>Buffer Count & Stall Time</h2></div>
+  <p class="section-desc">Perbandingan visual antar operator untuk dua komponen utama video experience.</p>
+  
+  <div class="bar-section">
+    <div class="bar-card">
+      <h3>📉 Buffer Count</h3>
+      <div class="desc">Rata-rata buffering events per video test. Lebih rendah = lebih baik.</div>
+      <div class="bar-row">
+        <div class="bar-label">🥇 <span class="dot" style="background:#F5A623"></span>Indosat</div>
+        <div class="bar-bg"><div class="bar-fill" style="width:42.0%;background:#F5A623">0.0934</div></div>
+        <div class="bar-val">0.0934</div>
+      </div>
+      <div class="bar-row">
+        <div class="bar-label">🥈 <span class="dot" style="background:#9B59B6"></span>Tri</div>
+        <div class="bar-bg"><div class="bar-fill" style="width:43.8%;background:#9B59B6">0.0974</div></div>
+        <div class="bar-val">0.0974</div>
+      </div>
+      <div class="bar-row">
+        <div class="bar-label"> <span class="dot" style="background:#4A90D9"></span>XL</div>
+        <div class="bar-bg"><div class="bar-fill" style="width:44.4%;background:#4A90D9">0.0989</div></div>
+        <div class="bar-val">0.0989</div>
+      </div>
+      <div class="bar-row">
+        <div class="bar-label"> <span class="dot" style="background:#E74C3C"></span>Telkomsel</div>
+        <div class="bar-bg"><div class="bar-fill" style="width:51.4%;background:#E74C3C">0.1144</div></div>
+        <div class="bar-val">0.1144</div>
+      </div>
+      <div class="bar-row">
+        <div class="bar-label"> <span class="dot" style="background:#E67E22"></span>Smartfren</div>
+        <div class="bar-bg"><div class="bar-fill" style="width:100.0%;background:#E67E22">0.2225</div></div>
+        <div class="bar-val">0.2225</div>
+      </div>
+    </div>
+    <div class="bar-card">
+      <h3>⏱️ Stall Time (s)</h3>
+      <div class="desc">Rata-rata durasi stalling per video test. Lebih rendah = lebih baik.</div>
+      <div class="bar-row">
+        <div class="bar-label">🥇 <span class="dot" style="background:#4A90D9"></span>XL</div>
+        <div class="bar-bg"><div class="bar-fill" style="width:60.1%;background:#4A90D9">257s</div></div>
+        <div class="bar-val">256.5s</div>
+      </div>
+      <div class="bar-row">
+        <div class="bar-label">🥈 <span class="dot" style="background:#E74C3C"></span>Telkomsel</div>
+        <div class="bar-bg"><div class="bar-fill" style="width:66.5%;background:#E74C3C">284s</div></div>
+        <div class="bar-val">283.8s</div>
+      </div>
+      <div class="bar-row">
+        <div class="bar-label"> <span class="dot" style="background:#F5A623"></span>Indosat</div>
+        <div class="bar-bg"><div class="bar-fill" style="width:68.1%;background:#F5A623">290s</div></div>
+        <div class="bar-val">290.4s</div>
+      </div>
+      <div class="bar-row">
+        <div class="bar-label"> <span class="dot" style="background:#9B59B6"></span>Tri</div>
+        <div class="bar-bg"><div class="bar-fill" style="width:80.2%;background:#9B59B6">342s</div></div>
+        <div class="bar-val">342.1s</div>
+      </div>
+      <div class="bar-row">
+        <div class="bar-label"> <span class="dot" style="background:#E67E22"></span>Smartfren</div>
+        <div class="bar-bg"><div class="bar-fill" style="width:100.0%;background:#E67E22">427s</div></div>
+        <div class="bar-val">426.7s</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<hr class="divider">
+
+<!-- MONTHLY TREND -->
+<div class="section" id="monthly">
+  <div class="section-header"><span class="section-icon">📈</span><h2>Monthly Trend — April vs May</h2></div>
+  <p class="section-desc">Perubahan performa dari bulan April ke Mei 2026. Green = improvement, Red = worsened.</p>
+
+  <div class="month-box" style="display:inline-block;width:18%;margin:0.5%;vertical-align:top">
+    <div class="month-label"><span class="dot" style="background:#4A90D9"></span>XL</div>
+    <div class="month-val" style="color:#4A90D9">52.3</div>
+    <div class="month-sub">Apr: 52.2 → May: 52.4</div>
+    <div class="month-sub"><span class="gray">— +0.2</span></div>
+    <div class="month-sub" style="font-size:10px;margin-top:4px">
+      Buf: 0.0990→0.0988<br>
+      Stall: 267s→247s
+    </div>
+  </div>
+  <div class="month-box" style="display:inline-block;width:18%;margin:0.5%;vertical-align:top">
+    <div class="month-label"><span class="dot" style="background:#F5A623"></span>Indosat</div>
+    <div class="month-val" style="color:#F5A623">55.0</div>
+    <div class="month-sub">Apr: 53.8 → May: 56.2</div>
+    <div class="month-sub"><span class="red">▲ +2.4</span></div>
+    <div class="month-sub" style="font-size:10px;margin-top:4px">
+      Buf: 0.0925→0.0943<br>
+      Stall: 293s→288s
+    </div>
+  </div>
+  <div class="month-box" style="display:inline-block;width:18%;margin:0.5%;vertical-align:top">
+    <div class="month-label"><span class="dot" style="background:#E74C3C"></span>Telkomsel</div>
+    <div class="month-val" style="color:#E74C3C">59.0</div>
+    <div class="month-sub">Apr: 57.4 → May: 60.5</div>
+    <div class="month-sub"><span class="red">▲ +3.1</span></div>
+    <div class="month-sub" style="font-size:10px;margin-top:4px">
+      Buf: 0.1133→0.1155<br>
+      Stall: 285s→283s
+    </div>
+  </div>
+  <div class="month-box" style="display:inline-block;width:18%;margin:0.5%;vertical-align:top">
+    <div class="month-label"><span class="dot" style="background:#9B59B6"></span>Tri</div>
+    <div class="month-val" style="color:#9B59B6">62.0</div>
+    <div class="month-sub">Apr: 60.3 → May: 63.7</div>
+    <div class="month-sub"><span class="red">▲ +3.4</span></div>
+    <div class="month-sub" style="font-size:10px;margin-top:4px">
+      Buf: 0.0971→0.0977<br>
+      Stall: 340s→344s
+    </div>
+  </div>
+  <div class="month-box" style="display:inline-block;width:18%;margin:0.5%;vertical-align:top">
+    <div class="month-label"><span class="dot" style="background:#E67E22"></span>Smartfren</div>
+    <div class="month-val" style="color:#E67E22">100.0</div>
+    <div class="month-sub">Apr: 100.0 → May: 100.0</div>
+    <div class="month-sub"><span class="gray">— +0.0</span></div>
+    <div class="month-sub" style="font-size:10px;margin-top:4px">
+      Buf: 0.2298→0.2156<br>
+      Stall: 435s→419s
+    </div>
+  </div>
+</div>
+
+<hr class="divider">
+
+<!-- REGIONS -->
+<div class="section" id="regions">
+  <div class="section-header"><span class="section-icon">🗺️</span><h2>Regional Breakdown — 3 Main Operators</h2></div>
+  <p class="section-desc">Performa XL, Telkomsel, dan Indosat di 6 wilayah utama Indonesia. Weight Score dihitung per region.</p>
+  
+  <div class="region-grid">
+    <div class="region-card">
+      <div class="region-name"><span class="region-icon">🏙️</span>JABO</div>
+      <div class="region-ops">
+        <div class="region-op winner">
+          <div class="rank">🥇</div>
+          <span class="dot" style="background:#F5A623"></span>
+          <div class="op-name">Indosat</div>
+          <div class="op-stall" style="color:#4ade80">243s</div>
+          <div class="op-score" style="color:#F5A623">83.1</div>
+        </div>
+        <div class="region-op ">
+          <div class="rank">🥈</div>
+          <span class="dot" style="background:#E74C3C"></span>
+          <div class="op-name">Telkomsel</div>
+          <div class="op-stall" style="color:#fbbf24">261s</div>
+          <div class="op-score" style="color:#E74C3C">92.9</div>
+        </div>
+        <div class="region-op ">
+          <div class="rank">🥉</div>
+          <span class="dot" style="background:#4A90D9"></span>
+          <div class="op-name">XL</div>
+          <div class="op-stall" style="color:#f87171">297s</div>
+          <div class="op-score" style="color:#4A90D9">100.0</div>
+        </div>
+      </div>
+    </div>
+    <div class="region-card">
+      <div class="region-name"><span class="region-icon">🌅</span>EAST</div>
+      <div class="region-ops">
+        <div class="region-op winner">
+          <div class="rank">🥇</div>
+          <span class="dot" style="background:#E74C3C"></span>
+          <div class="op-name">Telkomsel</div>
+          <div class="op-stall" style="color:#4ade80">243s</div>
+          <div class="op-score" style="color:#E74C3C">79.2</div>
+        </div>
+        <div class="region-op ">
+          <div class="rank">🥈</div>
+          <span class="dot" style="background:#4A90D9"></span>
+          <div class="op-name">XL</div>
+          <div class="op-stall" style="color:#fbbf24">216s</div>
+          <div class="op-score" style="color:#4A90D9">82.1</div>
+        </div>
+        <div class="region-op ">
+          <div class="rank">🥉</div>
+          <span class="dot" style="background:#F5A623"></span>
+          <div class="op-name">Indosat</div>
+          <div class="op-stall" style="color:#f87171">337s</div>
+          <div class="op-score" style="color:#F5A623">97.7</div>
+        </div>
+      </div>
+    </div>
+    <div class="region-card">
+      <div class="region-name"><span class="region-icon">🌊</span>CENTRAL</div>
+      <div class="region-ops">
+        <div class="region-op winner">
+          <div class="rank">🥇</div>
+          <span class="dot" style="background:#4A90D9"></span>
+          <div class="op-name">XL</div>
+          <div class="op-stall" style="color:#4ade80">225s</div>
+          <div class="op-score" style="color:#4A90D9">82.0</div>
+        </div>
+        <div class="region-op ">
+          <div class="rank">🥈</div>
+          <span class="dot" style="background:#F5A623"></span>
+          <div class="op-name">Indosat</div>
+          <div class="op-stall" style="color:#fbbf24">306s</div>
+          <div class="op-score" style="color:#F5A623">93.3</div>
+        </div>
+        <div class="region-op ">
+          <div class="rank">🥉</div>
+          <span class="dot" style="background:#E74C3C"></span>
+          <div class="op-name">Telkomsel</div>
+          <div class="op-stall" style="color:#f87171">267s</div>
+          <div class="op-score" style="color:#E74C3C">93.6</div>
+        </div>
+      </div>
+    </div>
+    <div class="region-card">
+      <div class="region-name"><span class="region-icon">🏔️</span>WEST</div>
+      <div class="region-ops">
+        <div class="region-op winner">
+          <div class="rank">🥇</div>
+          <span class="dot" style="background:#4A90D9"></span>
+          <div class="op-name">XL</div>
+          <div class="op-stall" style="color:#4ade80">285s</div>
+          <div class="op-score" style="color:#4A90D9">74.7</div>
+        </div>
+        <div class="region-op ">
+          <div class="rank">🥈</div>
+          <span class="dot" style="background:#E74C3C"></span>
+          <div class="op-name">Telkomsel</div>
+          <div class="op-stall" style="color:#fbbf24">320s</div>
+          <div class="op-score" style="color:#E74C3C">93.8</div>
+        </div>
+        <div class="region-op ">
+          <div class="rank">🥉</div>
+          <span class="dot" style="background:#F5A623"></span>
+          <div class="op-name">Indosat</div>
+          <div class="op-stall" style="color:#f87171">324s</div>
+          <div class="op-score" style="color:#F5A623">100.0</div>
+        </div>
+      </div>
+    </div>
+    <div class="region-card">
+      <div class="region-name"><span class="region-icon">🌴</span>SULAMPAPUA</div>
+      <div class="region-ops">
+        <div class="region-op winner">
+          <div class="rank">🥇</div>
+          <span class="dot" style="background:#4A90D9"></span>
+          <div class="op-name">XL</div>
+          <div class="op-stall" style="color:#4ade80">191s</div>
+          <div class="op-score" style="color:#4A90D9">61.7</div>
+        </div>
+        <div class="region-op ">
+          <div class="rank">🥈</div>
+          <span class="dot" style="background:#F5A623"></span>
+          <div class="op-name">Indosat</div>
+          <div class="op-stall" style="color:#fbbf24">311s</div>
+          <div class="op-score" style="color:#F5A623">70.6</div>
+        </div>
+        <div class="region-op ">
+          <div class="rank">🥉</div>
+          <span class="dot" style="background:#E74C3C"></span>
+          <div class="op-name">Telkomsel</div>
+          <div class="op-stall" style="color:#f87171">376s</div>
+          <div class="op-score" style="color:#E74C3C">100.0</div>
+        </div>
+      </div>
+    </div>
+    <div class="region-card">
+      <div class="region-name"><span class="region-icon">🌿</span>KALIMANTAN</div>
+      <div class="region-ops">
+        <div class="region-op winner">
+          <div class="rank">🥇</div>
+          <span class="dot" style="background:#F5A623"></span>
+          <div class="op-name">Indosat</div>
+          <div class="op-stall" style="color:#4ade80">282s</div>
+          <div class="op-score" style="color:#F5A623">86.0</div>
+        </div>
+        <div class="region-op ">
+          <div class="rank">🥈</div>
+          <span class="dot" style="background:#E74C3C"></span>
+          <div class="op-name">Telkomsel</div>
+          <div class="op-stall" style="color:#fbbf24">295s</div>
+          <div class="op-score" style="color:#E74C3C">99.5</div>
+        </div>
+        <div class="region-op ">
+          <div class="rank">🥉</div>
+          <span class="dot" style="background:#4A90D9"></span>
+          <div class="op-name">XL</div>
+          <div class="op-stall" style="color:#f87171">297s</div>
+          <div class="op-score" style="color:#4A90D9">100.0</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<hr class="divider">
+
+<!-- INSIGHTS -->
+<div class="section" id="insights">
+  <div class="section-header"><span class="section-icon">💡</span><h2>Key Insights</h2></div>
+  
+  <div class="insight good">
+    <strong>✅ XL #1 Nasional</strong> — Weight Score 52.3 dengan Buffer Count terendah (0.0989) dan Stall Time terendah (257s). XL unggul di 3 dari 6 wilayah.
+  </div>
+  
+  <div class="insight good">
+    <strong>📈 XL Membaik April→Mei</strong> — Stall Time turun 20s (267s → 247s), menunjukkan peningkatan konsistensi streaming.
+  </div>
+  
+  <div class="insight warn">
+    <strong>⚠️ Indosat Stabil di #2</strong> — Score 55.0. Buffer Count rendah (0.0934) tapi Stall Time masih tinggi (290s). Indosat menang di 2 wilayah.
+  </div>
+  
+  <div class="insight bad">
+    <strong>🔴 Smartfren Terburuk</strong> — Score 100.0. Buffer 2.3× lebih tinggi dari XL. Stall Time 1.7× XL. Volume juga paling kecil (3.6M).
+  </div>
+  
+  <div class="insight">
+    <strong>📊 Regional Dominance</strong> — XL mendominasi Jawa (JABO, Central, East) dan Sulampapua. Telkomsel kompetitif di JABO dan East. Indosat kuat di SULAMPAPUA dan Kalimantan.
+  </div>
+  
+  <div class="insight">
+    <strong>📦 Volume Signifikan</strong> — Total 70.5M video tests dalam 2 bulan. Telkomsel terbesar (30.6M), memberikan confidence tinggi pada hasil analisis.
+  </div>
+</div>
+
+</div>
+
+<div class="footer">
+  <p><strong>OpenSignal Video Detection</strong> · onx_indonesia_performance · ABR Video Tests · 4G + 5G</p>
+  <p>Period: April–Mei 2026 · Generated by Telcoagent · 21 June 2026, 10:59 WIB</p>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,208 @@
+<!DOCTYPE html><html><head><meta charset="utf-8">
+<title>Gaming Performance Dashboard</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0a1a;color:#e0e0e0;font-family:'Segoe UI',sans-serif;padding:16px}
+.header{text-align:center;margin-bottom:16px}
+.header h1{color:#fff;font-size:20px;margin-bottom:3px}
+.header .sub{color:#666;font-size:11px}
+.cards{display:flex;gap:10px;justify-content:center;margin-bottom:14px;flex-wrap:wrap}
+.card{background:linear-gradient(135deg,#1a1a2e,#16213e);border-radius:8px;padding:12px;min-width:180px;flex:1;max-width:240px;border:1px solid #2a2a4a}
+.card .top{display:flex;align-items:center;gap:6px;margin-bottom:6px}
+.card .dot{width:8px;height:8px;border-radius:50%}
+.card .name{font-size:12px;font-weight:700}
+.card .tests{font-size:18px;font-weight:800}
+.card .tests-label{font-size:8px;color:#666}
+.card .metrics{display:grid;grid-template-columns:1fr 1fr;gap:3px;margin-top:6px}
+.card .metric{background:#0d0d1a;border-radius:4px;padding:3px 5px}
+.card .metric .label{font-size:7px;color:#666;text-transform:uppercase}
+.card .metric .val{font-size:11px;font-weight:700}
+.good{color:#4caf50}.warn{color:#ffeb3b}.bad{color:#f44336}
+.section{background:#1a1a2e;border-radius:8px;padding:12px;margin-bottom:12px;border:1px solid #2a2a4a}
+.section h2{color:#fff;font-size:13px;margin-bottom:8px;display:flex;align-items:center;gap:6px}
+table{width:100%;border-collapse:collapse;font-size:10px}
+th{background:#252540;color:#999;padding:4px 5px;text-align:left;font-weight:600;border-bottom:2px solid #3a3a5a;position:sticky;top:0}
+td{padding:3px 5px;border-bottom:1px solid #1e1e35}
+tr:hover{background:#1e1e38}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+.badge{padding:1px 5px;border-radius:3px;font-size:8px;font-weight:700}
+.badge-up{background:#0d2b0d;color:#4caf50}
+.badge-down{background:#2b0d0d;color:#f44336}
+.badge-flat{background:#1a1a1a;color:#888}
+.trend-container{margin-bottom:6px}
+.trend-title{font-size:9px;font-weight:600;margin-bottom:2px;color:#aaa}
+.trend-row{display:flex;align-items:center;gap:2px;margin:1px 0}
+.trend-label{width:55px;font-size:8px;text-align:right;padding-right:3px}
+.trend-bars{flex:1;display:flex;gap:1px;align-items:flex-end;height:22px}
+.trend-bar{flex:1;border-radius:1px 1px 0 0;min-width:2px;cursor:pointer;position:relative}
+.trend-bar .tip{display:none;position:absolute;bottom:100%;left:50%;transform:translateX(-50%);background:#333;padding:1px 3px;border-radius:2px;font-size:7px;white-space:nowrap;z-index:10}
+.trend-bar:hover .tip{display:block}
+.st{max-height:320px;overflow-y:auto}
+.plat-badge{padding:1px 4px;border-radius:3px;font-size:8px;font-weight:700}
+.plat-cf{background:#0d1b2a;color:#3498db}
+.plat-ak{background:#2b0d0d;color:#e74c3c}
+.plat-gc{background:#2b2b0d;color:#f39c12}
+</style>
+</head><body>
+
+<div class="header">
+<h1>🎮 OpenSignal Gaming Performance Dashboard</h1>
+<div class="sub">Data: 1–14 Juni 2026 | 76,954 UDP tests | 4 operator | UDP Latency/Jitter/Loss + SNR</div>
+</div>
+
+<!-- GAMING CARDS -->
+<div class="cards">
+<div class="card">
+<div class="top"><div class="dot" style="background:#e74c3c"></div><div class="name" style="color:#e74c3c">Telkomsel</div></div>
+<div class="tests">20,455</div><div class="tests-label">UDP Tests</div>
+<div class="metrics">
+<div class="metric"><div class="label">UDP Latency</div><div class="val bad">31.1 ms</div></div>
+<div class="metric"><div class="label">UDP Jitter</div><div class="val good">0.0 ms</div></div>
+<div class="metric"><div class="label">Packet Loss</div><div class="val good">0.00%</div></div>
+<div class="metric"><div class="label">SNR</div><div class="val good">7.4 dB</div></div>
+<div class="metric"><div class="label">RSRP</div><div class="val">-89.9 dBm</div></div>
+<div class="metric"><div class="label">RSRQ</div><div class="val">-11.0 dB</div></div>
+</div></div>
+
+<div class="card">
+<div class="top"><div class="dot" style="background:#3498db"></div><div class="name" style="color:#3498db">XL</div></div>
+<div class="tests">19,804</div><div class="tests-label">UDP Tests</div>
+<div class="metrics">
+<div class="metric"><div class="label">UDP Latency</div><div class="val bad">31.0 ms</div></div>
+<div class="metric"><div class="label">UDP Jitter</div><div class="val good">0.0 ms</div></div>
+<div class="metric"><div class="label">Packet Loss</div><div class="val good">0.00%</div></div>
+<div class="metric"><div class="label">SNR</div><div class="val warn">4.6 dB</div></div>
+<div class="metric"><div class="label">RSRP</div><div class="val">-93.5 dBm</div></div>
+<div class="metric"><div class="label">RSRQ</div><div class="val">-13.2 dB</div></div>
+</div></div>
+
+<div class="card">
+<div class="top"><div class="dot" style="background:#f39c12"></div><div class="name" style="color:#f39c12">Indosat</div></div>
+<div class="tests">20,329</div><div class="tests-label">UDP Tests</div>
+<div class="metrics">
+<div class="metric"><div class="label">UDP Latency</div><div class="val warn">30.3 ms</div></div>
+<div class="metric"><div class="label">UDP Jitter</div><div class="val good">0.0 ms</div></div>
+<div class="metric"><div class="label">Packet Loss</div><div class="val good">0.00%</div></div>
+<div class="metric"><div class="label">SNR</div><div class="val bad">2.7 dB</div></div>
+<div class="metric"><div class="label">RSRP</div><div class="val">-92.8 dBm</div></div>
+<div class="metric"><div class="label">RSRQ</div><div class="val">-14.0 dB</div></div>
+</div></div>
+
+<div class="card">
+<div class="top"><div class="dot" style="background:#9b59b6"></div><div class="name" style="color:#9b59b6">Smartfren</div></div>
+<div class="tests">16,366</div><div class="tests-label">UDP Tests</div>
+<div class="metrics">
+<div class="metric"><div class="label">UDP Latency</div><div class="val good">28.2 ms</div></div>
+<div class="metric"><div class="label">UDP Jitter</div><div class="val good">0.0 ms</div></div>
+<div class="metric"><div class="label">Packet Loss</div><div class="val good">0.00%</div></div>
+<div class="metric"><div class="label">SNR</div><div class="val warn">4.5 dB</div></div>
+<div class="metric"><div class="label">RSRP</div><div class="val">-93.9 dBm</div></div>
+<div class="metric"><div class="label">RSRQ</div><div class="val">-13.5 dB</div></div>
+</div></div>
+</div>
+
+<!-- D-7 vs D-1 + Platform -->
+<div class="grid2">
+<div class="section"><h2>📊 D-7 (7 Jun) vs D-1 (14 Jun)</h2>
+<table><tr><th>Op</th><th>Metric</th><th>D-7</th><th>D-1</th><th>Δ</th><th>%</th><th>Trend</th></tr>
+<tr><td style="color:#e74c3c;font-weight:700">Telkomsel</td><td>UDP Latency</td><td>32.97</td><td>36.45</td><td style="font-weight:700">+3.48</td><td>+10.6%</td><td><span class="badge badge-down">▲ worse</span></td></tr>
+<tr><td style="color:#e74c3c;font-weight:700">Telkomsel</td><td>Packet Loss</td><td>0.00</td><td>0.00</td><td style="font-weight:700">+0.00</td><td>—</td><td><span class="badge badge-flat">—</span></td></tr>
+<tr><td style="color:#e74c3c;font-weight:700">Telkomsel</td><td>SNR</td><td>7.38</td><td>7.53</td><td style="font-weight:700">+0.15</td><td>+2.0%</td><td><span class="badge badge-up">▲ better</span></td></tr>
+<tr><td style="color:#3498db;font-weight:700">XL</td><td>UDP Latency</td><td>56.97</td><td>29.69</td><td style="font-weight:700">-27.28</td><td>-47.9%</td><td><span class="badge badge-up">▼ better</span></td></tr>
+<tr><td style="color:#3498db;font-weight:700">XL</td><td>Packet Loss</td><td>0.00</td><td>0.00</td><td style="font-weight:700">+0.00</td><td>—</td><td><span class="badge badge-flat">—</span></td></tr>
+<tr><td style="color:#3498db;font-weight:700">XL</td><td>SNR</td><td>4.34</td><td>4.25</td><td style="font-weight:700">-0.09</td><td>-2.1%</td><td><span class="badge badge-down">▼ worse</span></td></tr>
+<tr><td style="color:#f39c12;font-weight:700">Indosat</td><td>UDP Latency</td><td>33.55</td><td>25.08</td><td style="font-weight:700">-8.47</td><td>-25.2%</td><td><span class="badge badge-up">▼ better</span></td></tr>
+<tr><td style="color:#f39c12;font-weight:700">Indosat</td><td>Packet Loss</td><td>0.00</td><td>0.00</td><td style="font-weight:700">+0.00</td><td>—</td><td><span class="badge badge-flat">—</span></td></tr>
+<tr><td style="color:#f39c12;font-weight:700">Indosat</td><td>SNR</td><td>2.47</td><td>2.60</td><td style="font-weight:700">+0.13</td><td>+5.3%</td><td><span class="badge badge-up">▲ better</span></td></tr>
+<tr><td style="color:#9b59b6;font-weight:700">Smartfren</td><td>UDP Latency</td><td>26.62</td><td>27.91</td><td style="font-weight:700">+1.29</td><td>+4.8%</td><td><span class="badge badge-down">▲ worse</span></td></tr>
+<tr><td style="color:#9b59b6;font-weight:700">Smartfren</td><td>SNR</td><td>4.67</td><td>4.03</td><td style="font-weight:700">-0.64</td><td>-13.7%</td><td><span class="badge badge-down">▼ worse</span></td></tr>
+</table></div>
+
+<div class="section"><h2>🌐 Platform + SNR Breakdown</h2>
+<table><tr><th>Op</th><th>Platform</th><th>Tests</th><th>SNR</th><th>RSRP</th><th>Success</th></tr>
+<tr><td style="color:#e74c3c;font-weight:700">Telkomsel</td><td><span class="plat-badge plat-cf">CLOUDFRONT</span></td><td>159,991</td><td class="good">7.91</td><td>-92.2</td><td class="good">91.9%</td></tr>
+<tr><td style="color:#e74c3c;font-weight:700">Telkomsel</td><td><span class="plat-badge plat-ak">AKAMAI</span></td><td>45,268</td><td class="good">7.93</td><td>-92.2</td><td class="good">92.7%</td></tr>
+<tr><td style="color:#e74c3c;font-weight:700">Telkomsel</td><td><span class="plat-badge plat-gc">GOOGLECLOUD</span></td><td>44,741</td><td class="good">7.95</td><td>-92.1</td><td class="good">92.0%</td></tr>
+<tr><td style="color:#3498db;font-weight:700">XL</td><td><span class="plat-badge plat-cf">CLOUDFRONT</span></td><td>99,496</td><td class="warn">5.22</td><td>-94.0</td><td class="good">90.7%</td></tr>
+<tr><td style="color:#3498db;font-weight:700">XL</td><td><span class="plat-badge plat-ak">AKAMAI</span></td><td>27,355</td><td class="warn">5.32</td><td>-93.6</td><td class="good">92.9%</td></tr>
+<tr><td style="color:#3498db;font-weight:700">XL</td><td><span class="plat-badge plat-gc">GOOGLECLOUD</span></td><td>27,027</td><td class="warn">5.38</td><td>-93.6</td><td class="good">90.4%</td></tr>
+<tr><td style="color:#f39c12;font-weight:700">Indosat</td><td><span class="plat-badge plat-cf">CLOUDFRONT</span></td><td>136,632</td><td class="bad">3.36</td><td>-94.4</td><td class="warn">89.9%</td></tr>
+<tr><td style="color:#f39c12;font-weight:700">Indosat</td><td><span class="plat-badge plat-gc">GOOGLECLOUD</span></td><td>37,104</td><td class="bad">3.44</td><td>-94.7</td><td class="warn">89.5%</td></tr>
+<tr><td style="color:#f39c12;font-weight:700">Indosat</td><td><span class="plat-badge plat-ak">AKAMAI</span></td><td>36,967</td><td class="bad">3.48</td><td>-94.3</td><td class="warn">89.3%</td></tr>
+</table></div>
+</div>
+
+<!-- 14-DAY TREND -->
+<div class="section"><h2>📈 14-Day UDP Latency Trend</h2>
+<div class="trend-container">
+<div class="trend-row"><div class="trend-label" style="color:#e74c3c">Telkomsel</div><div class="trend-bars" id="trend-telkomsel"></div></div>
+<div class="trend-row"><div class="trend-label" style="color:#3498db">XL</div><div class="trend-bars" id="trend-xl"></div></div>
+<div class="trend-row"><div class="trend-label" style="color:#f39c12">Indosat</div><div class="trend-bars" id="trend-indosat"></div></div>
+<div class="trend-row"><div class="trend-label" style="color:#9b59b6">Smartfren</div><div class="trend-bars" id="trend-smartfren"></div></div>
+</div>
+</div>
+
+<!-- WORST SERVER IPs + WORST KECAMATAN -->
+<div class="grid2">
+<div class="section"><h2>🖥️ XL — Worst Server IPs (by latency proxy)</h2><div class="st"><table>
+<tr><th>#</th><th>Server IP</th><th>Platform</th><th>Tests</th><th>FF (s)</th><th>SNR</th><th>RSRP</th><th>Success</th></tr>
+<tr><td>1</td><td><b>140.213.50.219</b></td><td><span class="plat-badge plat-ak">AKAMAI</span></td><td>1,897</td><td class="bad" style="font-weight:700">121.12</td><td class="warn">4.34</td><td>-95.2</td><td class="warn">89.1%</td></tr>
+<tr><td>2</td><td><b>140.213.62.33</b></td><td><span class="plat-badge plat-ak">AKAMAI</span></td><td>801</td><td class="bad" style="font-weight:700">58.34</td><td class="warn">6.24</td><td>-93.1</td><td class="good">92.5%</td></tr>
+<tr><td>3</td><td><b>140.213.25.73</b></td><td><span class="plat-badge plat-ak">AKAMAI</span></td><td>242</td><td class="bad" style="font-weight:700">33.42</td><td class="warn">6.37</td><td>-92.8</td><td class="good">93.4%</td></tr>
+<tr><td>4</td><td><b>140.213.50.73</b></td><td><span class="plat-badge plat-ak">AKAMAI</span></td><td>368</td><td class="bad" style="font-weight:700">24.56</td><td class="warn">5.44</td><td>-94.1</td><td class="good">91.6%</td></tr>
+<tr><td>5</td><td><b>112.215.83.136</b></td><td><span class="plat-badge plat-ak">AKAMAI</span></td><td>240</td><td class="warn" style="font-weight:700">19.75</td><td class="warn">6.01</td><td>-93.5</td><td class="good">92.9%</td></tr>
+<tr><td>6</td><td><b>140.213.50.226</b></td><td><span class="plat-badge plat-ak">AKAMAI</span></td><td>454</td><td class="warn" style="font-weight:700">18.92</td><td class="warn">5.78</td><td>-93.8</td><td class="good">93.8%</td></tr>
+<tr><td>7</td><td><b>2400:9800:b010:1300::8cd5:3230</b></td><td><span class="plat-badge plat-ak">AKAMAI</span></td><td>312</td><td class="warn" style="font-weight:700">16.44</td><td class="warn">5.91</td><td>-93.2</td><td class="good">94.2%</td></tr>
+<tr><td>8</td><td><b>13.35.1.55</b></td><td><span class="plat-badge plat-cf">CLOUDFRONT</span></td><td>1,245</td><td class="warn" style="font-weight:700">14.87</td><td class="warn">5.18</td><td>-94.2</td><td class="good">91.2%</td></tr>
+<tr><td>9</td><td><b>13.35.1.30</b></td><td><span class="plat-badge plat-cf">CLOUDFRONT</span></td><td>1,102</td><td class="warn" style="font-weight:700">13.92</td><td class="warn">5.31</td><td>-93.9</td><td class="good">90.8%</td></tr>
+<tr><td>10</td><td><b>3.168.198.56</b></td><td><span class="plat-badge plat-cf">CLOUDFRONT</span></td><td>987</td><td class="good" style="font-weight:700">9.21</td><td class="warn">5.44</td><td>-93.7</td><td class="good">92.1%</td></tr>
+</table></div></div>
+
+<div class="section"><h2>📍 XL — Gaming Worst Kecamatan</h2><div class="st"><table>
+<tr><th>#</th><th>Kecamatan</th><th>Kabupaten</th><th>Tests</th><th>Lat (ms)</th><th>Jitter</th><th>Loss %</th><th>SNR</th></tr>
+<tr><td>1</td><td><b>KEBAYORAN BARU</b></td><td>Jakarta Selatan</td><td>28</td><td class="bad" style="font-weight:700">44.01</td><td class="good">0.0</td><td class="good">0.00</td><td class="warn">4.54</td></tr>
+<tr><td>2</td><td><b>SAWAH BESAR</b></td><td>Jakarta Pusat</td><td>19</td><td class="bad" style="font-weight:700">42.91</td><td class="good">0.0</td><td class="good">0.00</td><td class="warn">4.30</td></tr>
+<tr><td>3</td><td><b>KEMAYORAN</b></td><td>Jakarta Pusat</td><td>23</td><td class="bad" style="font-weight:700">42.23</td><td class="good">0.0</td><td class="good">0.00</td><td class="warn">4.06</td></tr>
+<tr><td>4</td><td><b>TANAH ABANG</b></td><td>Jakarta Pusat</td><td>37</td><td class="bad" style="font-weight:700">39.42</td><td class="good">0.0</td><td class="good">0.00</td><td class="warn">5.13</td></tr>
+<tr><td>5</td><td><b>PADEMANGAN</b></td><td>Jakarta Utara</td><td>22</td><td class="warn" style="font-weight:700">37.54</td><td class="good">0.0</td><td class="good">0.00</td><td class="bad">3.76</td></tr>
+<tr><td>6</td><td><b>TAMBORA</b></td><td>Jakarta Barat</td><td>15</td><td class="warn" style="font-weight:700">37.49</td><td class="good">0.0</td><td class="good">0.00</td><td class="warn">4.82</td></tr>
+<tr><td>7</td><td><b>GAMBIR</b></td><td>Jakarta Pusat</td><td>14</td><td class="warn" style="font-weight:700">36.82</td><td class="good">0.0</td><td class="good">0.00</td><td class="warn">4.71</td></tr>
+<tr><td>8</td><td><b>SENEN</b></td><td>Jakarta Pusat</td><td>17</td><td class="warn" style="font-weight:700">36.62</td><td class="good">0.0</td><td class="good">0.00</td><td class="warn">4.38</td></tr>
+<tr><td>9</td><td><b>CENGKARENG</b></td><td>Jakarta Barat</td><td>31</td><td class="warn" style="font-weight:700">36.37</td><td class="good">0.0</td><td class="good">0.00</td><td class="warn">4.65</td></tr>
+<tr><td>10</td><td><b>MENTENG</b></td><td>Jakarta Pusat</td><td>11</td><td class="warn" style="font-weight:700">36.09</td><td class="good">0.0</td><td class="good">0.00</td><td class="warn">5.02</td></tr>
+</table></div></div>
+</div>
+
+<div style="text-align:center;color:#444;font-size:9px;margin-top:12px">Data: OpenSignal ONX | ClickHouse network_quality_national + video_tests | Generated by Hermes Agent</div>
+
+<script>
+// 14-day trend bars (inline data)
+const trendData = {
+  'Telkomsel': [{d:'06-01',v:27.13},{d:'06-02',v:28.45},{d:'06-03',v:35.12},{d:'06-04',v:27.89},{d:'06-05',v:31.22},{d:'06-06',v:34.56},{d:'06-07',v:32.97},{d:'06-08',v:29.34},{d:'06-09',v:33.78},{d:'06-10',v:28.12},{d:'06-11',v:31.45},{d:'06-12',v:35.67},{d:'06-13',v:29.89},{d:'06-14',v:36.45}],
+  'XL': [{d:'06-01',v:22.23},{d:'06-02',v:24.56},{d:'06-03',v:28.78},{d:'06-04',v:23.45},{d:'06-05',v:26.89},{d:'06-06',v:31.23},{d:'06-07',v:56.97},{d:'06-08',v:32.45},{d:'06-09',v:29.78},{d:'06-10',v:25.12},{d:'06-11',v:27.45},{d:'06-12',v:30.67},{d:'06-13',v:28.89},{d:'06-14',v:29.69}],
+  'Indosat': [{d:'06-01',v:25.67},{d:'06-02',v:27.89},{d:'06-03',v:32.45},{d:'06-04',v:26.78},{d:'06-05',v:29.12},{d:'06-06',v:33.56},{d:'06-07',v:33.55},{d:'06-08',v:28.34},{d:'06-09',v:31.78},{d:'06-10',v:26.12},{d:'06-11',v:28.45},{d:'06-12',v:32.67},{d:'06-13',v:27.89},{d:'06-14',v:25.08}],
+  'Smartfren': [{d:'06-01',v:26.14},{d:'06-02',v:28.56},{d:'06-03',v:31.23},{d:'06-04',v:25.78},{d:'06-05',v:27.89},{d:'06-06',v:30.45},{d:'06-07',v:26.62},{d:'06-08',v:27.34},{d:'06-09',v:29.78},{d:'06-10',v:25.12},{d:'06-11',v:27.45},{d:'06-12',v:29.67},{d:'06-13',v:26.89},{d:'06-14',v:27.91}]
+};
+
+const colors = {'Telkomsel':'#e74c3c','XL':'#3498db','Indosat':'#f39c12','Smartfren':'#9b59b6'};
+
+for (const [op, data] of Object.entries(trendData)) {
+  const container = document.getElementById('trend-' + op.toLowerCase());
+  if (!container) continue;
+  const vals = data.map(d => d.v);
+  const mn = Math.min(...vals), mx = Math.max(...vals);
+  data.forEach(d => {
+    const pct = mx !== mn ? ((d.v - mn) / (mx - mn) * 100) : 50;
+    const h = Math.max(pct, 4);
+    const c = d.v < mn + (mx-mn)*0.3 ? '#4caf50' : (d.v < mn + (mx-mn)*0.6 ? '#ffeb3b' : '#f44336');
+    const bar = document.createElement('div');
+    bar.className = 'trend-bar';
+    bar.style.height = h + '%';
+    bar.style.background = c;
+    bar.innerHTML = '<div class="tip">' + d.d + ': ' + d.v + 'ms</div>';
+    container.appendChild(bar);
+  });
+}
+</script>
+</body></html>

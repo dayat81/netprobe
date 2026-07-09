@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html><head><meta charset="UTF-8">
+<title>Timeseries — Kota Cimahi</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<style>
+body{background:#0d1117;color:#e6edf3;font-family:-apple-system,sans-serif;margin:0;padding:15px}
+.container{max-width:1400px;margin:0 auto}
+h1{text-align:center;color:#f44336;margin-bottom:5px;font-size:20px}
+.subtitle{text-align:center;color:#8b949e;margin-bottom:20px;font-size:12px}
+.chart-grid{display:grid;grid-template-columns:1fr 1fr;gap:15px;margin-bottom:20px}
+.chart-box{background:#161b22;border-radius:10px;padding:15px;border:1px solid #30363d}
+.chart-box h3{margin:0 0 10px;font-size:14px;color:#e6edf3}
+.chart-box canvas{width:100%!important;height:250px!important}
+.full-width{grid-column:1/-1}
+.legend{display:flex;gap:15px;justify-content:center;margin:10px 0;font-size:11px}
+.legend-item{display:flex;align-items:center;gap:4px}
+.legend-dot{width:10px;height:10px;border-radius:50%}
+.anomaly-marker{background:#f44336;color:#fff;padding:1px 5px;border-radius:4px;font-size:10px;font-weight:600}
+</style></head><body>
+<div class="container">
+<h1>📈 Timeseries — Kota Cimahi (XL 4G)</h1>
+<div class="subtitle">Data 1-14 Juni 2026 | Per kecamatan | Video + Gaming metrics</div>
+
+<div class="legend">
+<div class="legend-item"><div class="legend-dot" style="background:#42a5f5"></div>Cimahi Selatan</div>
+<div class="legend-item"><div class="legend-dot" style="background:#66bb6a"></div>Cimahi Tengah</div>
+<div class="legend-item"><div class="legend-dot" style="background:#ffa726"></div>Cimahi Utara</div>
+</div>
+
+<div class="chart-grid">
+<div class="chart-box">
+<h3>📹 Video — First Frame (s)</h3>
+<canvas id="chart_ff"></canvas>
+</div>
+<div class="chart-box">
+<h3>📹 Video — Stall Time (s)</h3>
+<canvas id="chart_stall"></canvas>
+</div>
+<div class="chart-box">
+<h3>📹 Video — Throughput (Mbps)</h3>
+<canvas id="chart_tput"></canvas>
+</div>
+<div class="chart-box">
+<h3>📹 Video — Success Rate (%)</h3>
+<canvas id="chart_success"></canvas>
+</div>
+<div class="chart-box">
+<h3>🎮 Gaming — Latency (ms)</h3>
+<canvas id="chart_lat"></canvas>
+</div>
+<div class="chart-box">
+<h3>🎮 Gaming — Packet Loss (%)</h3>
+<canvas id="chart_loss"></canvas>
+</div>
+<div class="chart-box">
+<h3>🎮 Gaming — Jitter (ms)</h3>
+<canvas id="chart_jitter"></canvas>
+</div>
+<div class="chart-box">
+<h3>🎮 Gaming — Sample Count</h3>
+<canvas id="chart_gn"></canvas>
+</div>
+</div>
+
+<div style="background:#161b22;border-radius:10px;padding:15px;border:1px solid #30363d;margin-top:15px">
+<h3 style="margin:0 0 10px;color:#f44336">🚨 Anomali Markers</h3>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:12px">
+<div>
+<b>📹 Video Anomalies:</b>
+<ul style="margin:5px 0;padding-left:20px">
+<li><span class="anomaly-marker">Jun 5 Selatan</span> FF 661s — CDN outlier</li>
+<li><span class="anomaly-marker">Jun 10 Tengah</span> FF 299s — CDN timeout</li>
+<li><span class="anomaly-marker">Jun 12 Selatan</span> Stall 2,211s — CLOUDFRONT</li>
+<li><span class="anomaly-marker">Jun 14 Utara</span> Stall 2,044s — CLOUDFRONT</li>
+</ul>
+</div>
+<div>
+<b>🎮 Gaming Anomalies:</b>
+<ul style="margin:5px 0;padding-left:20px">
+<li><span class="anomaly-marker">Jun 8 Utara</span> Latency 274ms — device outlier</li>
+<li><span class="anomaly-marker">Jun 3 Tengah</span> Latency 68ms — spike</li>
+<li><span class="anomaly-marker">Jun 4 Utara</span> Loss 5.61% — device issue</li>
+<li><span class="anomaly-marker">Jun 9 Selatan</span> Loss 6.53% — HOT 30i?</li>
+</ul>
+</div>
+</div>
+</div>
+
+</div>
+
+<script>
+const dates = ["Jun 1", "Jun 2", "Jun 3", "Jun 4", "Jun 5", "Jun 6", "Jun 7", "Jun 8", "Jun 9", "Jun 10", "Jun 11", "Jun 12", "Jun 13", "Jun 14"];
+const kecs = ['CIMAHI SELATAN', 'CIMAHI TENGAH', 'CIMAHI UTARA'];
+const colors = ['#42a5f5', '#66bb6a', '#ffa726'];
+
+const videoData = [{"kec": "CIMAHI SELATAN", "date": "2026-06-01", "n": 7, "ff": 6.3, "stall": 0, "tput": 17.7, "success": 85.7}, {"kec": "CIMAHI SELATAN", "date": "2026-06-02", "n": 19, "ff": 12.7, "stall": 0, "tput": 14.7, "success": 94.7}, {"kec": "CIMAHI SELATAN", "date": "2026-06-03", "n": 7, "ff": 6.3, "stall": 0, "tput": 19.7, "success": 100}, {"kec": "CIMAHI SELATAN", "date": "2026-06-04", "n": 20, "ff": 8.9, "stall": 495.4, "tput": 19.8, "success": 90}, {"kec": "CIMAHI SELATAN", "date": "2026-06-05", "n": 20, "ff": 661.1, "stall": 0, "tput": 16.6, "success": 85}, {"kec": "CIMAHI SELATAN", "date": "2026-06-06", "n": 10, "ff": 4.3, "stall": 0, "tput": 15.3, "success": 90}, {"kec": "CIMAHI SELATAN", "date": "2026-06-07", "n": 10, "ff": 11.7, "stall": 0, "tput": 12, "success": 80}, {"kec": "CIMAHI SELATAN", "date": "2026-06-08", "n": 11, "ff": 9.9, "stall": 0, "tput": 15.1, "success": 100}, {"kec": "CIMAHI SELATAN", "date": "2026-06-09", "n": 12, "ff": 8.4, "stall": 0, "tput": 14.9, "success": 83.3}, {"kec": "CIMAHI SELATAN", "date": "2026-06-10", "n": 15, "ff": 5.9, "stall": 0, "tput": 14.7, "success": 86.7}, {"kec": "CIMAHI SELATAN", "date": "2026-06-11", "n": 12, "ff": 7.8, "stall": 1498.8, "tput": 14.4, "success": 91.7}, {"kec": "CIMAHI SELATAN", "date": "2026-06-12", "n": 16, "ff": 5.9, "stall": 2210.9, "tput": 9.8, "success": 81.2}, {"kec": "CIMAHI SELATAN", "date": "2026-06-13", "n": 13, "ff": 5.3, "stall": 0, "tput": 15.9, "success": 100}, {"kec": "CIMAHI SELATAN", "date": "2026-06-14", "n": 13, "ff": 5.7, "stall": 1347.1, "tput": 30, "success": 92.3}, {"kec": "CIMAHI TENGAH", "date": "2026-06-01", "n": 14, "ff": 19.9, "stall": 940.6, "tput": 18.2, "success": 100}, {"kec": "CIMAHI TENGAH", "date": "2026-06-02", "n": 8, "ff": 6.4, "stall": 0, "tput": 9.9, "success": 75}, {"kec": "CIMAHI TENGAH", "date": "2026-06-03", "n": 9, "ff": 2.8, "stall": 0, "tput": 17.1, "success": 88.9}, {"kec": "CIMAHI TENGAH", "date": "2026-06-04", "n": 6, "ff": 3, "stall": 0, "tput": 26.1, "success": 100}, {"kec": "CIMAHI TENGAH", "date": "2026-06-05", "n": 5, "ff": 8.4, "stall": 0, "tput": 9.5, "success": 80}, {"kec": "CIMAHI TENGAH", "date": "2026-06-06", "n": 7, "ff": 8.4, "stall": 0, "tput": 14.1, "success": 85.7}, {"kec": "CIMAHI TENGAH", "date": "2026-06-07", "n": 8, "ff": 7.2, "stall": 0, "tput": 13.5, "success": 100}, {"kec": "CIMAHI TENGAH", "date": "2026-06-08", "n": 16, "ff": 10.4, "stall": 0, "tput": 11.7, "success": 100}, {"kec": "CIMAHI TENGAH", "date": "2026-06-09", "n": 14, "ff": 21.3, "stall": 1485.4, "tput": 13, "success": 92.9}, {"kec": "CIMAHI TENGAH", "date": "2026-06-10", "n": 6, "ff": 299.3, "stall": 0, "tput": 8, "success": 66.7}, {"kec": "CIMAHI TENGAH", "date": "2026-06-11", "n": 15, "ff": 13.5, "stall": 0, "tput": 13.6, "success": 100}, {"kec": "CIMAHI TENGAH", "date": "2026-06-12", "n": 9, "ff": 6.2, "stall": 0, "tput": 17.6, "success": 100}, {"kec": "CIMAHI TENGAH", "date": "2026-06-13", "n": 5, "ff": 5.6, "stall": 0, "tput": 12.4, "success": 80}, {"kec": "CIMAHI TENGAH", "date": "2026-06-14", "n": 8, "ff": 9.1, "stall": 779.2, "tput": 10.4, "success": 75}, {"kec": "CIMAHI UTARA", "date": "2026-06-01", "n": 14, "ff": 4.2, "stall": 0, "tput": 20.4, "success": 92.9}, {"kec": "CIMAHI UTARA", "date": "2026-06-02", "n": 14, "ff": 5.8, "stall": 2307.7, "tput": 21.3, "success": 85.7}, {"kec": "CIMAHI UTARA", "date": "2026-06-03", "n": 8, "ff": 9.8, "stall": 0, "tput": 31.3, "success": 100}, {"kec": "CIMAHI UTARA", "date": "2026-06-04", "n": 6, "ff": 31.2, "stall": 0, "tput": 19.6, "success": 83.3}, {"kec": "CIMAHI UTARA", "date": "2026-06-05", "n": 15, "ff": 5.3, "stall": 431, "tput": 13.9, "success": 80}, {"kec": "CIMAHI UTARA", "date": "2026-06-06", "n": 12, "ff": 4.9, "stall": 0, "tput": 14.6, "success": 66.7}, {"kec": "CIMAHI UTARA", "date": "2026-06-07", "n": 8, "ff": 3.9, "stall": 0, "tput": 18.1, "success": 87.5}, {"kec": "CIMAHI UTARA", "date": "2026-06-08", "n": 13, "ff": 8.9, "stall": 0, "tput": 16.7, "success": 84.6}, {"kec": "CIMAHI UTARA", "date": "2026-06-09", "n": 2, "ff": 0, "stall": 0, "tput": 9.3, "success": 50}, {"kec": "CIMAHI UTARA", "date": "2026-06-10", "n": 10, "ff": 7.1, "stall": 0, "tput": 12.1, "success": 70}, {"kec": "CIMAHI UTARA", "date": "2026-06-11", "n": 11, "ff": 9.2, "stall": 0, "tput": 24.3, "success": 100}, {"kec": "CIMAHI UTARA", "date": "2026-06-12", "n": 11, "ff": 10.5, "stall": 383.1, "tput": 15.8, "success": 100}, {"kec": "CIMAHI UTARA", "date": "2026-06-13", "n": 12, "ff": 7.5, "stall": 0, "tput": 25.6, "success": 100}, {"kec": "CIMAHI UTARA", "date": "2026-06-14", "n": 14, "ff": 7.3, "stall": 2044.3, "tput": 9.2, "success": 71.4}];
+const gamingData = [{"kec": "CIMAHI SELATAN", "date": "2026-06-01", "n": 75, "lat": 22.2, "loss": 0.64, "jitter": 6.6}, {"kec": "CIMAHI SELATAN", "date": "2026-06-02", "n": 43, "lat": 26.2, "loss": 1.22, "jitter": 8}, {"kec": "CIMAHI SELATAN", "date": "2026-06-03", "n": 27, "lat": 24.2, "loss": 0.89, "jitter": 6.5}, {"kec": "CIMAHI SELATAN", "date": "2026-06-04", "n": 71, "lat": 39.1, "loss": 1.93, "jitter": 9}, {"kec": "CIMAHI SELATAN", "date": "2026-06-05", "n": 33, "lat": 25.2, "loss": 1.06, "jitter": 6.3}, {"kec": "CIMAHI SELATAN", "date": "2026-06-06", "n": 8, "lat": 21, "loss": 0.16, "jitter": 4.5}, {"kec": "CIMAHI SELATAN", "date": "2026-06-07", "n": 71, "lat": 36.3, "loss": 2.19, "jitter": 10}, {"kec": "CIMAHI SELATAN", "date": "2026-06-08", "n": 47, "lat": 30.1, "loss": 1.36, "jitter": 9.8}, {"kec": "CIMAHI SELATAN", "date": "2026-06-09", "n": 26, "lat": 28.7, "loss": 6.53, "jitter": 9.5}, {"kec": "CIMAHI SELATAN", "date": "2026-06-10", "n": 78, "lat": 29.9, "loss": 3.62, "jitter": 9.1}, {"kec": "CIMAHI SELATAN", "date": "2026-06-11", "n": 48, "lat": 43.7, "loss": 3.15, "jitter": 10}, {"kec": "CIMAHI SELATAN", "date": "2026-06-12", "n": 25, "lat": 24.8, "loss": 0.37, "jitter": 5.6}, {"kec": "CIMAHI SELATAN", "date": "2026-06-13", "n": 78, "lat": 25.6, "loss": 0.9, "jitter": 7.2}, {"kec": "CIMAHI SELATAN", "date": "2026-06-14", "n": 52, "lat": 42.4, "loss": 4.09, "jitter": 9.4}, {"kec": "CIMAHI TENGAH", "date": "2026-06-01", "n": 87, "lat": 42.3, "loss": 1.55, "jitter": 7.9}, {"kec": "CIMAHI TENGAH", "date": "2026-06-02", "n": 28, "lat": 38.2, "loss": 2.93, "jitter": 9}, {"kec": "CIMAHI TENGAH", "date": "2026-06-03", "n": 34, "lat": 68.4, "loss": 3.6, "jitter": 10.8}, {"kec": "CIMAHI TENGAH", "date": "2026-06-04", "n": 73, "lat": 32.8, "loss": 1.68, "jitter": 8.4}, {"kec": "CIMAHI TENGAH", "date": "2026-06-05", "n": 42, "lat": 31.2, "loss": 1.93, "jitter": 10.2}, {"kec": "CIMAHI TENGAH", "date": "2026-06-06", "n": 15, "lat": 33.7, "loss": 2.03, "jitter": 7.6}, {"kec": "CIMAHI TENGAH", "date": "2026-06-07", "n": 52, "lat": 43.4, "loss": 3.52, "jitter": 9.8}, {"kec": "CIMAHI TENGAH", "date": "2026-06-08", "n": 31, "lat": 48.4, "loss": 2.36, "jitter": 8}, {"kec": "CIMAHI TENGAH", "date": "2026-06-09", "n": 15, "lat": 35.2, "loss": 0.64, "jitter": 9.3}, {"kec": "CIMAHI TENGAH", "date": "2026-06-10", "n": 54, "lat": 28.6, "loss": 4.15, "jitter": 8.9}, {"kec": "CIMAHI TENGAH", "date": "2026-06-11", "n": 33, "lat": 26.3, "loss": 0.8, "jitter": 6.7}, {"kec": "CIMAHI TENGAH", "date": "2026-06-12", "n": 11, "lat": 26.6, "loss": 1.38, "jitter": 7.9}, {"kec": "CIMAHI TENGAH", "date": "2026-06-13", "n": 47, "lat": 22.1, "loss": 1.11, "jitter": 5.9}, {"kec": "CIMAHI TENGAH", "date": "2026-06-14", "n": 18, "lat": 26.4, "loss": 3.4, "jitter": 6.8}, {"kec": "CIMAHI UTARA", "date": "2026-06-01", "n": 71, "lat": 32.2, "loss": 2.64, "jitter": 9.9}, {"kec": "CIMAHI UTARA", "date": "2026-06-02", "n": 33, "lat": 30, "loss": 2.72, "jitter": 8.1}, {"kec": "CIMAHI UTARA", "date": "2026-06-03", "n": 14, "lat": 30.9, "loss": 2.29, "jitter": 10.5}, {"kec": "CIMAHI UTARA", "date": "2026-06-04", "n": 50, "lat": 53.1, "loss": 5.61, "jitter": 13.5}, {"kec": "CIMAHI UTARA", "date": "2026-06-05", "n": 37, "lat": 27.2, "loss": 3.33, "jitter": 8.7}, {"kec": "CIMAHI UTARA", "date": "2026-06-06", "n": 14, "lat": 32.1, "loss": 3.35, "jitter": 9.4}, {"kec": "CIMAHI UTARA", "date": "2026-06-07", "n": 45, "lat": 36.6, "loss": 3.05, "jitter": 8.5}, {"kec": "CIMAHI UTARA", "date": "2026-06-08", "n": 29, "lat": 274.5, "loss": 4.28, "jitter": 8.1}, {"kec": "CIMAHI UTARA", "date": "2026-06-09", "n": 23, "lat": 25.1, "loss": 0.89, "jitter": 6.7}, {"kec": "CIMAHI UTARA", "date": "2026-06-10", "n": 81, "lat": 38.7, "loss": 2.93, "jitter": 8.4}, {"kec": "CIMAHI UTARA", "date": "2026-06-11", "n": 43, "lat": 28.3, "loss": 3.58, "jitter": 7.5}, {"kec": "CIMAHI UTARA", "date": "2026-06-12", "n": 16, "lat": 26.4, "loss": 0.38, "jitter": 6.8}, {"kec": "CIMAHI UTARA", "date": "2026-06-13", "n": 79, "lat": 27.5, "loss": 2.37, "jitter": 7.4}, {"kec": "CIMAHI UTARA", "date": "2026-06-14", "n": 28, "lat": 30.6, "loss": 2.56, "jitter": 7.7}];
+
+function getData(data, kec, field) {
+  return dates.map((_, i) => {
+    const d = data.find(r => r.kec === kec && r.date === '2026-06-' + String(i+1).padStart(2,'0'));
+    return d ? d[field] : null;
+  });
+}
+
+const chartOpts = (title, yLabel) => ({
+  responsive: true,
+  plugins: { legend: { display: false }, title: { display: false } },
+  scales: {
+    x: { ticks: { color: '#8b949e', font: { size: 10 } }, grid: { color: '#21262d' } },
+    y: { title: { display: true, text: yLabel, color: '#8b949e' }, ticks: { color: '#8b949e' }, grid: { color: '#21262d' } }
+  },
+  elements: { point: { radius: 4, hoverRadius: 6 }, line: { tension: 0.3 } }
+});
+
+function makeChart(id, data, field, yLabel) {
+  new Chart(document.getElementById(id), {
+    type: 'line',
+    data: {
+      labels: dates,
+      datasets: kecs.map((kec, i) => ({
+        label: kec.replace('CIMAHI ',''),
+        data: getData(data, kec, field),
+        borderColor: colors[i],
+        backgroundColor: colors[i] + '33',
+        fill: false,
+        spanGaps: true
+      }))
+    },
+    options: chartOpts('', yLabel)
+  });
+}
+
+makeChart('chart_ff', videoData, 'ff', 'Seconds');
+makeChart('chart_stall', videoData, 'stall', 'Seconds');
+makeChart('chart_tput', videoData, 'tput', 'Mbps');
+makeChart('chart_success', videoData, 'success', '%');
+makeChart('chart_lat', gamingData, 'lat', 'ms');
+makeChart('chart_loss', gamingData, 'loss', '%');
+makeChart('chart_jitter', gamingData, 'jitter', 'ms');
+makeChart('chart_gn', gamingData, 'n', 'count');
+</script></body></html>

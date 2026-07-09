@@ -1,0 +1,56 @@
+{
+  "kecamatan": "KAUDITAN",
+  "kabupaten": "Kab. Minahasa Utara",
+  "provinsi": "SULAWESI UTARA",
+  "operator": "XL",
+  "period": "MA7 (13-19 Jun 2026)",
+  "location": {
+    "latitude": 1.4015445709228516,
+    "longitude": 125.026171875
+  },
+  "network": {
+    "generation": "4G",
+    "enodeb_id": null,
+    "pci": null,
+    "band": null,
+    "cell_bands": null,
+    "channel": null,
+    "frequency": null,
+    "cell_type": null
+  },
+  "signal": {
+    "rsrp": "N/A (server OOM)",
+    "rsrq": "N/A (server OOM)",
+    "rssnr": "N/A (server OOM)"
+  },
+  "video_metrics_summary": {
+    "buffer_count": 1.0,
+    "stall_time": 15000.0,
+    "records": 2
+  },
+  "video_records": [
+    {
+      "date": "2026-06-19 21:00:00",
+      "buffer_count": 2,
+      "stall_time": 30000.0,
+      "stall_time_minutes": 500.0,
+      "records": 1
+    },
+    {
+      "date": "2026-06-19 10:00:00",
+      "buffer_count": 0,
+      "stall_time": 0.0,
+      "stall_time_minutes": 0.0,
+      "records": 1
+    }
+  ],
+  "total_records_all": 80,
+  "total_records_abr": 2,
+  "notes": [
+    "eNodeB/PCI/Band data is NULL in the database for this location",
+    "RSRP/RSRQ unavailable due to server memory limits after extensive testing",
+    "Stall time of 30,000s (500 minutes) on 2026-06-19 21:00 is extremely abnormal",
+    "Very small sample size (2 ABR records) - results not statistically significant",
+    "The 21:00 record suggests a severe network outage or congestion event"
+  ]
+}

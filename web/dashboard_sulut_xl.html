@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>XL Sulawesi Utara – Kabupaten Breakdown</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 20px; background: #fff; }
+  .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; padding-bottom: 10px; border-bottom: 3px solid #4A90D9; }
+  .header h1 { font-size: 22px; color: #222; }
+  .logo { font-size: 20px; font-weight: bold; color: #4A90D9; }
+  .subtitle { color: #666; font-size: 13px; margin-bottom: 15px; }
+  .subtitle span { background: #f0f0f0; padding: 3px 10px; border-radius: 4px; margin-right: 8px; }
+  .summary-cards { display: flex; gap: 15px; margin-bottom: 20px; }
+  .card { flex: 1; padding: 15px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #4A90D9; }
+  .card .label { font-size: 12px; color: #666; text-transform: uppercase; }
+  .card .value { font-size: 24px; font-weight: 700; color: #333; }
+  .card .sub { font-size: 12px; color: #888; }
+  .note { color: #888; font-size: 12px; margin-bottom: 10px; }
+  table { border-collapse: collapse; width: 100%; font-size: 13px; }
+  th { background: #4A90D9; color: white; padding: 10px 8px; text-align: center; font-weight: 600; }
+  td { padding: 8px; text-align: center; border-bottom: 1px solid #eee; }
+  td.kab { text-align: left; font-weight: 600; cursor: pointer; white-space: nowrap; }
+  td.kab:hover { color: #4A90D9; }
+  td.kec { text-align: left; padding-left: 30px; color: #555; font-size: 12px; }
+  td.rank { font-weight: 600; color: #888; width: 35px; }
+  td.records { color: #888; }
+  td.score { font-weight: 600; }
+  .score-good { color: #27ae60; }
+  .score-ok { color: #2ecc71; }
+  .score-avg { color: #f39c12; }
+  .score-poor { color: #e74c3c; }
+  .toggle { display: inline-block; width: 15px; font-size: 10px; transition: transform 0.2s; }
+  .toggle.open { transform: rotate(90deg); }
+  .kec-row { background: #f8f9fa; }
+  .kec-row:hover { background: #e9ecef; }
+  .kab-row:hover { background: #e3f2fd; }
+  .legend { margin-bottom: 15px; font-size: 12px; color: #555; }
+  .legend span { margin-right: 15px; }
+  .legend .swatch { display: inline-block; width: 12px; height: 12px; border-radius: 2px; vertical-align: middle; margin-right: 3px; }
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>📍 SULAWESI UTARA — XL Breakdown per Kabupaten</h1>
+  <div class="logo">XLSMART</div>
+</div>
+<div class="subtitle">
+  <span>📅 13 Jun – 19 Jun 2026</span>
+  <span>📶 4G+5G</span>
+  <span>🎬 ABR Video</span>
+  <span>📍 12 Kabupaten</span>
+  <span>📊 194 Total Records</span>
+</div>
+
+<div class="summary-cards">
+  <div class="card">
+    <div class="label">Total Records</div>
+    <div class="value">194</div>
+    <div class="sub">XL only, 7-day window</div>
+  </div>
+  <div class="card">
+    <div class="label">Kabupaten</div>
+    <div class="value">12</div>
+    <div class="sub">with video data</div>
+  </div>
+  <div class="card">
+    <div class="label">Kecamatan</div>
+    <div class="value">55</div>
+    <div class="sub">across all kabupaten</div>
+  </div>
+  <div class="card">
+    <div class="label">Worst Stall Time</div>
+    <div class="value">3913.0s</div>
+    <div class="sub">Kab. Minahasa Utara</div>
+  </div>
+</div>
+
+<div class="legend">
+  <b>Score = (Buffer% / Max × 50) + (StallTime / Max × 50)</b> — lower = better<br>
+  <span><span class="swatch" style="background:#27ae60"></span>≤20 Excellent</span>
+  <span><span class="swatch" style="background:#2ecc71"></span>21-30 Good</span>
+  <span><span class="swatch" style="background:#f39c12"></span>31-40 Average</span>
+  <span><span class="swatch" style="background:#e74c3c"></span>>40 Poor</span>
+</div>
+<div class="note">📌 Sorted by Stall Time (highest/worst first). Click kabupaten to expand kecamatan.</div>
+
+<table>
+<thead>
+  <tr>
+    <th>Rank</th>
+    <th>Kabupaten / Kecamatan</th>
+    <th>Score</th>
+    <th>Buffer</th>
+    <th>Stall Time</th>
+    <th>Records</th>
+    <th>Kec.</th>
+  </tr>
+</thead>
+<tbody>
+<tr class="kab-row" onclick="toggleKec(this)"><td class="rank">1</td><td class="kab"><span class="toggle">▶</span> Kab. Minahasa Utara</td><td class="score score-poor">92.4</td><td>0.565%</td><td>3913.0s</td><td class="records">23</td><td class="records">7</td></tr>
+<tr class="kec-row" style="display:none;"><td></td><td class="kec">DIMEMBE</td><td class="score score-poor">152.1</td><td>0.750%</td><td>7500.0s</td><td class="records">8</td><td></td></tr>
+<tr class="kec-row" style="display:none;"><td></td><td class="kec">KALAWAT</td><td class="score score-ok">28.1</td><td>0.375%</td><td>0.0s</td><td class="records">8</td><td></td></tr>
+<tr class="kec-row" style="display:none;"><td></td><td class="kec">AIRMADIDI</td><td class="score score-good">0.0</td><td>0.000%</td><td>0.0s</td><td class="records">2</td><td></td></tr>
+<tr class="kec-row" style="display:none;"><td></td><td class="kec">KAUDITAN</td><td class="score score-poor">266.7</td><td>1.000%</td><td>15000.0s</td><td class="records">2</td><td></td></tr>
+<tr class="kec-row" style="display:none;"><td></td><td class="kec">LIKUPANG TIMUR</td><td class="score score-good">0.0</td><td>0.000%</td><td>0.0s</td><td class="records">1</td><td></td></tr>
+<tr class="kec-row" style="display:none;"><td></td><td class="kec">TALAWAAN</td><td class="score score-poor">75.0</td><td>1.000%</td><td>0.0s</td><td class="records">1</td><td></td></tr>
+<tr class="kec-row" style="display:none;"><td></td><td class="kec">WORI</td><td class="score score-poor">75.0</td><td>1.000%</td><td>0.0s</td><td class="records">1</td><td></td></tr>
+<tr class="kab-row" onclick="toggleKec(this)"><td class="rank">2</td><td class="kab"><span class="toggle">▶</span> Kab. Bolaang Mongondow</td><td class="score score-avg">37.5</td><td>0.500%</td><td>0.0s</td><td class="records">4</td><td class="records">4</td></tr>
+<tr class="kec-row" style="display:none;"><td></td><td class="kec">BOLAANG</td><td class="score score-good">0.0</td><td>0.000%</td><td>0.0s</td><td class="records">1</td><td></td></tr>
+<tr class="kec-row" style="display:none;"><td></td><td class="kec">DUMOGA</td><td class="score score-good">0.0</td><td>0.000%</td><td>0.0s</td><td class="records">1</td><td></td></tr>
+<tr class="kec-row" style="display:none;"><td></td><td class="kec">LOLAK</td><td class="score score-poor">75.0</td><td>1.000%</td><td>0.0s</td><td class="records">1</td><td></td></tr>
+<tr class="kec-row" style="display:none;"><td></td><td class="kec">PASSI TIMUR</td><td class="score score-poor">75.0</td><td>1.000%</td><td>0.0s</td><td class="records">1</td><td></td></tr>
+<tr class="kab-row" onclick="toggleKec(this)"><td class="rank">3</td><td class="kab"><span class="toggle">▶</span> Kab. Bolaang Mongondow Selatan</td><td class="score score-ok">25.0</td><td>0.333%</td><td>0.0s</td><td class="records">3</td><td class="records">1</td></tr>
+<tr class="kec-row" style="display:none;"><td></td><td class="kec">POSIGADAN</td><td class="score score-ok">25.0</td><td>0.333%</td><td>0.0s</td><td class="records">3</td><td></td></tr>
+<tr class="kab-row" onclick="toggleKec(this)"><td class="rank">4</td><td class="kab"><span class="toggle">▶</span> Kab. Bolaang Mongondow Timur</td><td class="score score-good">0.0</td><td>0.000%</td><td>0.0s</td><td class="records">1</td><td class="records">1</td></tr>
+<tr class="kec-row" style="display:none;"><td></td><td class="kec">TUTUYAN</td><td class="score score-good">0.0</td><td>0.000%</td><td>0.0s</td><td class="records">1</td><td></td></tr>
+<tr class="kab-row" onclick="toggleKec(this)"><td class="rank">5</td><td class="kab"><span class="toggle">▶</span> Kab. Kepulauan Sangihe</td><td class="score score-good">0.0</td><td>0.000%</td><td>0.0s</td><td class="records">1</td><td class="records">1</td></tr>
+<tr class="kec-row" style="display:none;"><td></td><td class="kec">TABUKAN UTARA</td><td class="score score-good">0.0</td><td>0.000%</td><td>0.0s</td><td class="records">1</td><td></td></tr>
+<tr class="kab-row" onclick="toggleKec(this)"><td class="rank">6</td><td class="kab"><span class="toggle">▶</span> Kab. Minahasa</td><td class="score score-ok">21.8</td><td>0.290%</td><td>0.0s</td><td class="records">31</td><td class="records">15</td></tr>
+<tr class="kec-row" style="display:none;"><td></td><td class="kec">TOMBULU</td><td class="score score-good">0.0</td><td>0.000%</td><td>0.0s</td><td class="records">5</td><td></td></tr>
+<tr class="kec-row" style="display:none;"><td></td><td class="kec">TONDANO TIMUR</td><td class="score score-avg">37.5</td><td>0.500%</td><td>0.0s</td><td class="records">4</td><td></td></tr>
+<tr class="kec-row" style="display:none;"><td></td><td class="kec">KAWANGKOAN UTARA</td><td class="score score-poor">75.0</td><td>1.000%</td><td>0.0s</td><td class="records">3</td><td></td></tr>
+<tr class="kec-row" style="display:none;"><td></td><td class="kec">LANGOWAN SELATAN</td><td class="score score-ok">25.0</td><td>0.333%</td><td>0.0s</td><td class="records">3</td><td></td></tr>
+<tr class="kec-row" style="display:none;"><td></td><td class="kec">MANDOLANG</td><td class="score score-good">0.0</td><td>0.000%</td><td>0.0s</td><td class="records">2</td><td></td></tr>
+<tr class="kec-row" style="display:none;"><td></td><td class="kec">PINELENG</td><td class="score score-good">0.0</td><td>0.000%</td><td>0.0s</td><td class="records">2</td><td></td></tr>
+<tr class="kec-row" style="display:none;"><td></td><td class="kec">REMBOKEN</td><td class="score score-avg">37.5</td><td>0.500%</td><td>0.0s</td><td class="records">2</td><td></td></tr>
+<tr class="kec-row" style="display:none;"><td></td><td class="kec">TOMPASO BARAT</td><td class="score score-avg">37.5</td><td>0.500%</td><td>0.0s</td><td class="records">2</td><td></td></tr>
+<tr class="kec-row" style="display:none;"><td></td><td class="kec">TONDANO UTARA</td><td class="score score-good">0.0</td><td>0.000%</td><td>0.0s</td><td class="records">2</td><td></td></tr>
+<tr class="kec-row" style="display:none;"><td></td><td class="kec">KAKAS BARAT</td><td class="score score-good">0.0</td><td>0.000%</td><td>0.0s</td><td class="records">1</td><td></td></tr>
+<tr class="kec-row" style="display:none;"><td></td><td class="kec">LANGOWAN BARAT</td><td class="score score-good">0.0</td><td>0.000%</td><td>0.0s</td><td class="records">1</td><td></td></tr>
+<tr class="kec-row" style="display:none;"><td></td><td class="kec">LANGOWAN TIMUR</td><td class="score score-good">0.0</td><td>0.000%</td><td>0.0s</td><td class="records">1</td><td></td></tr>
+<tr class="kec-row" style="display:none;"><td></td><td class="kec">LEMBEAN TIMUR</td><td class="score score-good">0.0</td><td>0.000%</td><td>0.0s</td><td class="records">1</td><td></td></tr>
+<tr class="kec-row" style="display:none;"><td></td><td class="kec">TONDANO BARAT</td><td class="score score-good">0.0</td><td>0.000%</td><td>0.0s</td><td class="records">1</td><td></td></tr>
+<tr class="kec-row" style="display:none;"><td></td><td class="kec">TONDANO SELATAN</td><td class="score score-poor">75.0</td><td>1.000%</td><td>0.0s</td><td class="records">1</td><td></td></tr>
+<tr class="kab-row" onclick="toggleKec(this)"><td class="rank">7</td><td class="kab"><span class="toggle">▶</span> Kab. Minahasa Selatan</td><td class="score score-poor">50.0</td><td>0.667%</td><td>0.0s</td><td class="records">3</td><td class="records">2</td></tr>
+<tr class="kec-row" style="display:none;"><td></td><td class="kec">RANOYAPO</td><td class="score score-poor">75.0</td><td>1.000%</td><td>0.0s</td><td class="records">2</td><td></td></tr>
+<tr class="kec-row" style="display:none;"><td></td><td class="kec">TUMPAAN</td><td class="score score-good">0.0</td><td>0.000%</td><td>0.0s</td><td class="records">1</td><td></td></tr>
+<tr class="kab-row" onclick="toggleKec(this)"><td class="rank">8</td><td class="kab"><span class="toggle">▶</span> Kab. Minahasa Tenggara</td><td class="score score-good">0.0</td><td>0.000%</td><td>0.0s</td><td class="records">5</td><td class="records">2</td></tr>
+<tr class="kec-row" style="display:none;"><td></td><td class="kec">RATAHAN</td><td class="score score-good">0.0</td><td>0.000%</td><td>0.0s</td><td class="records">4</td><td></td></tr>
+<tr class="kec-row" style="display:none;"><td></td><td class="kec">PUSOMAEN</td><td class="score score-good">0.0</td><td>0.000%</td><td>0.0s</td><td class="records">1</td><td></td></tr>
+<tr class="kab-row" onclick="toggleKec(this)"><td class="rank">9</td><td class="kab"><span class="toggle">▶</span> Kota Bitung</td><td class="score score-avg">30.9</td><td>0.412%</td><td>0.0s</td><td class="records">17</td><td class="records">6</td></tr>
+<tr class="kec-row" style="display:none;"><td></td><td class="kec">MATUARI</td><td class="score score-avg">30.0</td><td>0.400%</td><td>0.0s</td><td class="records">5</td><td></td></tr>
+<tr class="kec-row" style="display:none;"><td></td><td class="kec">MAESA</td><td class="score score-avg">37.5</td><td>0.500%</td><td>0.0s</td><td class="records">4</td><td></td></tr>
+<tr class="kec-row" style="display:none;"><td></td><td class="kec">MADIDIR</td><td class="score score-poor">50.0</td><td>0.667%</td><td>0.0s</td><td class="records">3</td><td></td></tr>
+<tr class="kec-row" style="display:none;"><td></td><td class="kec">GIRIAN</td><td class="score score-good">0.0</td><td>0.000%</td><td>0.0s</td><td class="records">2</td><td></td></tr>
+<tr class="kec-row" style="display:none;"><td></td><td class="kec">RANOWULU</td><td class="score score-avg">37.5</td><td>0.500%</td><td>0.0s</td><td class="records">2</td><td></td></tr>
+<tr class="kec-row" style="display:none;"><td></td><td class="kec">AERTEMBAGA</td><td class="score score-good">0.0</td><td>0.000%</td><td>0.0s</td><td class="records">1</td><td></td></tr>
+<tr class="kab-row" onclick="toggleKec(this)"><td class="rank">10</td><td class="kab"><span class="toggle">▶</span> Kota Kotamobagu</td><td class="score score-good">10.7</td><td>0.143%</td><td>0.0s</td><td class="records">7</td><td class="records">2</td></tr>
+<tr class="kec-row" style="display:none;"><td></td><td class="kec">KOTAMOBAGU BARAT</td><td class="score score-good">12.5</td><td>0.167%</td><td>0.0s</td><td class="records">6</td><td></td></tr>
+<tr class="kec-row" style="display:none;"><td></td><td class="kec">KOTAMOBAGU SELATAN</td><td class="score score-good">0.0</td><td>0.000%</td><td>0.0s</td><td class="records">1</td><td></td></tr>
+<tr class="kab-row" onclick="toggleKec(this)"><td class="rank">11</td><td class="kab"><span class="toggle">▶</span> Kota Manado</td><td class="score score-good">18.1</td><td>0.241%</td><td>0.0s</td><td class="records">87</td><td class="records">9</td></tr>
+<tr class="kec-row" style="display:none;"><td></td><td class="kec">MALALAYANG</td><td class="score score-good">13.6</td><td>0.182%</td><td>0.0s</td><td class="records">22</td><td></td></tr>
+<tr class="kec-row" style="display:none;"><td></td><td class="kec">MAPANGET</td><td class="score score-good">18.8</td><td>0.250%</td><td>0.0s</td><td class="records">12</td><td></td></tr>
+<tr class="kec-row" style="display:none;"><td></td><td class="kec">WANEA</td><td class="score score-good">12.5</td><td>0.167%</td><td>0.0s</td><td class="records">12</td><td></td></tr>
+<tr class="kec-row" style="display:none;"><td></td><td class="kec">PAAL DUA</td><td class="score score-ok">27.3</td><td>0.364%</td><td>0.0s</td><td class="records">11</td><td></td></tr>
+<tr class="kec-row" style="display:none;"><td></td><td class="kec">SARIO</td><td class="score score-avg">37.5</td><td>0.500%</td><td>0.0s</td><td class="records">10</td><td></td></tr>
+<tr class="kec-row" style="display:none;"><td></td><td class="kec">WENANG</td><td class="score score-good">9.4</td><td>0.125%</td><td>0.0s</td><td class="records">8</td><td></td></tr>
+<tr class="kec-row" style="display:none;"><td></td><td class="kec">TUMINTING</td><td class="score score-good">10.7</td><td>0.143%</td><td>0.0s</td><td class="records">7</td><td></td></tr>
+<tr class="kec-row" style="display:none;"><td></td><td class="kec">BUNAKEN</td><td class="score score-ok">25.0</td><td>0.333%</td><td>0.0s</td><td class="records">3</td><td></td></tr>
+<tr class="kec-row" style="display:none;"><td></td><td class="kec">SINGKIL</td><td class="score score-good">0.0</td><td>0.000%</td><td>0.0s</td><td class="records">2</td><td></td></tr>
+<tr class="kab-row" onclick="toggleKec(this)"><td class="rank">12</td><td class="kab"><span class="toggle">▶</span> Kota Tomohon</td><td class="score score-good">18.8</td><td>0.250%</td><td>0.0s</td><td class="records">12</td><td class="records">5</td></tr>
+<tr class="kec-row" style="display:none;"><td></td><td class="kec">TOMOHON UTARA</td><td class="score score-good">18.8</td><td>0.250%</td><td>0.0s</td><td class="records">4</td><td></td></tr>
+<tr class="kec-row" style="display:none;"><td></td><td class="kec">TOMOHON BARAT</td><td class="score score-ok">25.0</td><td>0.333%</td><td>0.0s</td><td class="records">3</td><td></td></tr>
+<tr class="kec-row" style="display:none;"><td></td><td class="kec">TOMOHON SELATAN</td><td class="score score-good">0.0</td><td>0.000%</td><td>0.0s</td><td class="records">3</td><td></td></tr>
+<tr class="kec-row" style="display:none;"><td></td><td class="kec">TOMOHON TENGAH</td><td class="score score-poor">75.0</td><td>1.000%</td><td>0.0s</td><td class="records">1</td><td></td></tr>
+<tr class="kec-row" style="display:none;"><td></td><td class="kec">TOMOHON TIMUR</td><td class="score score-good">0.0</td><td>0.000%</td><td>0.0s</td><td class="records">1</td><td></td></tr>
+
+</tbody>
+</table>
+
+<script>
+function toggleKec(row) {
+  const toggle = row.querySelector('.toggle');
+  toggle.classList.toggle('open');
+  let next = row.nextElementSibling;
+  while (next && next.classList.contains('kec-row')) {
+    next.style.display = next.style.display === 'none' ? '' : 'none';
+    next = next.nextElementSibling;
+  }
+}
+</script>
+</body>
+</html>

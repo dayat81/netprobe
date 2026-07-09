@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>XL Smart — Packet Loss by Server IP (Sumatra)</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #1a1a2e; color: #e0e0e0; font-family: 'Segoe UI', sans-serif; padding: 20px; }
+.container { max-width: 1200px; margin: 0 auto; }
+h1 { color: #fff; margin-bottom: 4px; font-size: 22px; }
+.subtitle { color: #888; margin-bottom: 16px; font-size: 13px; }
+.chart-box { background: #16213e; border-radius: 10px; padding: 20px; border: 1px solid #0f3460; margin-bottom: 20px; }
+.chart-box h2 { color: #a0c4ff; font-size: 15px; margin-bottom: 12px; }
+canvas { max-height: 350px; }
+.section { margin-bottom: 24px; }
+.section h2 { color: #fff; font-size: 16px; margin-bottom: 10px; border-bottom: 1px solid #333; padding-bottom: 6px; }
+.card { background: #16213e; border-radius: 8px; padding: 16px; border: 1px solid #0f3460; overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 12px; }
+th { background: #0f3460; color: #a0c4ff; padding: 8px 10px; text-align: left; font-weight: 600; }
+td { padding: 7px 10px; border-bottom: 1px solid #1a1a3e; }
+tr:hover { background: #1a2a4e; }
+.badge { display: inline-block; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: 600; }
+.badge-high { background: #ff4444; color: #fff; }
+.badge-med { background: #ff8800; color: #fff; }
+.badge-low { background: #44cc44; color: #fff; }
+code { background: #0a0a1e; padding: 2px 5px; border-radius: 3px; font-size: 11px; color: #888; }
+.note { background: #0f1a30; border-radius: 6px; padding: 12px; font-size: 12px; color: #888; line-height: 1.6; }
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 20px; }
+.stat-card { background: #16213e; border-radius: 8px; padding: 14px; border: 1px solid #0f3460; }
+.stat-card h3 { color: #a0a0a0; font-size: 10px; text-transform: uppercase; margin-bottom: 4px; }
+.stat-card .value { font-size: 22px; font-weight: bold; color: #4488ff; }
+.stat-card .detail { color: #666; font-size: 11px; margin-top: 3px; }
+.server-row { transition: background 0.2s; }
+.server-row:hover { background: #1e2d50; }
+.detail-row { background: #0d1525; }
+.detail-container { padding: 16px; border-top: 1px solid #0f3460; }
+.detail-header { color: #a0c4ff; font-size: 14px; font-weight: 600; margin-bottom: 12px; }
+.detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+@media (max-width: 900px) { .detail-grid { grid-template-columns: 1fr; } }
+.detail-section { background: #0a1020; border-radius: 6px; padding: 12px; }
+.detail-section h4 { color: #888; font-size: 12px; margin-bottom: 8px; text-transform: uppercase; }
+.inner-table { font-size: 11px; }
+.inner-table th { font-size: 10px; padding: 5px 6px; background: #16213e; }
+.inner-table td { padding: 4px 6px; font-size: 11px; }
+.expand-hint { color: #555; font-size: 10px; }
+</style>
+</head>
+<body>
+<div class="container">
+<h1>🔵 XL Smart — Packet Loss by Server IP</h1>
+<p class="subtitle">Sumatra · 1–20 Juni 2026 · Top 7 AWS Test Servers + Cloudflare WARP · <span class="expand-hint">Klik baris server untuk detail</span></p>
+
+<div class="grid">
+  <div class="stat-card">
+    <h3>XL Smart Overall</h3>
+    <div class="value">0.99%</div>
+    <div class="detail">Avg Lost%</div>
+  </div>
+  <div class="stat-card">
+    <h3>Highest Server</h3>
+    <div class="value" style="color:#ff4444;">1.09%</div>
+    <div class="detail">AWS SG (13.251)</div>
+  </div>
+  <div class="stat-card">
+    <h3>Lowest Server</h3>
+    <div class="value" style="color:#44cc44;">0.97%</div>
+    <div class="detail">AWS SG (16.78)</div>
+  </div>
+  <div class="stat-card">
+    <h3>Servers Tracked</h3>
+    <div class="value" style="color:#ffcc00;">8</div>
+    <div class="detail">IPv4 + WARP</div>
+  </div>
+</div>
+
+<div class="chart-box">
+  <h2>📈 Lost% by Server IP — Daily Trend</h2>
+  <canvas id="chartLost"></canvas>
+</div>
+
+<div class="chart-box">
+  <h2>📈 Discard% by Server IP — Daily Trend</h2>
+  <canvas id="chartDiscard"></canvas>
+</div>
+
+<div class="section">
+<h2>📋 Server Summary <span class="expand-hint">(klik baris untuk expand raw data)</span></h2>
+<div class="card" style="overflow-x:auto;padding:0;">
+<table>
+<thead>
+<tr><th>Server</th><th>IP</th><th>Lost%</th><th>Discard%</th><th>Records</th><th>Days</th><th></th></tr>
+</thead>
+<tbody>
+<tr class="server-row" onclick="toggleDetail('43.216.122.42')" style="cursor:pointer">
+  <td><span style="color:#4488ff">●</span> AWS SG (43.216)</td>
+  <td><code>43.216.122.42</code></td>
+  <td><span class="badge badge-high">1.07%</span></td>
+  <td>1.49%</td>
+  <td>37,900</td>
+  <td>0</td>
+  <td style="text-align:center;color:#666">▼</td>
+</tr>
+<tr id="detail-43_216_122_42" class="detail-row" style="display:none">
+  <td colspan="7" style="padding:0;">
+    <div class="detail-container">
+      <div class="detail-header">AWS SG (43.216) (43.216.122.42) — Raw Data</div>
+      <div class="detail-grid">
+        <div class="detail-section">
+          <h4>Per Provinsi (19 kombinasi)</h4>
+          <table class="inner-table">
+            <thead><tr><th>Provinsi</th><th>Operator</th><th>Lost%</th><th>Discard%</th><th>RSRP</th><th>RSRQ</th><th>Records</th></tr></thead>
+            <tbody id="prov-43_216_122_42"></tbody>
+          </table>
+        </div>
+        <div class="detail-section">
+          <h4>Daily Trend (0 hari data)</h4>
+          <canvas id="chart-43_216_122_42" height="200"></canvas>
+        </div>
+      </div>
+    </div>
+  </td>
+</tr>
+<tr class="server-row" onclick="toggleDetail('16.78.116.52')" style="cursor:pointer">
+  <td><span style="color:#ff6644">●</span> AWS SG (16.78-52)</td>
+  <td><code>16.78.116.52</code></td>
+  <td><span class="badge badge-med">0.97%</span></td>
+  <td>1.38%</td>
+  <td>29,175</td>
+  <td>20</td>
+  <td style="text-align:center;color:#666">▼</td>
+</tr>
+<tr id="detail-16_78_116_52" class="detail-row" style="display:none">
+  <td colspan="7" style="padding:0;">
+    <div class="detail-container">
+      <div class="detail-header">AWS SG (16.78-52) (16.78.116.52) — Raw Data</div>
+      <div class="detail-grid">
+        <div class="detail-section">
+          <h4>Per Provinsi (20 kombinasi)</h4>
+          <table class="inner-table">
+            <thead><tr><th>Provinsi</th><th>Operator</th><th>Lost%</th><th>Discard%</th><th>RSRP</th><th>RSRQ</th><th>Records</th></tr></thead>
+            <tbody id="prov-16_78_116_52"></tbody>
+          </table>
+        </div>
+        <div class="detail-section">
+          <h4>Daily Trend (20 hari data)</h4>
+          <canvas id="chart-16_78_116_52" height="200"></canvas>
+        </div>
+      </div>
+    </div>
+  </td>
+</tr>
+<tr class="server-row" onclick="toggleDetail('108.137.60.128')" style="cursor:pointer">
+  <td><span style="color:#44cc44">●</span> AWS Jakarta (108.137)</td>
+  <td><code>108.137.60.128</code></td>
+  <td><span class="badge badge-med">1.01%</span></td>
+  <td>1.44%</td>
+  <td>29,087</td>
+  <td>20</td>
+  <td style="text-align:center;color:#666">▼</td>
+</tr>
+<tr id="detail-108_137_60_128" class="detail-row" style="display:none">
+  <td colspan="7" style="padding:0;">
+    <div class="detail-container">
+      <div class="detail-header">AWS Jakarta (108.137) (108.137.60.128) — Raw Data</div>
+      <div class="detail-grid">
+        <div class="detail-section">
+          <h4>Per Provinsi (20 kombinasi)</h4>
+          <table class="inner-table">
+            <thead><tr><th>Provinsi</th><th>Operator</th><th>Lost%</th><th>Discard%</th><th>RSRP</th><th>RSRQ</th><th>Records</th></tr></thead>
+            <tbody id="prov-108_137_60_128"></tbody>
+          </table>
+        </div>
+        <div class="detail-section">
+          <h4>Daily Trend (20 hari data)</h4>
+          <canvas id="chart-108_137_60_128" height="200"></canvas>
+        </div>
+      </div>
+    </div>
+  </td>
+</tr>
+<tr class="server-row" onclick="toggleDetail('16.78.7.82')" style="cursor:pointer">
+  <td><span style="color:#ff44ff">●</span> AWS SG (16.78-82)</td>
+  <td><code>16.78.7.82</code></td>
+  <td><span class="badge badge-med">0.97%</span></td>
+  <td>1.39%</td>
+  <td>28,899</td>
+  <td>3</td>
+  <td style="text-align:center;color:#666">▼</td>
+</tr>
+<tr id="detail-16_78_7_82" class="detail-row" style="display:none">
+  <td colspan="7" style="padding:0;">
+    <div class="detail-container">
+      <div class="detail-header">AWS SG (16.78-82) (16.78.7.82) — Raw Data</div>
+      <div class="detail-grid">
+        <div class="detail-section">
+          <h4>Per Provinsi (20 kombinasi)</h4>
+          <table class="inner-table">
+            <thead><tr><th>Provinsi</th><th>Operator</th><th>Lost%</th><th>Discard%</th><th>RSRP</th><th>RSRQ</th><th>Records</th></tr></thead>
+            <tbody id="prov-16_78_7_82"></tbody>
+          </table>
+        </div>
+        <div class="detail-section">
+          <h4>Daily Trend (3 hari data)</h4>
+          <canvas id="chart-16_78_7_82" height="200"></canvas>
+        </div>
+      </div>
+    </div>
+  </td>
+</tr>
+<tr class="server-row" onclick="toggleDetail('3.0.12.103')" style="cursor:pointer">
+  <td><span style="color:#ffcc00">●</span> AWS SG (3.0)</td>
+  <td><code>3.0.12.103</code></td>
+  <td><span class="badge badge-high">1.08%</span></td>
+  <td>1.57%</td>
+  <td>16,036</td>
+  <td>0</td>
+  <td style="text-align:center;color:#666">▼</td>
+</tr>
+<tr id="detail-3_0_12_103" class="detail-row" style="display:none">
+  <td colspan="7" style="padding:0;">
+    <div class="detail-container">
+      <div class="detail-header">AWS SG (3.0) (3.0.12.103) — Raw Data</div>
+      <div class="detail-grid">
+        <div class="detail-section">
+          <h4>Per Provinsi (20 kombinasi)</h4>
+          <table class="inner-table">
+            <thead><tr><th>Provinsi</th><th>Operator</th><th>Lost%</th><th>Discard%</th><th>RSRP</th><th>RSRQ</th><th>Records</th></tr></thead>
+            <tbody id="prov-3_0_12_103"></tbody>
+          </table>
+        </div>
+        <div class="detail-section">
+          <h4>Daily Trend (0 hari data)</h4>
+          <canvas id="chart-3_0_12_103" height="200"></canvas>
+        </div>
+      </div>
+    </div>
+  </td>
+</tr>
+<tr class="server-row" onclick="toggleDetail('13.251.196.36')" style="cursor:pointer">
+  <td><span style="color:#44cccc">●</span> AWS SG (13.251)</td>
+  <td><code>13.251.196.36</code></td>
+  <td><span class="badge badge-high">1.09%</span></td>
+  <td>1.54%</td>
+  <td>15,857</td>
+  <td>20</td>
+  <td style="text-align:center;color:#666">▼</td>
+</tr>
+<tr id="detail-13_251_196_36" class="detail-row" style="display:none">
+  <td colspan="7" style="padding:0;">
+    <div class="detail-container">
+      <div class="detail-header">AWS SG (13.251) (13.251.196.36) — Raw Data</div>
+      <div class="detail-grid">
+        <div class="detail-section">
+          <h4>Per Provinsi (20 kombinasi)</h4>
+          <table class="inner-table">
+            <thead><tr><th>Provinsi</th><th>Operator</th><th>Lost%</th><th>Discard%</th><th>RSRP</th><th>RSRQ</th><th>Records</th></tr></thead>
+            <tbody id="prov-13_251_196_36"></tbody>
+          </table>
+        </div>
+        <div class="detail-section">
+          <h4>Daily Trend (20 hari data)</h4>
+          <canvas id="chart-13_251_196_36" height="200"></canvas>
+        </div>
+      </div>
+    </div>
+  </td>
+</tr>
+<tr class="server-row" onclick="toggleDetail('43.217.166.207')" style="cursor:pointer">
+  <td><span style="color:#ff8888">●</span> AWS HK (43.217)</td>
+  <td><code>43.217.166.207</code></td>
+  <td><span class="badge badge-med">1.02%</span></td>
+  <td>1.43%</td>
+  <td>38,162</td>
+  <td>3</td>
+  <td style="text-align:center;color:#666">▼</td>
+</tr>
+<tr id="detail-43_217_166_207" class="detail-row" style="display:none">
+  <td colspan="7" style="padding:0;">
+    <div class="detail-container">
+      <div class="detail-header">AWS HK (43.217) (43.217.166.207) — Raw Data</div>
+      <div class="detail-grid">
+        <div class="detail-section">
+          <h4>Per Provinsi (18 kombinasi)</h4>
+          <table class="inner-table">
+            <thead><tr><th>Provinsi</th><th>Operator</th><th>Lost%</th><th>Discard%</th><th>RSRP</th><th>RSRQ</th><th>Records</th></tr></thead>
+            <tbody id="prov-43_217_166_207"></tbody>
+          </table>
+        </div>
+        <div class="detail-section">
+          <h4>Daily Trend (3 hari data)</h4>
+          <canvas id="chart-43_217_166_207" height="200"></canvas>
+        </div>
+      </div>
+    </div>
+  </td>
+</tr>
+<tr class="server-row" onclick="toggleDetail('198.18.x.x')" style="cursor:pointer">
+  <td><span style="color:#ff4444">●</span> Cloudflare WARP</td>
+  <td><code>198.18.x.x</code></td>
+  <td><span class="badge badge-low">0.30%</span></td>
+  <td>2.40%</td>
+  <td>20</td>
+  <td>8</td>
+  <td style="text-align:center;color:#666">▼</td>
+</tr>
+<tr id="detail-198_18_x_x" class="detail-row" style="display:none">
+  <td colspan="7" style="padding:0;">
+    <div class="detail-container">
+      <div class="detail-header">Cloudflare WARP (198.18.x.x) — Raw Data</div>
+      <div class="detail-grid">
+        <div class="detail-section">
+          <h4>Per Provinsi (4 kombinasi)</h4>
+          <table class="inner-table">
+            <thead><tr><th>Provinsi</th><th>Operator</th><th>Lost%</th><th>Discard%</th><th>RSRP</th><th>RSRQ</th><th>Records</th></tr></thead>
+            <tbody id="prov-198_18_x_x"></tbody>
+          </table>
+        </div>
+        <div class="detail-section">
+          <h4>Daily Trend (8 hari data)</h4>
+          <canvas id="chart-198_18_x_x" height="200"></canvas>
+        </div>
+      </div>
+    </div>
+  </td>
+</tr>
+
+</tbody>
+</table>
+</div>
+</div>
+
+<div class="note">
+  <strong>Catatan:</strong><br>
+  • Semua server adalah AWS endpoint (Singapore, Jakarta, Hong Kong) — test server OpenSignal<br>
+  • Garis putih putus-putus = weighted average XL Smart (gabungan semua server)<br>
+  • Variasi antar server kecil (0.97–1.09%) — menunjukkan konsistensi routing XL Smart<br>
+  • NULL server IP (231K records, 0% loss) di-exclude dari chart — tidak ada test server tertentu<br>
+  • IPv6 servers (64:ff9b::) di-exclude dari chart untuk clarity<br>
+  • Klik baris server untuk expand: per-province breakdown + daily mini chart
+</div>
+
+</div>
+
+<script>
+const labels = ["06-01", "06-02", "06-03", "06-04", "06-05", "06-06", "06-07", "06-08", "06-09", "06-10", "06-11", "06-12", "06-13", "06-14", "06-15", "06-16", "06-17", "06-18", "06-19", "06-20"];
+const rawData = {"43.216.122.42": [{"province": "JAMBI", "op": "Smartfren", "lost": 8.75, "discard": 11.75, "rsrp": -94.5, "rsrq": -12.5, "cnt": 4}, {"province": "KEPULAUAN RIAU", "op": "Smartfren", "lost": 6.89, "discard": 7.0, "rsrp": -96.2, "rsrq": -13.6, "cnt": 18}, {"province": "KEPULAUAN RIAU", "op": "XL", "lost": 2.98, "discard": 3.2, "rsrp": -96.2, "rsrq": -12.3, "cnt": 132}, {"province": "ACEH", "op": "Smartfren", "lost": 2.18, "discard": 3.34, "rsrp": -98.7, "rsrq": -12.1, "cnt": 1247}, {"province": "LAMPUNG", "op": "XL", "lost": 1.56, "discard": 2.0, "rsrp": -97.5, "rsrq": -14.5, "cnt": 16}, {"province": "SUMATERA SELATAN", "op": "Smartfren", "lost": 1.5, "discard": 2.58, "rsrp": -95.4, "rsrq": -11.5, "cnt": 12}, {"province": "SUMATERA UTARA", "op": "Smartfren", "lost": 1.38, "discard": 2.04, "rsrp": -95.7, "rsrq": -13.1, "cnt": 4062}, {"province": "RIAU", "op": "Smartfren", "lost": 1.33, "discard": 1.77, "rsrp": -95.7, "rsrq": -13.1, "cnt": 2499}, {"province": "BENGKULU", "op": "XL", "lost": 1.01, "discard": 1.12, "rsrp": -97.8, "rsrq": -12.3, "cnt": 69}, {"province": "SUMATERA UTARA", "op": "XL", "lost": 1.01, "discard": 1.49, "rsrp": -96.1, "rsrq": -12.9, "cnt": 13301}, {"province": "RIAU", "op": "XL", "lost": 0.95, "discard": 1.17, "rsrp": -96.6, "rsrq": -12.5, "cnt": 6448}, {"province": "SUMATERA BARAT", "op": "Smartfren", "lost": 0.95, "discard": 1.25, "rsrp": -98.7, "rsrq": -12.9, "cnt": 1577}, {"province": "SUMATERA BARAT", "op": "XL", "lost": 0.84, "discard": 1.04, "rsrp": -97.3, "rsrq": -12.9, "cnt": 4535}, {"province": "ACEH", "op": "XL", "lost": 0.81, "discard": 1.23, "rsrp": -97.7, "rsrq": -12.1, "cnt": 3866}, {"province": "JAMBI", "op": "XL", "lost": 0.79, "discard": 1.28, "rsrp": -101.7, "rsrq": -11.2, "cnt": 58}, {"province": "SUMATERA SELATAN", "op": "XL", "lost": 0.29, "discard": 0.33, "rsrp": -96.1, "rsrq": -13.2, "cnt": 45}, {"province": "BENGKULU", "op": "Smartfren", "lost": 0.0, "discard": 0.0, "rsrp": -91.6, "rsrq": -13.0, "cnt": 5}, {"province": "KEPULAUAN BANGKA BELITUNG", "op": "XL", "lost": 0.0, "discard": 0.0, "rsrp": -98.5, "rsrq": null, "cnt": 2}, {"province": "LAMPUNG", "op": "Smartfren", "lost": 0.0, "discard": 0.0, "rsrp": -105.0, "rsrq": -13.3, "cnt": 4}], "16.78.116.52": [{"province": "SUMATERA BARAT", "op": "Smartfren", "lost": 1.83, "discard": 2.84, "rsrp": -97.0, "rsrq": -13.0, "cnt": 182}, {"province": "BENGKULU", "op": "Smartfren", "lost": 1.69, "discard": 2.19, "rsrp": -96.6, "rsrq": -11.4, "cnt": 120}, {"province": "BENGKULU", "op": "XL", "lost": 1.65, "discard": 2.03, "rsrp": -96.6, "rsrq": -11.9, "cnt": 674}, {"province": "JAMBI", "op": "XL", "lost": 1.5, "discard": 1.86, "rsrp": -97.0, "rsrq": -12.5, "cnt": 361}, {"province": "RIAU", "op": "Smartfren", "lost": 1.3, "discard": 2.26, "rsrp": -96.4, "rsrq": -13.0, "cnt": 216}, {"province": "KEPULAUAN RIAU", "op": "XL", "lost": 1.29, "discard": 1.58, "rsrp": -94.7, "rsrq": -12.1, "cnt": 271}, {"province": "SUMATERA SELATAN", "op": "Smartfren", "lost": 1.15, "discard": 1.85, "rsrp": -95.5, "rsrq": -13.1, "cnt": 4630}, {"province": "ACEH", "op": "Smartfren", "lost": 1.06, "discard": 1.89, "rsrp": -101.6, "rsrq": -12.8, "cnt": 18}, {"province": "KEPULAUAN RIAU", "op": "Smartfren", "lost": 1.05, "discard": 1.86, "rsrp": -100.0, "rsrq": -13.2, "cnt": 64}, {"province": "LAMPUNG", "op": "Smartfren", "lost": 1.01, "discard": 1.39, "rsrp": -97.3, "rsrq": -12.8, "cnt": 3067}, {"province": "LAMPUNG", "op": "XL", "lost": 0.97, "discard": 1.31, "rsrp": -97.2, "rsrq": -12.4, "cnt": 10016}, {"province": "KEPULAUAN BANGKA BELITUNG", "op": "XL", "lost": 0.86, "discard": 1.05, "rsrp": -95.8, "rsrq": -12.2, "cnt": 2300}, {"province": "RIAU", "op": "XL", "lost": 0.81, "discard": 1.33, "rsrp": -97.2, "rsrq": -11.9, "cnt": 211}, {"province": "JAMBI", "op": "Smartfren", "lost": 0.79, "discard": 1.72, "rsrp": -98.4, "rsrq": -12.6, "cnt": 128}, {"province": "SUMATERA SELATAN", "op": "XL", "lost": 0.76, "discard": 1.12, "rsrp": -95.9, "rsrq": -12.8, "cnt": 6090}, {"province": "KEPULAUAN BANGKA BELITUNG", "op": "Smartfren", "lost": 0.64, "discard": 0.78, "rsrp": -96.9, "rsrq": -12.4, "cnt": 281}, {"province": "SUMATERA UTARA", "op": "XL", "lost": 0.5, "discard": 0.74, "rsrp": -94.5, "rsrq": -12.2, "cnt": 267}, {"province": "SUMATERA UTARA", "op": "Smartfren", "lost": 0.48, "discard": 1.23, "rsrp": -98.7, "rsrq": -11.9, "cnt": 31}, {"province": "SUMATERA BARAT", "op": "XL", "lost": 0.33, "discard": 0.48, "rsrp": -98.4, "rsrq": -13.8, "cnt": 187}, {"province": "ACEH", "op": "XL", "lost": 0.1, "discard": 0.2, "rsrp": -98.7, "rsrq": -13.2, "cnt": 61}], "108.137.60.128": [{"province": "ACEH", "op": "Smartfren", "lost": 1.93, "discard": 2.93, "rsrp": -97.0, "rsrq": -11.7, "cnt": 14}, {"province": "SUMATERA UTARA", "op": "Smartfren", "lost": 1.8, "discard": 2.64, "rsrp": -99.8, "rsrq": -12.9, "cnt": 55}, {"province": "RIAU", "op": "XL", "lost": 1.48, "discard": 1.81, "rsrp": -96.6, "rsrq": -12.0, "cnt": 236}, {"province": "KEPULAUAN BANGKA BELITUNG", "op": "Smartfren", "lost": 1.28, "discard": 1.8, "rsrp": -95.8, "rsrq": -12.6, "cnt": 260}, {"province": "SUMATERA SELATAN", "op": "Smartfren", "lost": 1.24, "discard": 2.01, "rsrp": -95.4, "rsrq": -13.2, "cnt": 4588}, {"province": "JAMBI", "op": "Smartfren", "lost": 1.15, "discard": 1.37, "rsrp": -98.2, "rsrq": -13.3, "cnt": 131}, {"province": "BENGKULU", "op": "XL", "lost": 1.13, "discard": 1.53, "rsrp": -96.8, "rsrq": -11.8, "cnt": 657}, {"province": "LAMPUNG", "op": "XL", "lost": 1.06, "discard": 1.47, "rsrp": -97.0, "rsrq": -12.4, "cnt": 9943}, {"province": "SUMATERA BARAT", "op": "Smartfren", "lost": 0.98, "discard": 1.54, "rsrp": -98.4, "rsrq": -12.7, "cnt": 162}, {"province": "KEPULAUAN RIAU", "op": "XL", "lost": 0.95, "discard": 1.19, "rsrp": -92.9, "rsrq": -12.2, "cnt": 259}, {"province": "SUMATERA BARAT", "op": "XL", "lost": 0.95, "discard": 1.02, "rsrp": -98.7, "rsrq": -12.5, "cnt": 182}, {"province": "SUMATERA SELATAN", "op": "XL", "lost": 0.92, "discard": 1.26, "rsrp": -95.8, "rsrq": -12.8, "cnt": 6250}, {"province": "LAMPUNG", "op": "Smartfren", "lost": 0.89, "discard": 1.31, "rsrp": -96.8, "rsrq": -12.7, "cnt": 3034}, {"province": "JAMBI", "op": "XL", "lost": 0.82, "discard": 1.1, "rsrp": -96.1, "rsrq": -12.3, "cnt": 374}, {"province": "SUMATERA UTARA", "op": "XL", "lost": 0.82, "discard": 1.12, "rsrp": -93.8, "rsrq": -12.3, "cnt": 272}, {"province": "KEPULAUAN BANGKA BELITUNG", "op": "XL", "lost": 0.78, "discard": 0.96, "rsrp": -96.0, "rsrq": -12.2, "cnt": 2243}, {"province": "KEPULAUAN RIAU", "op": "Smartfren", "lost": 0.6, "discard": 0.68, "rsrp": -99.2, "rsrq": -13.1, "cnt": 57}, {"province": "RIAU", "op": "Smartfren", "lost": 0.42, "discard": 1.04, "rsrp": -96.7, "rsrq": -13.2, "cnt": 191}, {"province": "BENGKULU", "op": "Smartfren", "lost": 0.14, "discard": 0.99, "rsrp": -98.0, "rsrq": -11.4, "cnt": 125}, {"province": "ACEH", "op": "XL", "lost": 0.0, "discard": 0.0, "rsrp": -98.0, "rsrq": -13.0, "cnt": 54}], "16.78.7.82": [{"province": "SUMATERA UTARA", "op": "Smartfren", "lost": 2.88, "discard": 4.09, "rsrp": -99.0, "rsrq": -13.2, "cnt": 32}, {"province": "KEPULAUAN RIAU", "op": "XL", "lost": 2.04, "discard": 2.51, "rsrp": -94.0, "rsrq": -12.4, "cnt": 303}, {"province": "SUMATERA BARAT", "op": "Smartfren", "lost": 1.87, "discard": 2.88, "rsrp": -96.5, "rsrq": -13.1, "cnt": 185}, {"province": "SUMATERA SELATAN", "op": "Smartfren", "lost": 1.32, "discard": 2.08, "rsrp": -95.6, "rsrq": -13.1, "cnt": 4524}, {"province": "KEPULAUAN BANGKA BELITUNG", "op": "Smartfren", "lost": 1.17, "discard": 1.61, "rsrp": -95.5, "rsrq": -12.6, "cnt": 247}, {"province": "RIAU", "op": "XL", "lost": 1.09, "discard": 1.45, "rsrp": -98.2, "rsrq": -11.9, "cnt": 202}, {"province": "BENGKULU", "op": "Smartfren", "lost": 0.97, "discard": 1.11, "rsrp": -97.4, "rsrq": -10.9, "cnt": 125}, {"province": "LAMPUNG", "op": "Smartfren", "lost": 0.97, "discard": 1.31, "rsrp": -97.1, "rsrq": -13.0, "cnt": 3001}, {"province": "SUMATERA BARAT", "op": "XL", "lost": 0.96, "discard": 1.09, "rsrp": -98.5, "rsrq": -12.9, "cnt": 182}, {"province": "RIAU", "op": "Smartfren", "lost": 0.94, "discard": 1.46, "rsrp": -97.0, "rsrq": -12.7, "cnt": 208}, {"province": "SUMATERA SELATAN", "op": "XL", "lost": 0.94, "discard": 1.32, "rsrp": -95.9, "rsrq": -12.8, "cnt": 6279}, {"province": "LAMPUNG", "op": "XL", "lost": 0.88, "discard": 1.23, "rsrp": -97.0, "rsrq": -12.4, "cnt": 9758}, {"province": "BENGKULU", "op": "XL", "lost": 0.82, "discard": 1.19, "rsrp": -96.6, "rsrq": -11.8, "cnt": 668}, {"province": "SUMATERA UTARA", "op": "XL", "lost": 0.75, "discard": 1.14, "rsrp": -93.7, "rsrq": -12.5, "cnt": 269}, {"province": "KEPULAUAN BANGKA BELITUNG", "op": "XL", "lost": 0.73, "discard": 0.93, "rsrp": -96.1, "rsrq": -12.2, "cnt": 2273}, {"province": "JAMBI", "op": "XL", "lost": 0.65, "discard": 0.98, "rsrp": -97.5, "rsrq": -12.7, "cnt": 393}, {"province": "ACEH", "op": "XL", "lost": 0.64, "discard": 0.9, "rsrp": -97.6, "rsrq": -12.7, "cnt": 42}, {"province": "ACEH", "op": "Smartfren", "lost": 0.22, "discard": 0.61, "rsrp": -96.3, "rsrq": -13.1, "cnt": 18}, {"province": "JAMBI", "op": "Smartfren", "lost": 0.19, "discard": 0.39, "rsrp": -95.7, "rsrq": -13.5, "cnt": 129}, {"province": "KEPULAUAN RIAU", "op": "Smartfren", "lost": 0.16, "discard": 0.28, "rsrp": -101.2, "rsrq": -12.9, "cnt": 61}], "3.0.12.103": [{"province": "SUMATERA UTARA", "op": "XL", "lost": 1.65, "discard": 2.63, "rsrp": -98.0, "rsrq": -13.0, "cnt": 476}, {"province": "RIAU", "op": "Smartfren", "lost": 1.62, "discard": 2.21, "rsrp": -99.3, "rsrq": -11.6, "cnt": 263}, {"province": "KEPULAUAN BANGKA BELITUNG", "op": "Smartfren", "lost": 1.61, "discard": 1.93, "rsrp": -95.7, "rsrq": -12.0, "cnt": 245}, {"province": "JAMBI", "op": "Smartfren", "lost": 1.49, "discard": 2.06, "rsrp": -99.3, "rsrq": -12.3, "cnt": 936}, {"province": "RIAU", "op": "XL", "lost": 1.45, "discard": 1.95, "rsrp": -99.1, "rsrq": -12.0, "cnt": 2331}, {"province": "ACEH", "op": "Smartfren", "lost": 1.37, "discard": 4.74, "rsrp": -98.4, "rsrq": -12.5, "cnt": 19}, {"province": "SUMATERA SELATAN", "op": "XL", "lost": 1.36, "discard": 2.0, "rsrp": -99.1, "rsrq": -12.3, "cnt": 1387}, {"province": "LAMPUNG", "op": "Smartfren", "lost": 1.22, "discard": 2.22, "rsrp": -100.4, "rsrq": -13.1, "cnt": 18}, {"province": "SUMATERA SELATAN", "op": "Smartfren", "lost": 1.15, "discard": 1.86, "rsrp": -97.8, "rsrq": -12.2, "cnt": 460}, {"province": "BENGKULU", "op": "Smartfren", "lost": 1.12, "discard": 1.84, "rsrp": -97.9, "rsrq": -10.1, "cnt": 25}, {"province": "SUMATERA BARAT", "op": "Smartfren", "lost": 0.96, "discard": 2.08, "rsrp": -101.2, "rsrq": -12.2, "cnt": 225}, {"province": "SUMATERA BARAT", "op": "XL", "lost": 0.93, "discard": 1.33, "rsrp": -99.1, "rsrq": -11.9, "cnt": 1361}, {"province": "KEPULAUAN RIAU", "op": "Smartfren", "lost": 0.92, "discard": 1.55, "rsrp": -96.0, "rsrq": -12.4, "cnt": 553}, {"province": "JAMBI", "op": "XL", "lost": 0.91, "discard": 1.44, "rsrp": -99.5, "rsrq": -12.2, "cnt": 2388}, {"province": "KEPULAUAN RIAU", "op": "XL", "lost": 0.9, "discard": 1.23, "rsrp": -94.8, "rsrq": -12.7, "cnt": 3542}, {"province": "BENGKULU", "op": "XL", "lost": 0.85, "discard": 1.12, "rsrp": -100.1, "rsrq": -11.7, "cnt": 515}, {"province": "KEPULAUAN BANGKA BELITUNG", "op": "XL", "lost": 0.56, "discard": 0.71, "rsrp": -94.7, "rsrq": -11.8, "cnt": 1041}, {"province": "LAMPUNG", "op": "XL", "lost": 0.55, "discard": 1.04, "rsrp": -97.1, "rsrq": -11.6, "cnt": 67}, {"province": "ACEH", "op": "XL", "lost": 0.24, "discard": 1.52, "rsrp": -97.5, "rsrq": -12.9, "cnt": 112}, {"province": "SUMATERA UTARA", "op": "Smartfren", "lost": 0.07, "discard": 2.18, "rsrp": -95.4, "rsrq": -13.6, "cnt": 72}], "13.251.196.36": [{"province": "SUMATERA BARAT", "op": "Smartfren", "lost": 1.96, "discard": 2.85, "rsrp": -101.5, "rsrq": -12.3, "cnt": 173}, {"province": "SUMATERA SELATAN", "op": "Smartfren", "lost": 1.68, "discard": 2.57, "rsrp": -98.9, "rsrq": -12.3, "cnt": 451}, {"province": "KEPULAUAN BANGKA BELITUNG", "op": "Smartfren", "lost": 1.47, "discard": 1.72, "rsrp": -96.6, "rsrq": -11.6, "cnt": 243}, {"province": "SUMATERA SELATAN", "op": "XL", "lost": 1.47, "discard": 2.2, "rsrp": -99.0, "rsrq": -12.3, "cnt": 1485}, {"province": "JAMBI", "op": "Smartfren", "lost": 1.39, "discard": 1.78, "rsrp": -99.1, "rsrq": -12.3, "cnt": 966}, {"province": "RIAU", "op": "Smartfren", "lost": 1.36, "discard": 1.93, "rsrp": -100.0, "rsrq": -11.8, "cnt": 256}, {"province": "JAMBI", "op": "XL", "lost": 1.25, "discard": 1.7, "rsrp": -99.1, "rsrq": -12.1, "cnt": 2369}, {"province": "RIAU", "op": "XL", "lost": 1.12, "discard": 1.53, "rsrp": -99.6, "rsrq": -11.8, "cnt": 2195}, {"province": "KEPULAUAN RIAU", "op": "XL", "lost": 1.01, "discard": 1.34, "rsrp": -95.1, "rsrq": -12.8, "cnt": 3569}, {"province": "SUMATERA UTARA", "op": "XL", "lost": 0.96, "discard": 1.95, "rsrp": -97.8, "rsrq": -12.9, "cnt": 439}, {"province": "KEPULAUAN RIAU", "op": "Smartfren", "lost": 0.87, "discard": 1.18, "rsrp": -96.3, "rsrq": -12.6, "cnt": 524}, {"province": "SUMATERA BARAT", "op": "XL", "lost": 0.85, "discard": 1.26, "rsrp": -99.2, "rsrq": -11.9, "cnt": 1401}, {"province": "ACEH", "op": "Smartfren", "lost": 0.84, "discard": 4.84, "rsrp": -94.9, "rsrq": -12.3, "cnt": 19}, {"province": "BENGKULU", "op": "Smartfren", "lost": 0.83, "discard": 1.04, "rsrp": -100.3, "rsrq": -12.0, "cnt": 23}, {"province": "BENGKULU", "op": "XL", "lost": 0.62, "discard": 0.89, "rsrp": -100.1, "rsrq": -12.0, "cnt": 508}, {"province": "KEPULAUAN BANGKA BELITUNG", "op": "XL", "lost": 0.49, "discard": 0.64, "rsrp": -94.6, "rsrq": -11.9, "cnt": 1000}, {"province": "LAMPUNG", "op": "XL", "lost": 0.29, "discard": 0.44, "rsrp": -98.4, "rsrq": -10.9, "cnt": 48}, {"province": "SUMATERA UTARA", "op": "Smartfren", "lost": 0.22, "discard": 2.49, "rsrp": -95.7, "rsrq": -13.7, "cnt": 72}, {"province": "LAMPUNG", "op": "Smartfren", "lost": 0.17, "discard": 0.33, "rsrp": -102.2, "rsrq": -12.7, "cnt": 12}, {"province": "ACEH", "op": "XL", "lost": 0.1, "discard": 1.09, "rsrp": -98.0, "rsrq": -12.9, "cnt": 104}], "43.217.166.207": [{"province": "SUMATERA SELATAN", "op": "Smartfren", "lost": 4.77, "discard": 7.62, "rsrp": -97.8, "rsrq": -13.5, "cnt": 13}, {"province": "ACEH", "op": "Smartfren", "lost": 2.17, "discard": 3.31, "rsrp": -99.0, "rsrq": -12.1, "cnt": 1239}, {"province": "LAMPUNG", "op": "XL", "lost": 2.0, "discard": 2.79, "rsrp": -94.0, "rsrq": -14.1, "cnt": 24}, {"province": "SUMATERA UTARA", "op": "Smartfren", "lost": 1.21, "discard": 1.81, "rsrp": -95.2, "rsrq": -13.1, "cnt": 4157}, {"province": "BENGKULU", "op": "XL", "lost": 1.2, "discard": 1.23, "rsrp": -98.3, "rsrq": -12.8, "cnt": 82}, {"province": "RIAU", "op": "Smartfren", "lost": 1.16, "discard": 1.54, "rsrp": -95.7, "rsrq": -13.1, "cnt": 2574}, {"province": "KEPULAUAN RIAU", "op": "XL", "lost": 1.05, "discard": 1.29, "rsrp": -97.0, "rsrq": -12.4, "cnt": 146}, {"province": "ACEH", "op": "XL", "lost": 1.04, "discard": 1.5, "rsrp": -98.3, "rsrq": -12.2, "cnt": 3833}, {"province": "SUMATERA UTARA", "op": "XL", "lost": 0.99, "discard": 1.44, "rsrp": -96.1, "rsrq": -13.0, "cnt": 13330}, {"province": "RIAU", "op": "XL", "lost": 0.9, "discard": 1.13, "rsrp": -96.6, "rsrq": -12.5, "cnt": 6450}, {"province": "SUMATERA BARAT", "op": "Smartfren", "lost": 0.89, "discard": 1.16, "rsrp": -98.8, "rsrq": -12.8, "cnt": 1543}, {"province": "SUMATERA BARAT", "op": "XL", "lost": 0.76, "discard": 0.98, "rsrp": -97.5, "rsrq": -12.8, "cnt": 4619}, {"province": "SUMATERA SELATAN", "op": "XL", "lost": 0.5, "discard": 0.53, "rsrp": -95.9, "rsrq": -13.1, "cnt": 60}, {"province": "KEPULAUAN RIAU", "op": "Smartfren", "lost": 0.05, "discard": 0.19, "rsrp": -94.1, "rsrq": -12.7, "cnt": 21}, {"province": "BENGKULU", "op": "Smartfren", "lost": 0.0, "discard": 0.0, "rsrp": -100.5, "rsrq": -13.0, "cnt": 2}, {"province": "JAMBI", "op": "Smartfren", "lost": 0.0, "discard": 0.0, "rsrp": -95.2, "rsrq": -12.8, "cnt": 12}, {"province": "JAMBI", "op": "XL", "lost": 0.0, "discard": 0.0, "rsrp": -100.4, "rsrq": -12.0, "cnt": 54}, {"province": "LAMPUNG", "op": "Smartfren", "lost": 0.0, "discard": 0.0, "rsrp": -92.3, "rsrq": -12.3, "cnt": 3}], "198.18.x.x": [{"province": "JAMBI", "op": "XL", "lost": 0.38, "discard": 2.44, "rsrp": -96.6, "rsrq": -12.5, "cnt": 16}, {"province": "KEPULAUAN RIAU", "op": "XL", "lost": 0.0, "discard": 0.0, "rsrp": -99.0, "rsrq": -11.0, "cnt": 1}, {"province": "LAMPUNG", "op": "XL", "lost": 0.0, "discard": 3.5, "rsrp": -94.0, "rsrq": -9.0, "cnt": 2}, {"province": "SUMATERA SELATAN", "op": "XL", "lost": 0.0, "discard": 2.0, "rsrp": -101.0, "rsrq": null, "cnt": 1}]};
+const dailyData = {"43.216.122.42": [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null], "16.78.116.52": [{"lost": 0.55, "discard": 0.72, "cnt": 1423}, {"lost": 0.68, "discard": 0.92, "cnt": 1404}, {"lost": 2.07, "discard": 3.17, "cnt": 1548}, {"lost": 0.8, "discard": 1.17, "cnt": 1480}, {"lost": 0.57, "discard": 0.92, "cnt": 1597}, {"lost": 0.58, "discard": 0.84, "cnt": 1595}, {"lost": 0.56, "discard": 0.74, "cnt": 1433}, {"lost": 1.05, "discard": 1.45, "cnt": 1389}, {"lost": 0.73, "discard": 1.08, "cnt": 1348}, {"lost": 1.06, "discard": 1.54, "cnt": 1472}, {"lost": 0.9, "discard": 1.29, "cnt": 1512}, {"lost": 1.28, "discard": 1.76, "cnt": 1505}, {"lost": 1.27, "discard": 1.82, "cnt": 1423}, {"lost": 1.11, "discard": 1.5, "cnt": 1357}, {"lost": 1.4, "discard": 1.9, "cnt": 1401}, {"lost": 1.19, "discard": 1.68, "cnt": 1462}, {"lost": 0.88, "discard": 1.21, "cnt": 1473}, {"lost": 1.25, "discard": 1.79, "cnt": 1436}, {"lost": 0.69, "discard": 0.95, "cnt": 1527}, {"lost": 0.76, "discard": 1.04, "cnt": 1390}], "108.137.60.128": [{"lost": 0.61, "discard": 0.8, "cnt": 1454}, {"lost": 0.8, "discard": 1.13, "cnt": 1492}, {"lost": 2.14, "discard": 3.05, "cnt": 1476}, {"lost": 1.07, "discard": 1.58, "cnt": 1457}, {"lost": 0.7, "discard": 0.96, "cnt": 1591}, {"lost": 0.85, "discard": 1.18, "cnt": 1421}, {"lost": 1.1, "discard": 1.35, "cnt": 1374}, {"lost": 0.85, "discard": 1.25, "cnt": 1417}, {"lost": 0.72, "discard": 1.09, "cnt": 1332}, {"lost": 0.97, "discard": 1.37, "cnt": 1570}, {"lost": 1.09, "discard": 1.61, "cnt": 1415}, {"lost": 1.49, "discard": 2.06, "cnt": 1570}, {"lost": 0.87, "discard": 1.24, "cnt": 1428}, {"lost": 0.95, "discard": 1.38, "cnt": 1422}, {"lost": 1.49, "discard": 2.65, "cnt": 1510}, {"lost": 0.98, "discard": 1.4, "cnt": 1355}, {"lost": 0.74, "discard": 0.96, "cnt": 1481}, {"lost": 1.14, "discard": 1.56, "cnt": 1370}, {"lost": 0.63, "discard": 0.82, "cnt": 1609}, {"lost": 0.95, "discard": 1.33, "cnt": 1343}], "16.78.7.82": [{"lost": 0.83, "discard": 1.07, "cnt": 1335}, {"lost": 0.92, "discard": 1.17, "cnt": 1472}, {"lost": 0.92, "discard": 1.21, "cnt": 943}, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null], "3.0.12.103": [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null], "13.251.196.36": [{"lost": 0.74, "discard": 1.08, "cnt": 729}, {"lost": 1.27, "discard": 1.63, "cnt": 784}, {"lost": 0.98, "discard": 1.39, "cnt": 871}, {"lost": 1.09, "discard": 1.59, "cnt": 837}, {"lost": 0.41, "discard": 0.66, "cnt": 806}, {"lost": 1.56, "discard": 2.28, "cnt": 794}, {"lost": 0.85, "discard": 1.15, "cnt": 711}, {"lost": 1.04, "discard": 1.68, "cnt": 754}, {"lost": 0.82, "discard": 1.13, "cnt": 732}, {"lost": 1.21, "discard": 1.67, "cnt": 821}, {"lost": 1.31, "discard": 1.9, "cnt": 782}, {"lost": 1.21, "discard": 1.78, "cnt": 873}, {"lost": 1.06, "discard": 1.56, "cnt": 869}, {"lost": 1.11, "discard": 1.48, "cnt": 809}, {"lost": 1.0, "discard": 1.31, "cnt": 778}, {"lost": 1.6, "discard": 2.18, "cnt": 763}, {"lost": 1.62, "discard": 2.07, "cnt": 737}, {"lost": 1.04, "discard": 1.62, "cnt": 808}, {"lost": 0.71, "discard": 1.05, "cnt": 832}, {"lost": 1.2, "discard": 1.65, "cnt": 767}], "43.217.166.207": [{"lost": 0.83, "discard": 1.07, "cnt": 46}, {"lost": 1.93, "discard": 2.78, "cnt": 46}, {"lost": 0.04, "discard": 0.06, "cnt": 47}, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null], "198.18.x.x": [null, null, {"lost": 0.0, "discard": 0.0, "cnt": 1}, {"lost": 1.0, "discard": 2.0, "cnt": 1}, {"lost": 2.0, "discard": 4.0, "cnt": 1}, {"lost": 1.0, "discard": 2.0, "cnt": 1}, null, null, null, {"lost": 0.0, "discard": 7.0, "cnt": 1}, null, {"lost": 0.0, "discard": 0.0, "cnt": 1}, {"lost": 0.0, "discard": 0.0, "cnt": 1}, null, null, null, {"lost": 0.0, "discard": 2.0, "cnt": 1}, null, null, null]};
+const serverInfo = [["43.216.122.42", "AWS SG (43.216)", "#4488ff"], ["16.78.116.52", "AWS SG (16.78-52)", "#ff6644"], ["108.137.60.128", "AWS Jakarta (108.137)", "#44cc44"], ["16.78.7.82", "AWS SG (16.78-82)", "#ff44ff"], ["3.0.12.103", "AWS SG (3.0)", "#ffcc00"], ["13.251.196.36", "AWS SG (13.251)", "#44cccc"], ["43.217.166.207", "AWS HK (43.217)", "#ff8888"], ["198.18.x.x", "Cloudflare WARP", "#ff4444"]];
+
+const chartOpts = (title) => ({
+  responsive: true,
+  interaction: { mode: 'index', intersect: false },
+  plugins: {
+    legend: { labels: { color: '#aaa', font: { size: 11 } } },
+  },
+  scales: {
+    x: { ticks: { color: '#888' }, grid: { color: '#1a2a4e' } },
+    y: { ticks: { color: '#888', callback: v => v.toFixed(2) + '%' }, grid: { color: '#1a2a4e' }, beginAtZero: true }
+  }
+});
+
+// Main charts
+const datasets_lost = [];
+const datasets_disc = [];
+serverInfo.forEach(([sip, label, color]) => {
+  const dLost = dailyData[sip] ? dailyData[sip].map(d => d ? d.lost : null) : [];
+  const dDisc = dailyData[sip] ? dailyData[sip].map(d => d ? d.discard : null) : [];
+  datasets_lost.push({ label, data: dLost, borderColor: color, fill: false, tension: 0.3, pointRadius: 3, borderWidth: 2 });
+  datasets_disc.push({ label, data: dDisc, borderColor: color, fill: false, tension: 0.3, pointRadius: 3, borderWidth: 2 });
+});
+
+new Chart(document.getElementById('chartLost'), { type: 'line', data: { labels, datasets: datasets_lost }, options: chartOpts('Lost%') });
+new Chart(document.getElementById('chartDiscard'), { type: 'line', data: { labels, datasets: datasets_disc }, options: chartOpts('Discard%') });
+
+// Expand/collapse
+const miniCharts = {};
+
+function toggleDetail(sip) {
+  const id = 'detail-' + sip.replace(/\./g, '_').replace(/:/g, '_');
+  const row = document.getElementById(id);
+  if (!row) return;
+  
+  if (row.style.display === 'none') {
+    row.style.display = '';
+    
+    // Populate province table
+    const provId = 'prov-' + sip.replace(/\./g, '_').replace(/:/g, '_');
+    const provBody = document.getElementById(provId);
+    if (provBody && rawData[sip]) {
+      provBody.innerHTML = rawData[sip].map(r => {
+        const badgeClass = r.lost >= 1.0 ? 'badge-high' : (r.lost >= 0.8 ? 'badge-med' : 'badge-low');
+        return `<tr><td>${r.province}</td><td>${r.op}</td><td><span class="badge ${badgeClass}">${r.lost.toFixed(2)}%</span></td><td>${r.discard.toFixed(2)}%</td><td>${r.cnt.toLocaleString()}</td></tr>`;
+      }).join('');
+    }
+    
+    // Create mini chart
+    const chartId = 'chart-' + sip.replace(/\./g, '_').replace(/:/g, '_');
+    const canvas = document.getElementById(chartId);
+    if (canvas && !miniCharts[chartId]) {
+      const dLost = dailyData[sip] ? dailyData[sip].map(d => d ? d.lost : null) : [];
+      miniCharts[chartId] = new Chart(canvas, {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'Lost%',
+            data: dLost,
+            borderColor: '#4488ff',
+            backgroundColor: '#4488ff22',
+            fill: true,
+            tension: 0.3,
+            pointRadius: 3,
+            borderWidth: 2
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: { legend: { display: false } },
+          scales: {
+            x: { ticks: { color: '#888', font: { size: 9 } }, grid: { color: '#1a2a4e' } },
+            y: { ticks: { color: '#888', font: { size: 9 }, callback: v => v.toFixed(1) + '%' }, grid: { color: '#1a2a4e' }, beginAtZero: true }
+          }
+        }
+      });
+    }
+  } else {
+    row.style.display = 'none';
+  }
+}
+</script>
+</body>
+</html>

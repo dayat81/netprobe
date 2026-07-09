@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Consistency — National Dashboard</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',Tahoma,sans-serif;padding:20px;background:#1a1a2e;color:#e0e0e0}
+.header{display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;padding-bottom:12px;border-bottom:3px solid #4A90D9}
+.header h1{font-size:22px;color:#fff}
+.logo{font-size:18px;font-weight:bold;color:#4A90D9}
+.subtitle{color:#aaa;font-size:13px;margin-bottom:18px}
+.subtitle span{background:#2a2a4a;padding:4px 12px;border-radius:4px;margin-right:8px;display:inline-block;margin-bottom:4px}
+.cards{display:flex;gap:15px;margin-bottom:20px;flex-wrap:wrap}
+.card{background:#16213e;border:1px solid #2a2a5a;border-radius:8px;padding:15px 20px;flex:1;min-width:140px;text-align:center}
+.card .value{font-size:26px;font-weight:700;color:#4A90D9}
+.card .label{font-size:11px;color:#888;margin-top:5px;text-transform:uppercase}
+.card.good{background:#1a3d1a;border-color:#27ae60}
+.card.good .value{color:#27ae60}
+.section{margin-bottom:25px}
+.section h2{font-size:16px;color:#4A90D9;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid #2a2a5a}
+table{border-collapse:collapse;width:100%;font-size:12px}
+th{background:#16213e;color:#4A90D9;padding:8px 6px;text-align:center;font-weight:600;border-bottom:2px solid #4A90D9;position:sticky;top:0}
+td{padding:7px 6px;text-align:center;border-bottom:1px solid #2a2a4a}
+tr:hover{background:#1a2a4a}
+.good{color:#27ae60;font-weight:700}
+.ok{color:#2ecc71;font-weight:600}
+.warn{color:#f39c12;font-weight:600}
+.bad{color:#e74c3c;font-weight:700}
+.insight{background:#16213e;border-left:4px solid #4A90D9;padding:12px 16px;border-radius:0 6px 6px 0;margin-bottom:12px;font-size:13px;line-height:1.6}
+.insight.ok{border-left-color:#27ae60}
+.insight.warn{border-left-color:#f39c12}
+.insight strong{color:#fff}
+.footer{margin-top:25px;padding:12px;background:#16213e;border-radius:6px;font-size:11px;color:#666;text-align:center}
+.bar-row{display:flex;align-items:center;gap:8px;margin:6px 0}
+.bar-label{width:80px;font-size:12px;font-weight:600;text-align:right}
+.bar-track{flex:1;height:28px;background:#2a2a4a;border-radius:4px;overflow:hidden;position:relative}
+.bar-fill{height:100%;border-radius:4px;display:flex;align-items:center;justify-content:flex-end;padding-right:8px;font-size:11px;font-weight:700;color:#fff}
+.metric-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:15px;margin-bottom:15px}
+.metric-box{background:#16213e;border:1px solid #2a2a5a;border-radius:8px;padding:14px}
+.metric-box h3{font-size:13px;color:#4A90D9;margin-bottom:8px}
+.metric-box .desc{font-size:10px;color:#666;margin-bottom:6px}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>📏 Consistency — National Dashboard</h1>
+  <div class="logo">XLSMART</div>
+</div>
+
+<div class="subtitle">
+  <span>📅 15 Jun – 21 Jun 2026 (MA7)</span>
+  <span>📏 Completion Rate · Packet Loss</span>
+  <span>🇮🇩 35 Provinsi</span>
+  <span>📊 4,926,360 tests</span>
+</div>
+
+<div class="cards">
+  <div class="card good">
+    <div class="value">99.7%</div>
+    <div class="label">XL Completion Rate</div>
+  </div>
+  <div class="card good">
+    <div class="value">0.613%</div>
+    <div class="label">XL TCP Packet Loss</div>
+  </div>
+  <div class="card">
+    <div class="value">0.589%</div>
+    <div class="label">Best TCP Loss: Smartfren</div>
+  </div>
+  <div class="card">
+    <div class="value">0.900%</div>
+    <div class="label">Worst TCP Loss: Indosat</div>
+  </div>
+</div>
+
+<div class="metric-grid">
+  <div class="metric-box">
+    <h3>✅ Completion Rate (%)</h3>
+    <div class="desc">% test yang berhasil selesai. Semua operator &gt;99% = sangat baik.</div>
+    <div class="bar-row"><span class="bar-label" style="color:#e74c3c">Telkomsel</span><div class="bar-track"><div class="bar-fill" style="width:63%;background:#27ae60">99.3%</div></div></div>
+    <div class="bar-row"><span class="bar-label" style="color:#4A90D9">XL</span><div class="bar-track"><div class="bar-fill" style="width:85%;background:#27ae60">99.7%</div></div></div>
+    <div class="bar-row"><span class="bar-label" style="color:#f1c40f">Indosat</span><div class="bar-track"><div class="bar-fill" style="width:85%;background:#27ae60">99.7%</div></div></div>
+    <div class="bar-row"><span class="bar-label" style="color:#2ecc71">3</span><div class="bar-track"><div class="bar-fill" style="width:87%;background:#27ae60">99.7%</div></div></div>
+    <div class="bar-row"><span class="bar-label" style="color:#9b59b6">Smartfren</span><div class="bar-track"><div class="bar-fill" style="width:85%;background:#27ae60">99.7%</div></div></div>
+  </div>
+  <div class="metric-box">
+    <h3>📉 TCP Packet Loss (%)</h3>
+    <div class="desc">% packet hilang saat transmission. Lebih rendah = lebih baik.</div>
+    <div class="bar-row"><span class="bar-label" style="color:#e74c3c">Telkomsel</span><div class="bar-track"><div class="bar-fill" style="width:73%;background:#2ecc71">0.660%</div></div></div>
+    <div class="bar-row"><span class="bar-label" style="color:#4A90D9">XL</span><div class="bar-track"><div class="bar-fill" style="width:68%;background:#27ae60">0.613%</div></div></div>
+    <div class="bar-row"><span class="bar-label" style="color:#f1c40f">Indosat</span><div class="bar-track"><div class="bar-fill" style="width:100%;background:#e74c3c">0.900%</div></div></div>
+    <div class="bar-row"><span class="bar-label" style="color:#2ecc71">3</span><div class="bar-track"><div class="bar-fill" style="width:93%;background:#f39c12">0.835%</div></div></div>
+    <div class="bar-row"><span class="bar-label" style="color:#9b59b6">Smartfren</span><div class="bar-track"><div class="bar-fill" style="width:65%;background:#27ae60">0.589%</div></div></div>
+  </div>
+</div>
+
+<div class="section">
+  <h2>📋 Operator Comparison — Nasional</h2>
+  <table>
+    <thead>
+      <tr><th style="text-align:left">Operator</th><th>Tests</th><th>Completion Rate</th><th>TCP Loss</th><th>UDP Loss</th><th>Rank</th></tr>
+    </thead>
+    <tbody>
+      <tr><td style="text-align:left;font-weight:600;color:#9b59b6">Smartfren</td><td>260,892</td><td>99.7%</td><td class="good">0.589%</td><td>0.000%</td><td>🥇</td></tr>
+      <tr><td style="text-align:left;font-weight:600;color:#4A90D9">XL</td><td>796,115</td><td>99.7%</td><td class="good">0.613%</td><td>0.000%</td><td>🥈</td></tr>
+      <tr><td style="text-align:left;font-weight:600;color:#e74c3c">Telkomsel</td><td>2,133,106</td><td>99.3%</td><td class="ok">0.660%</td><td>0.000%</td><td>🥉</td></tr>
+      <tr><td style="text-align:left;font-weight:600;color:#2ecc71">3</td><td>610,857</td><td>99.7%</td><td class="warn">0.835%</td><td>0.000%</td><td>#4</td></tr>
+      <tr><td style="text-align:left;font-weight:600;color:#f1c40f">Indosat</td><td>1,125,390</td><td>99.7%</td><td class="bad">0.900%</td><td>0.000%</td><td>#5</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="section">
+  <h2>🔵 XL Consistency per Provinsi (sorted by completion rate, worst first)</h2>
+  <p style="font-size:12px;color:#888;margin-bottom:12px">Provinsi dengan completion rate rendah = area yang perlu perhatian. Min 50 tests.</p>
+  <table>
+    <thead>
+      <tr><th style="text-align:left">Provinsi</th><th>XL Tests</th><th>Completion%</th><th>TCP Loss%</th><th style="text-align:left">Status</th></tr>
+    </thead>
+    <tbody>
+      <tr><td style="text-align:left;font-weight:500">GORONTALO</td><td>1,496</td><td class="ok">99.1%</td><td>0.753%</td><td style="text-align:left;color:#2ecc71;font-weight:600">✅ Good</td></tr>
+      <tr><td style="text-align:left;font-weight:500">SULAWESI TENGGARA</td><td>4,658</td><td class="ok">99.3%</td><td>0.841%</td><td style="text-align:left;color:#2ecc71;font-weight:600">✅ Good</td></tr>
+      <tr><td style="text-align:left;font-weight:500">SULAWESI BARAT</td><td>1,476</td><td class="ok">99.5%</td><td>0.850%</td><td style="text-align:left;color:#2ecc71;font-weight:600">✅ Good</td></tr>
+      <tr><td style="text-align:left;font-weight:500">SULAWESI SELATAN</td><td>31,088</td><td class="good">99.6%</td><td>0.510%</td><td style="text-align:left;color:#27ae60;font-weight:600">✅ Excellent</td></tr>
+      <tr><td style="text-align:left;font-weight:500">KALIMANTAN TENGAH</td><td>4,437</td><td class="good">99.6%</td><td>1.027%</td><td style="text-align:left;color:#27ae60;font-weight:600">✅ Excellent</td></tr>
+      <tr><td style="text-align:left;font-weight:500">SULAWESI TENGAH</td><td>4,264</td><td class="good">99.6%</td><td>0.728%</td><td style="text-align:left;color:#27ae60;font-weight:600">✅ Excellent</td></tr>
+      <tr><td style="text-align:left;font-weight:500">RIAU</td><td>13,664</td><td class="good">99.6%</td><td>1.015%</td><td style="text-align:left;color:#27ae60;font-weight:600">✅ Excellent</td></tr>
+      <tr><td style="text-align:left;font-weight:500">NUSA TENGGARA TIMUR</td><td>1,696</td><td class="good">99.6%</td><td>0.818%</td><td style="text-align:left;color:#27ae60;font-weight:600">✅ Excellent</td></tr>
+      <tr><td style="text-align:left;font-weight:500">SUMATERA UTARA</td><td>23,120</td><td class="good">99.6%</td><td>0.610%</td><td style="text-align:left;color:#27ae60;font-weight:600">✅ Excellent</td></tr>
+      <tr><td style="text-align:left;font-weight:500">SUMATERA SELATAN</td><td>13,569</td><td class="good">99.6%</td><td>1.033%</td><td style="text-align:left;color:#27ae60;font-weight:600">✅ Excellent</td></tr>
+      <tr><td style="text-align:left;font-weight:500">KEPULAUAN RIAU</td><td>7,153</td><td class="good">99.6%</td><td>0.928%</td><td style="text-align:left;color:#27ae60;font-weight:600">✅ Excellent</td></tr>
+      <tr><td style="text-align:left;font-weight:500">KALIMANTAN TIMUR</td><td>10,393</td><td class="good">99.7%</td><td>0.703%</td><td style="text-align:left;color:#27ae60;font-weight:600">✅ Excellent</td></tr>
+      <tr><td style="text-align:left;font-weight:500">JAMBI</td><td>4,920</td><td class="good">99.7%</td><td>0.923%</td><td style="text-align:left;color:#27ae60;font-weight:600">✅ Excellent</td></tr>
+      <tr><td style="text-align:left;font-weight:500">KALIMANTAN BARAT</td><td>5,768</td><td class="good">99.7%</td><td>0.671%</td><td style="text-align:left;color:#27ae60;font-weight:600">✅ Excellent</td></tr>
+      <tr><td style="text-align:left;font-weight:500">JAWA TIMUR</td><td>112,722</td><td class="good">99.7%</td><td>0.334%</td><td style="text-align:left;color:#27ae60;font-weight:600">✅ Excellent</td></tr>
+      <tr><td style="text-align:left;font-weight:500">BALI</td><td>20,318</td><td class="good">99.7%</td><td>0.582%</td><td style="text-align:left;color:#27ae60;font-weight:600">✅ Excellent</td></tr>
+      <tr><td style="text-align:left;font-weight:500">JAWA TENGAH</td><td>92,088</td><td class="good">99.7%</td><td>0.429%</td><td style="text-align:left;color:#27ae60;font-weight:600">✅ Excellent</td></tr>
+      <tr><td style="text-align:left;font-weight:500">JAWA BARAT</td><td>180,803</td><td class="good">99.7%</td><td>0.744%</td><td style="text-align:left;color:#27ae60;font-weight:600">✅ Excellent</td></tr>
+      <tr><td style="text-align:left;font-weight:500">DAERAH ISTIMEWA YOGYAKARTA</td><td>21,354</td><td class="good">99.7%</td><td>0.515%</td><td style="text-align:left;color:#27ae60;font-weight:600">✅ Excellent</td></tr>
+      <tr><td style="text-align:left;font-weight:500">BANTEN</td><td>59,498</td><td class="good">99.7%</td><td>0.697%</td><td style="text-align:left;color:#27ae60;font-weight:600">✅ Excellent</td></tr>
+      <tr><td style="text-align:left;font-weight:500">SULAWESI UTARA</td><td>2,520</td><td class="good">99.7%</td><td>0.622%</td><td style="text-align:left;color:#27ae60;font-weight:600">✅ Excellent</td></tr>
+      <tr><td style="text-align:left;font-weight:500">KEPULAUAN BANGKA BELITUNG</td><td>5,662</td><td class="good">99.7%</td><td>0.678%</td><td style="text-align:left;color:#27ae60;font-weight:600">✅ Excellent</td></tr>
+      <tr><td style="text-align:left;font-weight:500">DKI JAKARTA</td><td>77,431</td><td class="good">99.7%</td><td>0.609%</td><td style="text-align:left;color:#27ae60;font-weight:600">✅ Excellent</td></tr>
+      <tr><td style="text-align:left;font-weight:500">NUSA TENGGARA BARAT</td><td>39,077</td><td class="good">99.7%</td><td>0.635%</td><td style="text-align:left;color:#27ae60;font-weight:600">✅ Excellent</td></tr>
+      <tr><td style="text-align:left;font-weight:500">ACEH</td><td>7,606</td><td class="good">99.7%</td><td>0.478%</td><td style="text-align:left;color:#27ae60;font-weight:600">✅ Excellent</td></tr>
+      <tr><td style="text-align:left;font-weight:500">SUMATERA BARAT</td><td>11,076</td><td class="good">99.7%</td><td>0.726%</td><td style="text-align:left;color:#27ae60;font-weight:600">✅ Excellent</td></tr>
+      <tr><td style="text-align:left;font-weight:500">KALIMANTAN SELATAN</td><td>18,638</td><td class="good">99.8%</td><td>0.334%</td><td style="text-align:left;color:#27ae60;font-weight:600">✅ Excellent</td></tr>
+      <tr><td style="text-align:left;font-weight:500">LAMPUNG</td><td>14,162</td><td class="good">99.8%</td><td>1.055%</td><td style="text-align:left;color:#27ae60;font-weight:600">✅ Excellent</td></tr>
+      <tr><td style="text-align:left;font-weight:500">BENGKULU</td><td>1,953</td><td class="good">99.9%</td><td>1.057%</td><td style="text-align:left;color:#27ae60;font-weight:600">✅ Excellent</td></tr>
+      <tr><td style="text-align:left;font-weight:500">KALIMANTAN UTARA</td><td>343</td><td class="good">100.0%</td><td>0.618%</td><td style="text-align:left;color:#27ae60;font-weight:600">✅ Excellent</td></tr>
+      <tr><td style="text-align:left;font-weight:500">PAPUA</td><td>278</td><td class="good">100.0%</td><td>0.935%</td><td style="text-align:left;color:#27ae60;font-weight:600">✅ Excellent</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="section">
+  <h2>🔍 Key Insights</h2>
+  <div class="insight ok">
+    <strong>✅ Semua Operator Completion &gt;99%</strong> — Reliability sangat tinggi. XL 99.7%, Telkomsel 99.3%. Tidak ada perbedaan signifikan.
+  </div>
+  <div class="insight ok">
+    <strong>✅ Smartfren TCP Loss Terendah: 0.589%</strong> — XL juga bagus (0.613%). Indosat tertinggi (0.900%).
+  </div>
+  <div class="insight">
+    <strong>📏 UDP Loss: Semua 0%</strong> — Tidak ada packet loss di UDP testing. Network quality stabil untuk real-time traffic.
+  </div>
+</div>
+
+<div class="footer">
+  Data: OpenSignal MyDashboards API • Period: 15-21 Jun 2026<br>
+  Generated: Jun 21, 2026 • osig.netprobe.xyz
+</div>
+
+</body>
+</html>

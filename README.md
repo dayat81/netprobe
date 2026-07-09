@@ -1,64 +1,73 @@
-# NetProbe (Android)
+# NetProbe
 
-Kotlin Android app for cellular radio logging (LTE/NR), CSV sync to [netprobe.xyz](https://netprobe.xyz), and UDP probing to `netprobe.xyz:8765` (latency, loss, jitter).
+Network quality probe & monitoring platform — Android client, API server, and web dashboards.
 
-## Requirements
+## Repository Structure
 
-- JDK 17+
-- Android SDK (API 35)
-- `ANDROID_HOME` or Android SDK installed via Android Studio
+```
+netprobe/
+├── android/          # Android UDP client app (Kotlin)
+│   ├── app/          # Main application module
+│   ├── gradle/       # Gradle wrapper
+│   ├── build.gradle.kts
+│   └── settings.gradle.kts
+├── server/           # Backend API server (Python/FastAPI)
+│   ├── app.py        # Main FastAPI app
+│   ├── db.py         # Database layer
+│   ├── udp_probe.py  # UDP probe engine
+│   ├── abr_server.py # ABR streaming test
+│   ├── max_server.py # Max throughput test
+│   ├── webtransport_server.py
+│   ├── probe_handler.py
+│   ├── udp_probe_protocol.py
+│   ├── static/       # Web client JS
+│   └── requirements.txt
+└── web/              # Web dashboards (HTML/JS)
+    ├── index.html    # Dashboard index
+    ├── dashboard_*.html
+    └── *.json         # Data files
+```
 
-## Build
+## Android Client
+
+Built with Kotlin, WireGuard VPN (Go backend), and OpenTelemetry RUM.
+
+### Build
 
 ```bash
-cd android/udp-client
-./gradlew assembleDebug
+cd android
+./gradlew assembleRelease
 ```
 
-APK output:
+APK output: `android/app/build/outputs/apk/release/netprobe-<version>.apk`
 
-```
-app/build/outputs/apk/debug/app-debug.apk
-```
+### CI
 
-## Install
+GitHub Actions auto-builds and creates a release on every push to `main`.
 
-With a device connected over USB debugging:
+## Server
+
+Python/FastAPI backend with UDP probe, ABR streaming, and max throughput tests.
+
+### Run
 
 ```bash
-adb install -r app/build/outputs/apk/debug/app-debug.apk
+cd server
+pip install -r requirements.txt
+uvicorn app:app --host 0.0.0.0 --port 8000
 ```
 
-## Usage
+## Web Dashboards
 
-1. Open **NetProbe** on the device.
-2. Tap **Start**.
-3. The app runs 5 rounds (15 packets each) against `netprobe.xyz:8765`.
-4. Review per-packet logs and round/overall metrics on screen.
+Static HTML dashboards for network quality monitoring (video, gaming, packet loss, etc).
 
-## Default probe settings
-
-| Setting | Value |
-|---------|-------|
-| Host | `netprobe.xyz` |
-| Port | `8765` |
-| Rounds | `5` |
-| Packets/round | `15` |
-| Pause between rounds | `500ms` |
-| Receive timeout | `3000ms` |
-
-## Metrics
-
-- **Latency**: RTT per packet (send → reply), with avg/min/max
-- **Loss**: packets with no reply before timeout
-- **Jitter**: mean absolute difference between consecutive RTT samples (IPDV)
-
-## Manual verification
-
-Compare results with the Python client from the same network:
+Serve with any static file server:
 
 ```bash
-python3 scripts/udp_client.py
+cd web
+python3 -m http.server 3000
 ```
 
-Both should receive `ACK N/15` replies and `OK 15/15 complete` on the final packet of each round.
+## License
+
+MIT

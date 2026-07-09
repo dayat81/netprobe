@@ -1,0 +1,56 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><title>1/5 XL</title><style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0a1a;color:#e0e0e0;font-family:'Segoe UI',sans-serif;padding:20px;width:1200px}
+h1{color:#4488ff;font-size:22px;margin-bottom:5px;text-align:center}
+h2{color:#ff6b6b;font-size:18px;margin:20px 0 10px;border-bottom:2px solid #ff6b6b;padding-bottom:5px}
+h3{color:#4ecdc4;font-size:14px;margin:12px 0 6px}
+.subtitle{color:#888;text-align:center;margin-bottom:15px;font-size:12px}
+.summary-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px}
+.card{background:linear-gradient(135deg,#1a1a2e,#16213e);border-radius:10px;padding:12px;border:1px solid #4488ff}
+.card-title{color:#4488ff;font-size:10px;text-transform:uppercase;letter-spacing:1px}
+.card-value{color:#00d4ff;font-size:24px;font-weight:bold;margin:4px 0}
+.card-detail{color:#888;font-size:11px}
+table{width:100%;border-collapse:collapse;margin:8px 0;font-size:11px}
+th{background:#1a1a2e;color:#4488ff;padding:6px 5px;text-align:left;border-bottom:2px solid #4488ff;font-size:10px}
+td{padding:5px;border-bottom:1px solid #222}
+tr:hover{background:#1a1a3e}
+.badge{display:inline-block;padding:2px 6px;border-radius:8px;font-size:9px;font-weight:bold}
+.badge-red{background:#ff4444;color:white}
+.badge-yellow{background:#ffaa00;color:#333}
+.badge-green{background:#44ff44;color:#333}
+.badge-blue{background:#4488ff;color:white}
+.platform-cf{color:#ff9900;font-weight:bold}
+.platform-ak{color:#ff4444;font-weight:bold}
+.platform-gc{color:#44ff44;font-weight:bold}
+.section{background:#0f0f25;border-radius:8px;padding:12px;margin:10px 0;border:1px solid #333}
+.insight-box{background:#1a1a3e;border-left:4px solid #ff6b6b;padding:8px 12px;margin:8px 0;border-radius:0 6px 6px 0;font-size:12px}
+.insight-box.good{border-left-color:#44ff44}
+.stall-bar{height:12px;border-radius:2px;display:inline-block;vertical-align:middle}
+footer{text-align:center;color:#555;font-size:10px;margin-top:15px;padding-top:10px;border-top:1px solid #222}
+.xl-header{color:#4488ff;font-size:16px;text-align:center;margin-bottom:10px}
+</style></head><body>
+<h1>🔵 XL (XL + Smartfren) — Video Server CDN Analysis</h1>
+<p class="subtitle">OpenSignal Indonesia — 1-14 Juni 2026 — 153,831 video tests</p>
+
+<div class="summary-cards">
+<div class="card">
+<div class="card-title">☁️ CLOUDFRONT</div>
+<div class="card-value">99,472</div>
+<div class="card-detail">64.7% of XL traffic | 310 unique IPs</div>
+<div class="card-detail">Avg Stall: <b>316.4s</b> | Avg FF: <b>12.0s</b></div>
+</div><div class="card">
+<div class="card-title">🔷 AKAMAI</div>
+<div class="card-value">27,338</div>
+<div class="card-detail">17.8% of XL traffic | 546 unique IPs</div>
+<div class="card-detail">Avg Stall: <b>207.9s</b> | Avg FF: <b>19.9s</b></div>
+</div><div class="card">
+<div class="card-title">🟢 GOOGLECLOUD</div>
+<div class="card-value">27,021</div>
+<div class="card-detail">17.6% of XL traffic | 5 unique IPs</div>
+<div class="card-detail">Avg Stall: <b>154.8s</b> | Avg FF: <b>10.8s</b></div>
+</div></div>
+
+<div class="section">
+<h3>📊 CDN Traffic Distribution</h3>
+<div style="margin:10px 0"><div style="margin:5px 0"><span style="display:inline-block;width:120px;font-size:11px">CLOUDFRONT</span><span class="stall-bar" style="width:387px;background:#ff9900"></span><span style="font-size:11px;margin-left:5px">99,472 (64.7%) — stall 316.4s, FF 12.0s</span></div><div style="margin:5px 0"><span style="display:inline-block;width:120px;font-size:11px">AKAMAI</span><span class="stall-bar" style="width:106px;background:#ff4444"></span><span style="font-size:11px;margin-left:5px">27,338 (17.8%) — stall 207.9s, FF 19.9s</span></div><div style="margin:5px 0"><span style="display:inline-block;width:120px;font-size:11px">GOOGLECLOUD</span><span class="stall-bar" style="width:105px;background:#44ff44"></span><span style="font-size:11px;margin-left:5px">27,021 (17.6%) — stall 154.8s, FF 10.8s</span></div></div></div>
+<footer>1/5 — XL Platform Summary</footer></body></html>

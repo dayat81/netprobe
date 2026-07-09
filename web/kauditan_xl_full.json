@@ -1,0 +1,102 @@
+{
+  "pt1_RED-worst": {
+    "lat": 1.3998,
+    "lon": 125.023,
+    "cnt": 7
+  },
+  "pt2_GREEN-normal": {
+    "lat": 1.3928,
+    "lon": 125.0472,
+    "cnt": 2
+  },
+  "pt3_YELLOW-1": {
+    "lat": 1.3966,
+    "lon": 125.0516,
+    "cnt": 1
+  },
+  "pt4_YELLOW-2": {
+    "lat": 1.4172,
+    "lon": 125.0003,
+    "cnt": 2
+  },
+  "pt5_YELLOW-3": {
+    "lat": 1.4172,
+    "lon": 125.0004,
+    "cnt": 2
+  },
+  "2026-06-17 09:00:00": {
+    "qos_localdate": "2026-06-17 09:00:00",
+    "buf_cnt": null,
+    "stall_int": null,
+    "rsrp": "-95"
+  },
+  "2026-06-17 11:00:00": {
+    "qos_localdate": "2026-06-17 11:00:00",
+    "buf_cnt": null,
+    "stall_int": null,
+    "rsrp": "-102"
+  },
+  "2026-06-17 19:00:00": {
+    "qos_localdate": "2026-06-17 19:00:00",
+    "buf_cnt": null,
+    "stall_int": null,
+    "rsrp": "-92"
+  },
+  "2026-06-17 23:00:00": {
+    "qos_localdate": "2026-06-17 23:00:00",
+    "buf_cnt": null,
+    "stall_int": null,
+    "rsrp": "-89"
+  },
+  "2026-06-18 08:00:00": {
+    "qos_localdate": "2026-06-18 08:00:00",
+    "buf_cnt": null,
+    "stall_int": null,
+    "rsrp": "-82"
+  },
+  "2026-06-18 09:00:00": {
+    "qos_localdate": "2026-06-18 09:00:00",
+    "buf_cnt": null,
+    "stall_int": null,
+    "rsrp": "-91"
+  },
+  "2026-06-18 10:00:00": {
+    "qos_localdate": "2026-06-18 10:00:00",
+    "buf_cnt": null,
+    "stall_int": null,
+    "rsrp": "-91"
+  },
+  "2026-06-18 23:00:00": {
+    "qos_localdate": "2026-06-18 23:00:00",
+    "buf_cnt": null,
+    "stall_int": null,
+    "rsrp": "-90"
+  },
+  "2026-06-19 10:00:00": {
+    "qos_localdate": "2026-06-19 10:00:00",
+    "buf_cnt": "0",
+    "stall_int": "0",
+    "rsrp": "-111"
+  },
+  "2026-06-19 19:00:00": {
+    "qos_localdate": "2026-06-19 19:00:00",
+    "buf_cnt": null,
+    "stall_int": null,
+    "rsrp": "-77"
+  },
+  "2026-06-19 21:00:00": {
+    "qos_localdate": "2026-06-19 21:00:00",
+    "buf_cnt": "2",
+    "stall_int": "30000"
+  },
+  "2026-06-19 22:00:00": {
+    "qos_localdate": "2026-06-19 22:00:00",
+    "buf_cnt": "1",
+    "stall_int": null
+  },
+  "2026-06-20 03:00:00": {
+    "qos_localdate": "2026-06-20 03:00:00",
+    "buf_cnt": null,
+    "stall_int": null
+  }
+}

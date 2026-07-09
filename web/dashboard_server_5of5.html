@@ -1,0 +1,93 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><title>5/5</title><style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0a1a;color:#e0e0e0;font-family:'Segoe UI',sans-serif;padding:20px;width:1200px}
+h1{color:#00d4ff;font-size:22px;margin-bottom:5px;text-align:center}
+h2{color:#ff6b6b;font-size:18px;margin:20px 0 10px;border-bottom:2px solid #ff6b6b;padding-bottom:5px}
+h3{color:#4ecdc4;font-size:14px;margin:12px 0 6px}
+.subtitle{color:#888;text-align:center;margin-bottom:15px;font-size:12px}
+.summary-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px}
+.card{background:linear-gradient(135deg,#1a1a2e,#16213e);border-radius:10px;padding:12px;border:1px solid #333}
+.card-title{color:#aaa;font-size:10px;text-transform:uppercase;letter-spacing:1px}
+.card-value{color:#00d4ff;font-size:24px;font-weight:bold;margin:4px 0}
+.card-detail{color:#888;font-size:11px}
+table{width:100%;border-collapse:collapse;margin:8px 0;font-size:11px}
+th{background:#1a1a2e;color:#00d4ff;padding:6px 5px;text-align:left;border-bottom:2px solid #00d4ff;font-size:10px}
+td{padding:5px;border-bottom:1px solid #222}
+tr:hover{background:#1a1a3e}
+.badge{display:inline-block;padding:2px 6px;border-radius:8px;font-size:9px;font-weight:bold}
+.badge-red{background:#ff4444;color:white}
+.badge-yellow{background:#ffaa00;color:#333}
+.badge-green{background:#44ff44;color:#333}
+.badge-blue{background:#4488ff;color:white}
+.platform-cf{color:#ff9900;font-weight:bold}
+.platform-ak{color:#ff4444;font-weight:bold}
+.platform-gc{color:#44ff44;font-weight:bold}
+.section{background:#0f0f25;border-radius:8px;padding:12px;margin:10px 0;border:1px solid #333}
+.insight-box{background:#1a1a3e;border-left:4px solid #ff6b6b;padding:8px 12px;margin:8px 0;border-radius:0 6px 6px 0;font-size:12px}
+.insight-box.good{border-left-color:#44ff44}
+.stall-bar{height:12px;border-radius:2px;display:inline-block;vertical-align:middle}
+footer{text-align:center;color:#555;font-size:10px;margin-top:15px;padding-top:10px;border-top:1px solid #222}
+</style></head><body>
+<h1>💡 Key Insights & CDN Routing Recommendations</h1>
+<p class="subtitle">XL Video Server Optimization — OpenSignal Indonesia — 1-14 Juni 2026</p>
+<div class="section">
+
+<div class="insight-box">
+<b>🔴 CLOUDFRONT SIN2 Singapore — Worst for XL</b><br>
+Avg stall 457s, 4.2% tests >500s stall | 8,404 tests | 383 kabupaten | 4 IPs<br>
+IPs: 108.156.144.31, 108.156.144.35, 108.156.144.78, 108.156.144.9<br>
+<b>Action:</b> Route dari SIN2 ke GoogleCloud Indonesia (34.160.125.107).
+</div>
+
+<div class="insight-box">
+<b>🔴 CLOUDFRONT KUL51 Kuala Lumpur</b><br>
+Avg stall 481s, 4.8% tests >500s stall | 871 tests | 91 kabupaten<br>
+<b>Action:</b> Redirect ke AKAMAI Indonesia atau GoogleCloud.
+</div>
+
+<div class="insight-box">
+<b>🔴 IPv6 6to4 Proxy (64:ff9b::)</b><br>
+37,266 tests (37% CLOUDFRONT traffic) | Stall 303s, 3% >500s<br>
+<b>Action:</b> Prioritaskan native IPv4/IPv6 — 6to4 proxy menambah latency.
+</div>
+
+<div class="insight-box">
+<b>🔴 AKAMAI Indonesia Edge (140.213.x.x)</b><br>
+First Frame 37s (vs AKAMAI IPv6 8.9s, GoogleCloud 12.8s)<br>
+9,800 tests | 332 kabupaten<br>
+<b>Action:</b> Investigasi routing — FF 4x lebih lambat dari AKAMAI IPv6.
+</div>
+
+<div class="insight-box good">
+<b>🟢 GoogleCloud Indonesia (34.160.125.107) — BEST</b><br>
+Stall 143s (terendah) | FF 12.8s | 15,519 tests | 408 kabupaten<br>
+<b>Recommendation:</b> Jadikan primary CDN untuk XL.
+</div>
+
+<div class="insight-box good">
+<b>🟢 AKAMAI IPv6 Indonesia (2400:9800:xxxx)</b><br>
+FF 8.9s (terendah!) | Stall 194s | 7,798 tests | 341 kabupaten<br>
+<b>Recommendation:</b> Secondary CDN — native IPv6 lebih baik dari IPv4 AKAMAI.
+</div>
+
+<div class="insight-box" style="border-left-color:#00d4ff">
+<b>📋 CDN Routing Priority for XL:</b><br>
+1️⃣ <b>GoogleCloud ID</b> (34.160.125.107) — stall 143s, FF 12.8s ← PRIMARY<br>
+2️⃣ <b>AKAMAI IPv6</b> (2400:9800:xxxx) — stall 194s, FF 8.9s ← SECONDARY<br>
+3️⃣ <b>CF SIN52/PNQ</b> — stall 104s ← TERTIARY (limited coverage)<br>
+❌ <b>Avoid CLOUDFRONT SIN2</b> (457s stall)<br>
+❌ <b>Avoid CLOUDFRONT KUL51</b> (481s stall)<br>
+❌ <b>Avoid IPv6 6to4</b> (303s, routing suboptimal)
+</div>
+
+<div class="insight-box" style="border-left-color:#ffaa00">
+<b>📊 Summary Stats:</b><br>
+Total: 614,620 video tests | 5,739 kecamatan | 3 operators | 2,791 unique server IPs<br>
+XL: 153,831 tests (25%) | TSEL: 249,954 (41%) | IOH: 210,691 (34%)<br>
+CLOUDFRONT: 65% traffic, 316-369s avg stall<br>
+AKAMAI: 18% traffic, 153-208s avg stall<br>
+GoogleCloud: 18% traffic, 59-155s avg stall (BEST)
+</div>
+
+</div>
+<footer>5/5 — Key Insights & Recommendations</footer></body></html>

@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Timeseries Packet Loss Sumatra — 1-20 Juni 2026</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #1a1a2e; color: #e0e0e0; font-family: 'Segoe UI', sans-serif; padding: 20px; }
+.container { max-width: 1200px; margin: 0 auto; }
+h1 { color: #fff; margin-bottom: 4px; font-size: 22px; }
+.subtitle { color: #888; margin-bottom: 16px; font-size: 13px; }
+.chart-box { background: #16213e; border-radius: 10px; padding: 20px; border: 1px solid #0f3460; margin-bottom: 20px; }
+.chart-box h2 { color: #a0c4ff; font-size: 15px; margin-bottom: 12px; }
+canvas { max-height: 350px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 20px; }
+.card { background: #16213e; border-radius: 8px; padding: 14px; border: 1px solid #0f3460; }
+.card h3 { color: #a0a0a0; font-size: 11px; text-transform: uppercase; margin-bottom: 6px; }
+.card .value { font-size: 26px; font-weight: bold; }
+.card .detail { color: #666; font-size: 11px; margin-top: 4px; }
+.xl { color: #4488ff; }
+.ioh { color: #ffcc00; }
+.tsel { color: #ff4444; }
+.note { background: #0f1a30; border-radius: 6px; padding: 12px; font-size: 12px; color: #888; line-height: 1.6; }
+</style>
+</head>
+<body>
+<div class="container">
+<h1>📈 Timeseries Packet Loss — Sumatra</h1>
+<p class="subtitle">1–20 Juni 2026 · XL Smart (XL+SF) vs IOH (Indosat+3) vs Telkomsel</p>
+
+<div class="grid">
+  <div class="card">
+    <h3>XL Smart (XL+SF)</h3>
+    <div class="value xl">0.99%</div>
+    <div class="detail">Avg Lost% · 20 hari</div>
+  </div>
+  <div class="card">
+    <h3>IOH (Indosat+3)</h3>
+    <div class="value ioh">0.72%</div>
+    <div class="detail">Avg Lost% · 20 hari</div>
+  </div>
+  <div class="card">
+    <h3>Telkomsel</h3>
+    <div class="value tsel">0.79%</div>
+    <div class="detail">Avg Lost% · 20 hari</div>
+  </div>
+</div>
+
+<div class="chart-box">
+  <h2>Packet Loss % (Lost) — Harian</h2>
+  <canvas id="chartLost"></canvas>
+</div>
+
+<div class="chart-box">
+  <h2>Packet Loss % (Discard) — Harian</h2>
+  <canvas id="chartDiscard"></canvas>
+</div>
+
+<div class="chart-box">
+  <h2>Jumlah Records per Hari</h2>
+  <canvas id="chartCount"></canvas>
+</div>
+
+<div class="note">
+  <strong>Catatan:</strong><br>
+  • XL Smart = gabungan XL + Smartfren (brand XL Smartfren)<br>
+  • IOH = gabungan Indosat + 3 (Indosat Ooredoo Hutchison)<br>
+  • 198.18.x.x = Cloudflare WARP / localhost — bukan server real, 19 records total<br>
+  • Data dari 10 provinsi Sumatra, weighted average per hari<br>
+  • Spike 6 Jun pada XL Smart (2.54%) — kemungkinan outlier regional<br>
+  • Spike 20 Jun pada WARP (87% lost) — 1 record outlier, bukan indikasi jaringan
+</div>
+
+</div>
+
+<script>
+const labels = ["06-01", "06-02", "06-03", "06-04", "06-05", "06-06", "06-07", "06-08", "06-09", "06-10", "06-11", "06-12", "06-13", "06-14", "06-15", "06-16", "06-17", "06-18", "06-19", "06-20"];
+
+const chartOpts = (title) => ({
+  responsive: true,
+  interaction: { mode: 'index', intersect: false },
+  plugins: {
+    legend: { labels: { color: '#aaa', font: { size: 12 } } },
+    title: { display: false }
+  },
+  scales: {
+    x: { ticks: { color: '#888' }, grid: { color: '#1a2a4e' } },
+    y: { ticks: { color: '#888', callback: v => v.toFixed(2) + '%' }, grid: { color: '#1a2a4e' }, beginAtZero: true }
+  }
+});
+
+// Lost% chart
+new Chart(document.getElementById('chartLost'), {
+  type: 'line',
+  data: {
+    labels: labels,
+    datasets: [
+      { label: 'XL Smart (XL+SF)', data: [0.863, 0.947, 1.283, 1.129, 0.84, 2.545, 0.714, 1.11, 0.833, 0.95, 1.094, 0.989, 0.896, 0.902, 0.894, 1.048, 0.971, 0.953, 0.766, 0.922], borderColor: '#4488ff', backgroundColor: '#4488ff22', fill: true, tension: 0.3, pointRadius: 4, borderWidth: 2 },
+      { label: 'IOH (Indosat+3)', data: [0.714, 0.679, 0.662, 0.705, 0.737, 0.81, 0.696, 0.728, 0.706, 0.668, 0.796, 0.81, 0.68, 0.735, 0.756, 0.797, 0.705, 0.653, 0.703, 0.725], borderColor: '#ffcc00', backgroundColor: '#ffcc0022', fill: true, tension: 0.3, pointRadius: 4, borderWidth: 2 },
+      { label: 'Telkomsel', data: [0.775, 0.739, 0.766, 0.858, 0.847, 0.826, 0.781, 0.76, 0.808, 0.812, 0.752, 0.731, 0.774, 0.792, 0.806, 0.818, 0.76, 0.794, 0.755, 0.788], borderColor: '#ff4444', backgroundColor: '#ff444422', fill: true, tension: 0.3, pointRadius: 4, borderWidth: 2 },
+      { label: '198.18.x.x (WARP)', data: [4.0, null, 0.0, 0.25, 1.0, 0.5, null, 0.0, 0.0, 0.0, null, 1.0, 0.0, null, 0.0, null, 0.0, null, null, 87.0], borderColor: '#ff88ff', backgroundColor: '#ff88ff22', fill: false, tension: 0, pointRadius: 5, borderWidth: 2, borderDash: [3, 3], spanGaps: false }
+    ]
+  },
+  options: chartOpts('Lost%')
+});
+
+// Discard% chart
+new Chart(document.getElementById('chartDiscard'), {
+  type: 'line',
+  data: {
+    labels: labels,
+    datasets: [
+      { label: 'XL Smart (XL+SF)', data: [1.15, 1.266, 1.883, 1.657, 1.186, 3.911, 0.94, 1.607, 1.141, 1.313, 1.575, 1.37, 1.238, 1.227, 1.334, 1.447, 1.281, 1.341, 1.048, 1.239], borderColor: '#4488ff', backgroundColor: '#4488ff22', fill: true, tension: 0.3, pointRadius: 4, borderWidth: 2 },
+      { label: 'IOH (Indosat+3)', data: [0.896, 0.847, 0.844, 0.908, 0.932, 1.048, 0.891, 1.028, 0.951, 0.857, 1.02, 1.086, 0.872, 0.94, 0.969, 1.042, 0.911, 0.843, 0.903, 0.947], borderColor: '#ffcc00', backgroundColor: '#ffcc0022', fill: true, tension: 0.3, pointRadius: 4, borderWidth: 2 },
+      { label: 'Telkomsel', data: [1.078, 1.044, 1.05, 1.16, 1.155, 1.117, 1.064, 1.025, 1.111, 1.105, 1.025, 1.004, 1.061, 1.076, 1.082, 1.111, 1.047, 1.076, 1.017, 1.101], borderColor: '#ff4444', backgroundColor: '#ff444422', fill: true, tension: 0.3, pointRadius: 4, borderWidth: 2 },
+      { label: '198.18.x.x (WARP)', data: [62.0, null, 0.0, 0.5, 2.0, 1.0, null, 0.0, 18.0, 3.5, null, 3.0, 8.33, null, 0.0, null, 2.0, null, null, 99.0], borderColor: '#ff88ff', backgroundColor: '#ff88ff22', fill: false, tension: 0, pointRadius: 5, borderWidth: 2, borderDash: [3, 3], spanGaps: false }
+    ]
+  },
+  options: chartOpts('Discard%')
+});
+
+// Count chart
+new Chart(document.getElementById('chartCount'), {
+  type: 'bar',
+  data: {
+    labels: labels,
+    datasets: [
+      { label: 'XL Smart', data: [28000, 29880, 31483, 31108, 33020, 30766, 29222, 30170, 30122, 31449, 30080, 31824, 29668, 28748, 29864, 28652, 29949, 28767, 30839, 28680], backgroundColor: '#4488ff88' },
+      { label: 'IOH', data: [41292, 43690, 45421, 45114, 48078, 44800, 43054, 44533, 44532, 46156, 44838, 47871, 44661, 43067, 44478, 42401, 44737, 43597, 46535, 42560], backgroundColor: '#ffcc0088' },
+      { label: 'Telkomsel', data: [103650, 112815, 118430, 117004, 124721, 115879, 108238, 115011, 114275, 116841, 104185, 111270, 102898, 98518, 103299, 102477, 115401, 112076, 119836, 109602], backgroundColor: '#ff444488' },
+      { label: '198.18 (WARP)', data: [1, null, 4, 4, 2, 2, null, 1, 1, 2, null, 2, 3, null, 1, null, 1, null, null, 1], backgroundColor: '#ff88ff88' }
+    ]
+  },
+  options: {
+    responsive: true,
+    plugins: { legend: { labels: { color: '#aaa' } } },
+    scales: {
+      x: { stacked: true, ticks: { color: '#888' }, grid: { color: '#1a2a4e' } },
+      y: { stacked: true, ticks: { color: '#888', callback: v => (v/1000).toFixed(0) + 'K' }, grid: { color: '#1a2a4e' } }
+    }
+  }
+});
+</script>
+</body>
+</html>

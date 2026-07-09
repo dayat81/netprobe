@@ -1,9 +1,10 @@
+# Android
 *.iml
 .gradle/
 /local.properties
 keystore.properties
-release.keystore
 *.jks
+*.keystore
 /.idea/
 .DS_Store
 /build/
@@ -14,3 +15,17 @@ release.keystore
 *.ap_
 *.aab
 output.json
+
+# Kotlin/Java
+!gradle/wrapper/gradle-wrapper.jar
+
+# Server
+__pycache__/
+*.py[cod]
+venv/
+.venv/
+*.egg-info/
+.env
+
+# Web
+node_modules/

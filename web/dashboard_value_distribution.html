@@ -1,0 +1,1149 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kabupaten Daily — Value Distribution</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  background: #0d1117;
+  color: #c9d1d9;
+  padding: 20px;
+}
+.container { max-width: 1400px; margin: 0 auto; }
+h1 {
+  font-size: 28px;
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: #58a6ff;
+}
+.meta {
+  font-size: 14px;
+  color: #8b949e;
+  margin-bottom: 30px;
+}
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+  gap: 20px;
+}
+.card {
+  background: #161b22;
+  border: 1px solid #30363d;
+  border-radius: 8px;
+  padding: 18px;
+}
+.card-title {
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 14px;
+  color: #58a6ff;
+}
+.stats-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px 16px;
+  font-size: 12px;
+  margin-bottom: 16px;
+}
+.stat-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.stat-row span:first-child {
+  color: #8b949e;
+  font-weight: 500;
+}
+.stat-row span:last-child {
+  color: #c9d1d9;
+  font-family: 'SF Mono', Monaco, Consolas, monospace;
+  font-size: 11px;
+}
+.percentile-bars {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.bar-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.bar-label {
+  width: 50px;
+  font-size: 11px;
+  color: #8b949e;
+  text-align: right;
+}
+.bar-track {
+  flex: 1;
+  height: 20px;
+  background: #21262d;
+  border-radius: 3px;
+  position: relative;
+  overflow: hidden;
+}
+.bar-fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  background: linear-gradient(90deg, #1f6feb 0%, #58a6ff 100%);
+  border-radius: 3px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding-right: 8px;
+  font-size: 10px;
+  font-weight: 600;
+  color: white;
+  transition: all 0.2s;
+  min-width: 50px;
+  white-space: nowrap;
+  overflow: visible;
+}
+.bar-fill:hover {
+  background: linear-gradient(90deg, #388bfd 0%, #79c0ff 100%);
+  transform: scaleY(1.15);
+}
+</style>
+</head>
+<body>
+<div class="container">
+<h1>📊 Kabupaten Daily — Value Distribution</h1>
+<div class="meta">704,988 rows • 2026-01-05 → 2026-07-03 • 16 metrics</div>
+
+<div class="grid">
+
+<div class="card">
+  <div class="card-title">UDP Latency (ms)</div>
+  
+  <div class="stats-grid">
+    <div class="stat-row"><span>Total</span><span>704,988</span></div>
+    <div class="stat-row"><span>Non-null</span><span>600,815 (85.2%)</span></div>
+    <div class="stat-row"><span>Min</span><span>3.81</span></div>
+    <div class="stat-row"><span>Max</span><span>7951.98</span></div>
+  </div>
+  
+  <div class="percentile-bars">
+
+    <div class="bar-row">
+      <div class="bar-label">P25</div>
+      <div class="bar-track">
+        <div class="bar-fill" style="width: 8%;">24.34</div>
+      </div>
+    </div>
+
+    <div class="bar-row">
+      <div class="bar-label">P50</div>
+      <div class="bar-track">
+        <div class="bar-fill" style="width: 8%;">30.89</div>
+      </div>
+    </div>
+
+    <div class="bar-row">
+      <div class="bar-label">Mean</div>
+      <div class="bar-track">
+        <div class="bar-fill" style="width: 8%;">78.86</div>
+      </div>
+    </div>
+
+    <div class="bar-row">
+      <div class="bar-label">P75</div>
+      <div class="bar-track">
+        <div class="bar-fill" style="width: 8%;">40.83</div>
+      </div>
+    </div>
+
+    <div class="bar-row">
+      <div class="bar-label">P90</div>
+      <div class="bar-track">
+        <div class="bar-fill" style="width: 8%;">62.16</div>
+      </div>
+    </div>
+
+    <div class="bar-row">
+      <div class="bar-label">P95</div>
+      <div class="bar-track">
+        <div class="bar-fill" style="width: 8%;">108.47</div>
+      </div>
+    </div>
+
+    <div class="bar-row">
+      <div class="bar-label">P99</div>
+      <div class="bar-track">
+        <div class="bar-fill" style="width: 20.935888386886543%;">1667.83</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-title">UDP Jitter (ms)</div>
+  
+  <div class="stats-grid">
+    <div class="stat-row"><span>Total</span><span>704,988</span></div>
+    <div class="stat-row"><span>Non-null</span><span>600,660 (85.2%)</span></div>
+    <div class="stat-row"><span>Min</span><span>0.0</span></div>
+    <div class="stat-row"><span>Max</span><span>3158.73</span></div>
+  </div>
+  
+  <div class="percentile-bars">
+
+    <div class="bar-row">
+      <div class="bar-label">P25</div>
+      <div class="bar-track">
+        <div class="bar-fill" style="width: 8%;">5.22</div>
+      </div>
+    </div>
+
+    <div class="bar-row">
+      <div class="bar-label">P50</div>
+      <div class="bar-track">
+        <div class="bar-fill" style="width: 8%;">6.65</div>
+      </div>
+    </div>
+
+    <div class="bar-row">
+      <div class="bar-label">Mean</div>
+      <div class="bar-track">
+        <div class="bar-fill" style="width: 8%;">8.84</div>
+      </div>
+    </div>
+
+    <div class="bar-row">
+      <div class="bar-label">P75</div>
+      <div class="bar-track">
+        <div class="bar-fill" style="width: 8%;">8.38</div>
+      </div>
+    </div>
+
+    <div class="bar-row">
+      <div class="bar-label">P90</div>
+      <div class="bar-track">
+        <div class="bar-fill" style="width: 8%;">11.89</div>
+      </div>
+    </div>
+
+    <div class="bar-row">
+      <div class="bar-label">P95</div>
+      <div class="bar-track">
+        <div class="bar-fill" style="width: 8%;">16.93</div>
+      </div>
+    </div>
+
+    <div class="bar-row">
+      <div class="bar-label">P99</div>
+      <div class="bar-track">
+        <div class="bar-fill" style="width: 8%;">49.66</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-title">UDP Lost (%)</div>
+  
+  <div class="stats-grid">
+    <div class="stat-row"><span>Total</span><span>704,988</span></div>
+    <div class="stat-row"><span>Non-null</span><span>600,815 (85.2%)</span></div>
+    <div class="stat-row"><span>Min</span><span>0.0</span></div>
+    <div class="stat-row"><span>Max</span><span>99.5</span></div>
+  </div>
+  
+  <div class="percentile-bars">
+
+    <div class="bar-row">
+      <div class="bar-label">P25</div>
+      <div class="bar-track">
+        <div class="bar-fill" style="width: 8%;">0.22</div>
+      </div>
+    </div>
+
+    <div class="bar-row">
+      <div class="bar-label">P50</div>
+      <div class="bar-track">
+        <div class="bar-fill" style="width: 8%;">1.07</div>
+      </div>
+    </div>
+
+    <div class="bar-row">
+      <div class="bar-label">Mean</div>
+      <div class="bar-track">
+        <div class="bar-fill" style="width: 8%;">2.59</div>
+      </div>
+    </div>
+
+    <div class="bar-row">
+      <div class="bar-label">P75</div>
+      <div class="bar-track">
+        <div class="bar-fill" style="width: 8%;">2.33</div>
+      </div>
+    </div>
+
+    <div class="bar-row">
+      <div class="bar-label">P90</div>
+      <div class="bar-track">
+        <div class="bar-fill" style="width: 8%;">4.59</div>
+      </div>
+    </div>
+
+    <div class="bar-row">
+      <div class="bar-label">P95</div>
+      <div class="bar-track">
+        <div class="bar-fill" style="width: 8%;">7.89</div>
+      </div>
+    </div>
+
+    <div class="bar-row">
+      <div class="bar-label">P99</div>
+      <div class="bar-track">
+        <div class="bar-fill" style="width: 34.05025125628141%;">33.88</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-title">UDP Discard (%)</div>
+  
+  <div class="stats-grid">
+    <div class="stat-row"><span>Total</span><span>704,988</span></div>
+    <div class="stat-row"><span>Non-null</span><span>600,815 (85.2%)</span></div>
+    <div class="stat-row"><span>Min</span><span>0.0</span></div>
+    <div class="stat-row"><span>Max</span><span>99.5</span></div>
+  </div>
+  
+  <div class="percentile-bars">
+
+    <div class="bar-row">
+      <div class="bar-label">P25</div>
+      <div class="bar-track">
+        <div class="bar-fill" style="width: 8%;">0.38</div>
+      </div>
+    </div>
+
+    <div class="bar-row">
+      <div class="bar-label">P50</div>
+      <div class="bar-track">
+        <div class="bar-fill" style="width: 8%;">1.3</div>
+      </div>
+    </div>
+
+    <div class="bar-row">
+      <div class="bar-label">Mean</div>
+      <div class="bar-track">
+        <div class="bar-fill" style="width: 8%;">2.81</div>
+      </div>
+    </div>
+
+    <div class="bar-row">
+      <div class="bar-label">P75</div>
+      <div class="bar-track">
+        <div class="bar-fill" style="width: 8%;">2.62</div>
+      </div>
+    </div>
+
+    <div class="bar-row">
+      <div class="bar-label">P90</div>
+      <div class="bar-track">
+        <div class="bar-fill" style="width: 8%;">4.97</div>
+      </div>
+    </div>
+
+    <div class="bar-row">
+      <div class="bar-label">P95</div>
+      <div class="bar-track">
+        <div class="bar-fill" style="width: 8.884422110552764%;">8.84</div>
+      </div>
+    </div>
+
+    <div class="bar-row">
+      <div class="bar-label">P99</div>
+      <div class="bar-track">
+        <div class="bar-fill" style="width: 33.66834170854271%;">33.5</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-title">Video Stall Interval (s)</div>
+  
+  <div class="stats-grid">
+    <div class="stat-row"><span>Total</span><span>704,988</span></div>
+    <div class="stat-row"><span>Non-null</span><span>477,913 (67.8%)</span></div>
+    <div class="stat-row"><span>Min</span><span>0.0</span></div>
+    <div class="stat-row"><span>Max</span><span>30587.0</span></div>
+  </div>
+  
+  <div class="percentile-bars">
+
+    <div class="bar-row">
+      <div class="bar-label">P25</div>
+      <div class="bar-track">
+        <div class="bar-fill" style="width: 8%;">0</div>
+      </div>
+    </div>
+
+    <div class="bar-row">
+      <div class="bar-label">P50</div>
+      <div class="bar-track">
+        <div class="bar-fill" style="width: 8%;">0</div>
+      </div>
+    </div>
+
+    <div class="bar-row">
+      <div class="bar-label">Mean</div>
+      <div class="bar-track">
+        <div class="bar-fill" style="width: 8%;">307.58</div>
+      </div>
+    </div>
+
+    <div class="bar-row">
+      <div class="bar-label">P75</div>
+      <div class="bar-track">
+        <div class="bar-fill" style="width: 8%;">120.42</div>
+      </div>
+    </div>
+
+    <div class="bar-row">
+      <div class="bar-label">P90</div>
+      <div class="bar-track">
+        <div class="bar-fill" style="width: 8%;">624.2</div>
+      </div>
+    </div>
+
+    <div class="bar-row">
+      <div class="bar-label">P95</div>
+      <div class="bar-track">
+        <div class="bar-fill" style="width: 8%;">1211.51</div>
+      </div>
+    </div>
+
+    <div class="bar-row">
+      <div class="bar-label">P99</div>
+      <div class="bar-track">
+        <div class="bar-fill" style="width: 15.461960963808155%;">4729.35</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-title">Video Buffer Count</div>
+  
+  <div class="stats-grid">
+    <div class="stat-row"><span>Total</span><span>704,988</span></div>
+    <div class="stat-row"><span>Non-null</span><span>498,325 (70.7%)</span></div>
+    <div class="stat-row"><span>Min</span><span>0.0</span></div>
+    <div class="stat-row"><span>Max</span><span>98.0</span></div>
+  </div>
+  
+  <div class="percentile-bars">
+
+    <div class="bar-row">
+      <div class="bar-label">P25</div>
+      <div class="bar-track">
+        <div class="bar-fill" style="width: 8%;">0</div>
+      </div>
+    </div>
+
+    <div class="bar-row">
+      <div class="bar-label">P50</div>
+      <div class="bar-track">
+        <div class="bar-fill" style="width: 8%;">0.02</div>
+      </div>
+    </div>
+
+    <div class="bar-row">
+      <div class="bar-label">Mean</div>
+      <div class="bar-track">
+        <div class="bar-fill" style="width: 8%;">0.14</div>
+      </div>
+    </div>
+
+    <div class="bar-row">
+      <div class="bar-label">P75</div>
+      <div class="bar-track">
+        <div class="bar-fill" style="width: 8%;">0.14</div>
+      </div>
+    </div>
+
+    <div class="bar-row">
+      <div class="bar-label">P90</div>
+      <div class="bar-track">
+        <div class="bar-fill" style="width: 8%;">0.33</div>
+      </div>
+    </div>
+
+    <div class="bar-row">
+      <div class="bar-label">P95</div>
+      <div class="bar-track">
+        <div class="bar-fill" style="width: 8%;">0.67</div>
+      </div>
+    </div>
+
+    <div class="bar-row">
+      <div class="bar-label">P99</div>
+      <div class="bar-track">
+        <div class="bar-fill" style="width: 8%;">1</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-title">Video First Frame (s)</div>
+  
+  <div class="stats-grid">
+    <div class="stat-row"><span>Total</span><span>704,988</span></div>
+    <div class="stat-row"><span>Non-null</span><span>498,325 (70.7%)</span></div>
+    <div class="stat-row"><span>Min</span><span>0.0</span></div>
+    <div class="stat-row"><span>Max</span><span>307282.33</span></div>
+  </div>
+  
+  <div class="percentile-bars">
+
+    <div class="bar-row">
+      <div class="bar-label">P25</div>
+      <div class="bar-track">
+        <div class="bar-fill" style="width: 8%;">3.75</div>
+      </div>
+    </div>
+
+    <div class="bar-row">
+      <div class="bar-label">P50</div>
+      <div class="bar-track">
+        <div class="bar-fill" style="width: 8%;">6.33</div>
+      </div>
+    </div>
+
+    <div class="bar-row">
+      <div class="bar-label">Mean</div>
+      <div class="bar-track">
+        <div class="bar-fill" style="width: 8%;">10.79</div>
+      </div>
+    </div>
+
+    <div class="bar-row">
+      <div class="bar-label">P75</div>
+      <div class="bar-track">
+        <div class="bar-fill" style="width: 8%;">9.5</div>
+      </div>
+    </div>
+
+    <div class="bar-row">
+      <div class="bar-label">P90</div>
+      <div class="bar-track">
+        <div class="bar-fill" style="width: 8%;">15.09</div>
+      </div>
+    </div>
+
+    <div class="bar-row">
+      <div class="bar-label">P95</div>
+      <div class="bar-track">
+        <div class="bar-fill" style="width: 8%;">23.21</div>
+      </div>
+    </div>
+
+    <div class="bar-row">
+      <div class="bar-label">P99</div>
+      <div class="bar-track">
+        <div class="bar-fill" style="width: 8%;">62.89</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-title">Video Stall Count</div>
+  
+  <div class="stats-grid">
+    <div class="stat-row"><span>Total</span><span>704,988</span></div>
+    <div class="stat-row"><span>Non-null</span><span>498,273 (70.7%)</span></div>
+    <div class="stat-row"><span>Min</span><span>0.0</span></div>
+    <div class="stat-row"><span>Max</span><span>10.0</span></div>
+  </div>
+  
+  <div class="percentile-bars">
+
+    <div class="bar-row">
+      <div class="bar-label">P25</div>
+      <div class="bar-track">
+        <div class="bar-fill" style="width: 10.0%;">1</div>
+      </div>
+    </div>
+
+    <div class="bar-row">
+      <div class="bar-label">P50</div>
+      <div class="bar-track">
+        <div class="bar-fill" style="width: 10.0%;">1</div>
+      </div>
+    </div>
+
+    <div class="bar-row">
+      <div class="bar-label">Mean</div>
+      <div class="bar-track">
+        <div class="bar-fill" style="width: 10.3%;">1.03</div>
+      </div>
+    </div>
+
+    <div class="bar-row">
+      <div class="bar-label">P75</div>
+      <div class="bar-track">
+        <div class="bar-fill" style="width: 10.200000000000001%;">1.02</div>
+      </div>
+    </div>
+
+    <div class="bar-row">
+      <div class="bar-label">P90</div>
+      <div class="bar-track">
+        <div class="bar-fill" style="width: 10.8%;">1.08</div>
+      </div>
+    </div>
+
+    <div class="bar-row">
+      <div class="bar-label">P95</div>
+      <div class="bar-track">
+        <div class="bar-fill" style="width: 11.399999999999999%;">1.14</div>
+      </div>
+    </div>
+
+    <div class="bar-row">
+      <div class="bar-label">P99</div>
+      <div class="bar-track">
+        <div class="bar-fill" style="width: 15.0%;">1.5</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-title">Video Playback Duration (s)</div>
+  
+  <div class="stats-grid">
+    <div class="stat-row"><span>Total</span><span>704,988</span></div>
+    <div class="stat-row"><span>Non-null</span><span>498,231 (70.7%)</span></div>
+    <div class="stat-row"><span>Min</span><span>93.0</span></div>
+    <div class="stat-row"><span>Max</span><span>897508.0</span></div>
+  </div>
+  
+  <div class="percentile-bars">
+
+    <div class="bar-row">
+      <div class="bar-label">P25</div>
+      <div class="bar-track">
+        <div class="bar-fill" style="width: 8%;">19827.99</div>
+      </div>
+    </div>
+
+    <div class="bar-row">
+      <div class="bar-label">P50</div>
+      <div class="bar-track">
+        <div class="bar-fill" style="width: 8%;">20187.98</div>
+      </div>
+    </div>
+
+    <div class="bar-row">
+      <div class="bar-label">Mean</div>
+      <div class="bar-track">
+        <div class="bar-fill" style="width: 8%;">21758.97</div>
+      </div>
+    </div>
+
+    <div class="bar-row">
+      <div class="bar-label">P75</div>
+      <div class="bar-track">
+        <div class="bar-fill" style="width: 8%;">21250.67</div>
+      </div>
+    </div>
+
+    <div class="bar-row">
+      <div class="bar-label">P90</div>
+      <div class="bar-track">
+        <div class="bar-fill" style="width: 8%;">25043.95</div>
+      </div>
+    </div>
+
+    <div class="bar-row">
+      <div class="bar-label">P95</div>
+      <div class="bar-track">
+        <div class="bar-fill" style="width: 8%;">30016</div>
+      </div>
+    </div>
+
+    <div class="bar-row">
+      <div class="bar-label">P99</div>
+      <div class="bar-track">
+        <div class="bar-fill" style="width: 8%;">51050.6</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-title">Video Test Duration (s)</div>
+  
+  <div class="stats-grid">
+    <div class="stat-row"><span>Total</span><span>704,988</span></div>
+    <div class="stat-row"><span>Non-null</span><span>498,230 (70.7%)</span></div>
+    <div class="stat-row"><span>Min</span><span>154.0</span></div>
+    <div class="stat-row"><span>Max</span><span>896768.0</span></div>
+  </div>
+  
+  <div class="percentile-bars">
+
+    <div class="bar-row">
+      <div class="bar-label">P25</div>
+      <div class="bar-track">
+        <div class="bar-fill" style="width: 8%;">21967.75</div>
+      </div>
+    </div>
+
+    <div class="bar-row">
+      <div class="bar-label">P50</div>
+      <div class="bar-track">
+        <div class="bar-fill" style="width: 8%;">23249.59</div>
+      </div>
+    </div>
+
+    <div class="bar-row">
+      <div class="bar-label">Mean</div>
+      <div class="bar-track">
+        <div class="bar-fill" style="width: 8%;">24813.1</div>
+      </div>
+    </div>
+
+    <div class="bar-row">
+      <div class="bar-label">P75</div>
+      <div class="bar-track">
+        <div class="bar-fill" style="width: 8%;">25383.64</div>
+      </div>
+    </div>
+
+    <div class="bar-row">
+      <div class="bar-label">P90</div>
+      <div class="bar-track">
+        <div class="bar-fill" style="width: 8%;">30003.9</div>
+      </div>
+    </div>
+
+    <div class="bar-row">
+      <div class="bar-label">P95</div>
+      <div class="bar-track">
+        <div class="bar-fill" style="width: 8%;">32591.89</div>
+      </div>
+    </div>
+
+    <div class="bar-row">
+      <div class="bar-label">P99</div>
+      <div class="bar-track">
+        <div class="bar-fill" style="width: 8%;">54068.48</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-title">RSRP (dBm)</div>
+  
+  <div class="stats-grid">
+    <div class="stat-row"><span>Total</span><span>704,988</span></div>
+    <div class="stat-row"><span>Non-null</span><span>613,485 (87.0%)</span></div>
+    <div class="stat-row"><span>Min</span><span>-140.0</span></div>
+    <div class="stat-row"><span>Max</span><span>-44.0</span></div>
+  </div>
+  
+  <div class="percentile-bars">
+
+    <div class="bar-row">
+      <div class="bar-label">P25</div>
+      <div class="bar-track">
+        <div class="bar-fill" style="width: 42.84375%;">-98.87</div>
+      </div>
+    </div>
+
+    <div class="bar-row">
+      <div class="bar-label">P50</div>
+      <div class="bar-track">
+        <div class="bar-fill" style="width: 45.73958333333333%;">-96.09</div>
+      </div>
+    </div>
+
+    <div class="bar-row">
+      <div class="bar-label">Mean</div>
+      <div class="bar-track">
+        <div class="bar-fill" style="width: 46.552083333333336%;">-95.31</div>
+      </div>
+    </div>
+
+    <div class="bar-row">
+      <div class="bar-label">P75</div>
+      <div class="bar-track">
+        <div class="bar-fill" style="width: 49.427083333333336%;">-92.55</div>
+      </div>
+    </div>
+
+    <div class="bar-row">
+      <div class="bar-label">P90</div>
+      <div class="bar-track">
+        <div class="bar-fill" style="width: 54.93749999999999%;">-87.26</div>
+      </div>
+    </div>
+
+    <div class="bar-row">
+      <div class="bar-label">P95</div>
+      <div class="bar-track">
+        <div class="bar-fill" style="width: 58.333333333333336%;">-84</div>
+      </div>
+    </div>
+
+    <div class="bar-row">
+      <div class="bar-label">P99</div>
+      <div class="bar-track">
+        <div class="bar-fill" style="width: 66.66666666666666%;">-76</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-title">RSRQ (dB)</div>
+  
+  <div class="stats-grid">
+    <div class="stat-row"><span>Total</span><span>704,988</span></div>
+    <div class="stat-row"><span>Non-null</span><span>612,266 (86.8%)</span></div>
+    <div class="stat-row"><span>Min</span><span>-20.0</span></div>
+    <div class="stat-row"><span>Max</span><span>-3.0</span></div>
+  </div>
+  
+  <div class="percentile-bars">
+
+    <div class="bar-row">
+      <div class="bar-label">P25</div>
+      <div class="bar-track">
+        <div class="bar-fill" style="width: 38.58823529411765%;">-13.44</div>
+      </div>
+    </div>
+
+    <div class="bar-row">
+      <div class="bar-label">P50</div>
+      <div class="bar-track">
+        <div class="bar-fill" style="width: 45.29411764705882%;">-12.3</div>
+      </div>
+    </div>
+
+    <div class="bar-row">
+      <div class="bar-label">Mean</div>
+      <div class="bar-track">
+        <div class="bar-fill" style="width: 44.23529411764706%;">-12.48</div>
+      </div>
+    </div>
+
+    <div class="bar-row">
+      <div class="bar-label">P75</div>
+      <div class="bar-track">
+        <div class="bar-fill" style="width: 51.52941176470588%;">-11.24</div>
+      </div>
+    </div>
+
+    <div class="bar-row">
+      <div class="bar-label">P90</div>
+      <div class="bar-track">
+        <div class="bar-fill" style="width: 56.294117647058826%;">-10.43</div>
+      </div>
+    </div>
+
+    <div class="bar-row">
+      <div class="bar-label">P95</div>
+      <div class="bar-track">
+        <div class="bar-fill" style="width: 60.0%;">-9.8</div>
+      </div>
+    </div>
+
+    <div class="bar-row">
+      <div class="bar-label">P99</div>
+      <div class="bar-track">
+        <div class="bar-fill" style="width: 70.58823529411765%;">-8</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-title">RSSNR (dB)</div>
+  
+  <div class="stats-grid">
+    <div class="stat-row"><span>Total</span><span>704,988</span></div>
+    <div class="stat-row"><span>Non-null</span><span>612,640 (86.9%)</span></div>
+    <div class="stat-row"><span>Min</span><span>-20.0</span></div>
+    <div class="stat-row"><span>Max</span><span>30.0</span></div>
+  </div>
+  
+  <div class="percentile-bars">
+
+    <div class="bar-row">
+      <div class="bar-label">P25</div>
+      <div class="bar-track">
+        <div class="bar-fill" style="width: 48.980000000000004%;">4.49</div>
+      </div>
+    </div>
+
+    <div class="bar-row">
+      <div class="bar-label">P50</div>
+      <div class="bar-track">
+        <div class="bar-fill" style="width: 53.54%;">6.77</div>
+      </div>
+    </div>
+
+    <div class="bar-row">
+      <div class="bar-label">Mean</div>
+      <div class="bar-track">
+        <div class="bar-fill" style="width: 53.16%;">6.58</div>
+      </div>
+    </div>
+
+    <div class="bar-row">
+      <div class="bar-label">P75</div>
+      <div class="bar-track">
+        <div class="bar-fill" style="width: 57.60000000000001%;">8.8</div>
+      </div>
+    </div>
+
+    <div class="bar-row">
+      <div class="bar-label">P90</div>
+      <div class="bar-track">
+        <div class="bar-fill" style="width: 61.419999999999995%;">10.71</div>
+      </div>
+    </div>
+
+    <div class="bar-row">
+      <div class="bar-label">P95</div>
+      <div class="bar-track">
+        <div class="bar-fill" style="width: 64.66%;">12.33</div>
+      </div>
+    </div>
+
+    <div class="bar-row">
+      <div class="bar-label">P99</div>
+      <div class="bar-track">
+        <div class="bar-fill" style="width: 74.02000000000001%;">17.01</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-title">TCP Latency (ms)</div>
+  
+  <div class="stats-grid">
+    <div class="stat-row"><span>Total</span><span>704,988</span></div>
+    <div class="stat-row"><span>Non-null</span><span>417,843 (59.3%)</span></div>
+    <div class="stat-row"><span>Min</span><span>2.16</span></div>
+    <div class="stat-row"><span>Max</span><span>306814.11</span></div>
+  </div>
+  
+  <div class="percentile-bars">
+
+    <div class="bar-row">
+      <div class="bar-label">P25</div>
+      <div class="bar-track">
+        <div class="bar-fill" style="width: 8%;">38.4</div>
+      </div>
+    </div>
+
+    <div class="bar-row">
+      <div class="bar-label">P50</div>
+      <div class="bar-track">
+        <div class="bar-fill" style="width: 8%;">47.53</div>
+      </div>
+    </div>
+
+    <div class="bar-row">
+      <div class="bar-label">Mean</div>
+      <div class="bar-track">
+        <div class="bar-fill" style="width: 8%;">71.76</div>
+      </div>
+    </div>
+
+    <div class="bar-row">
+      <div class="bar-label">P75</div>
+      <div class="bar-track">
+        <div class="bar-fill" style="width: 8%;">63.83</div>
+      </div>
+    </div>
+
+    <div class="bar-row">
+      <div class="bar-label">P90</div>
+      <div class="bar-track">
+        <div class="bar-fill" style="width: 8%;">95.8</div>
+      </div>
+    </div>
+
+    <div class="bar-row">
+      <div class="bar-label">P95</div>
+      <div class="bar-track">
+        <div class="bar-fill" style="width: 8%;">138.87</div>
+      </div>
+    </div>
+
+    <div class="bar-row">
+      <div class="bar-label">P99</div>
+      <div class="bar-track">
+        <div class="bar-fill" style="width: 8%;">412.51</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-title">Download Throughput (Mbps)</div>
+  
+  <div class="stats-grid">
+    <div class="stat-row"><span>Total</span><span>704,988</span></div>
+    <div class="stat-row"><span>Non-null</span><span>569,572 (80.8%)</span></div>
+    <div class="stat-row"><span>Min</span><span>0.01</span></div>
+    <div class="stat-row"><span>Max</span><span>468964.81</span></div>
+  </div>
+  
+  <div class="percentile-bars">
+
+    <div class="bar-row">
+      <div class="bar-label">P25</div>
+      <div class="bar-track">
+        <div class="bar-fill" style="width: 8%;">20321.05</div>
+      </div>
+    </div>
+
+    <div class="bar-row">
+      <div class="bar-label">P50</div>
+      <div class="bar-track">
+        <div class="bar-fill" style="width: 8%;">25199.24</div>
+      </div>
+    </div>
+
+    <div class="bar-row">
+      <div class="bar-label">Mean</div>
+      <div class="bar-track">
+        <div class="bar-fill" style="width: 8%;">28236.63</div>
+      </div>
+    </div>
+
+    <div class="bar-row">
+      <div class="bar-label">P75</div>
+      <div class="bar-track">
+        <div class="bar-fill" style="width: 8%;">32158.05</div>
+      </div>
+    </div>
+
+    <div class="bar-row">
+      <div class="bar-label">P90</div>
+      <div class="bar-track">
+        <div class="bar-fill" style="width: 9.541093489319454%;">44744.38</div>
+      </div>
+    </div>
+
+    <div class="bar-row">
+      <div class="bar-label">P95</div>
+      <div class="bar-track">
+        <div class="bar-fill" style="width: 11.815428364772792%;">55410.21</div>
+      </div>
+    </div>
+
+    <div class="bar-row">
+      <div class="bar-label">P99</div>
+      <div class="bar-track">
+        <div class="bar-fill" style="width: 17.496003964476653%;">82050.11</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-title">Completion Rate</div>
+  
+  <div class="stats-grid">
+    <div class="stat-row"><span>Total</span><span>704,988</span></div>
+    <div class="stat-row"><span>Non-null</span><span>549,903 (78.0%)</span></div>
+    <div class="stat-row"><span>Min</span><span>0.0</span></div>
+    <div class="stat-row"><span>Max</span><span>1.0</span></div>
+  </div>
+  
+  <div class="percentile-bars">
+
+    <div class="bar-row">
+      <div class="bar-label">P25</div>
+      <div class="bar-track">
+        <div class="bar-fill" style="width: 100%;">1</div>
+      </div>
+    </div>
+
+    <div class="bar-row">
+      <div class="bar-label">P50</div>
+      <div class="bar-track">
+        <div class="bar-fill" style="width: 100%;">1</div>
+      </div>
+    </div>
+
+    <div class="bar-row">
+      <div class="bar-label">Mean</div>
+      <div class="bar-track">
+        <div class="bar-fill" style="width: 99.0%;">0.99</div>
+      </div>
+    </div>
+
+    <div class="bar-row">
+      <div class="bar-label">P75</div>
+      <div class="bar-track">
+        <div class="bar-fill" style="width: 100%;">1</div>
+      </div>
+    </div>
+
+    <div class="bar-row">
+      <div class="bar-label">P90</div>
+      <div class="bar-track">
+        <div class="bar-fill" style="width: 100%;">1</div>
+      </div>
+    </div>
+
+    <div class="bar-row">
+      <div class="bar-label">P95</div>
+      <div class="bar-track">
+        <div class="bar-fill" style="width: 100%;">1</div>
+      </div>
+    </div>
+
+    <div class="bar-row">
+      <div class="bar-label">P99</div>
+      <div class="bar-track">
+        <div class="bar-fill" style="width: 100%;">1</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+</div>
+</div>
+</body>
+</html>

@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard 198.18.x.x — Cloudflare WARP Packet Loss</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #1a1a2e; color: #e0e0e0; font-family: 'Segoe UI', sans-serif; padding: 20px; }
+.container { max-width: 1400px; margin: 0 auto; }
+h1 { color: #fff; margin-bottom: 8px; font-size: 24px; }
+.subtitle { color: #888; margin-bottom: 20px; font-size: 14px; }
+.warning { background: #4a1a1a; border: 1px solid #ff4444; border-radius: 8px; padding: 16px; margin-bottom: 24px; }
+.warning h3 { color: #ff6666; margin-bottom: 8px; }
+.warning p { color: #ffaaaa; font-size: 14px; line-height: 1.5; }
+.warning code { background: #2a0a0a; padding: 2px 6px; border-radius: 3px; color: #ff8888; }
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin-bottom: 24px; }
+.card { background: #16213e; border-radius: 8px; padding: 20px; border: 1px solid #0f3460; }
+.card h3 { color: #a0a0a0; font-size: 12px; text-transform: uppercase; margin-bottom: 8px; }
+.card .value { font-size: 32px; font-weight: bold; }
+.card .detail { color: #888; font-size: 13px; margin-top: 4px; }
+.xl { color: #4488ff; }
+.tsel { color: #ff4444; }
+.ind { color: #ffcc00; }
+.sf { color: #aa44ff; }
+.tri { color: #44cc44; }
+.section { margin-bottom: 32px; }
+.section h2 { color: #fff; font-size: 18px; margin-bottom: 12px; border-bottom: 1px solid #333; padding-bottom: 8px; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th { background: #0f3460; color: #a0c4ff; padding: 10px 12px; text-align: left; font-weight: 600; position: sticky; top: 0; }
+td { padding: 8px 12px; border-bottom: 1px solid #1a1a3e; }
+tr:hover { background: #1a2a4e; }
+.badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; }
+.badge-high { background: #ff4444; color: #fff; }
+.badge-med { background: #ff8800; color: #fff; }
+.badge-low { background: #44cc44; color: #fff; }
+.compare-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+@media (max-width: 768px) { .compare-grid { grid-template-columns: 1fr; } }
+.bar { height: 20px; border-radius: 4px; margin-top: 4px; min-width: 2px; }
+.bar-container { background: #0a0a1e; border-radius: 4px; overflow: hidden; }
+</style>
+</head>
+<body>
+<div class="container">
+<h1>🔍 Dashboard Packet Loss — 198.18.0.0/16</h1>
+<p class="subtitle">Cloudflare WARP / Localhost Test IPs — Periode 15–22 Juni 2026</p>
+
+<div class="warning">
+  <h3>⚠️ Perhatian: IP Address Tidak Real</h3>
+  <p>Range <code>198.18.0.0/16</code> adalah <strong>Cloudflare WARP</strong> atau localhost test IP, BUKAN server CDN/infrastruktur real.<br>
+  Packet loss tinggi pada range ini adalah <strong>false positive</strong> — bukan indikasi masalah jaringan.<br>
+  Total records: <strong>127</strong> dari 7.44 juta total (0.002%) — sangat kecil, hampir tidak berpengaruh pada aggregate nasional.</p>
+</div>
+
+<div class="section">
+<h2>📊 WARP vs Real Server — Perbandingan Nasional</h2>
+<div class="compare-grid">
+<div class="card">
+  <h3>198.18.x.x (Cloudflare WARP)</h3>
+  <div class="grid" style="grid-template-columns: 1fr 1fr;">
+    <div>
+      <div style="color:#888;font-size:12px;">XL — Lost%</div>
+      <div class="value xl" style="font-size:28px;">16.53%</div>
+      <div class="detail">95 records • Discard: 21.67%</div>
+    </div>
+    <div>
+      <div style="color:#888;font-size:12px;">Telkomsel — Lost%</div>
+      <div class="value tsel" style="font-size:28px;">2.97%</div>
+      <div class="detail">30 records • Discard: 7.93%</div>
+    </div>
+  </div>
+</div>
+<div class="card">
+  <h3>Real Server (non-198.18)</h3>
+  <div class="grid" style="grid-template-columns: 1fr 1fr;">
+    <div>
+      <div style="color:#888;font-size:12px;">XL — Lost%</div>
+      <div class="value xl" style="font-size:28px;">0.61%</div>
+      <div class="detail">1.17M records • Discard: 0.79%</div>
+    </div>
+    <div>
+      <div style="color:#888;font-size:12px;">Telkomsel — Lost%</div>
+      <div class="value tsel" style="font-size:28px;">0.66%</div>
+      <div class="detail">3.26M records • Discard: 0.99%</div>
+    </div>
+  </div>
+</div>
+</div>
+</div>
+
+<div class="section">
+<h2>🌐 Perbandingan Semua Operator — WARP vs Real</h2>
+<div class="card" style="overflow-x:auto;">
+<table>
+<thead>
+<tr><th>Operator</th><th>WARP Lost%</th><th>WARP Discard%</th><th>WARP Records</th><th>Real Lost%</th><th>Real Discard%</th><th>Real Records</th><th>Lost Ratio</th></tr>
+</thead>
+<tbody>
+<tr><td class="xl"><strong>XL</strong></td><td><span class="badge badge-high">16.53%</span></td><td><span class="badge badge-high">21.67%</span></td><td>95</td><td>0.61%</td><td>0.79%</td><td>1,167,978</td><td><span class="badge badge-high">27×</span></td></tr>
+<tr><td class="tsel"><strong>Telkomsel</strong></td><td><span class="badge badge-med">2.97%</span></td><td><span class="badge badge-med">7.93%</span></td><td>30</td><td>0.66%</td><td>0.99%</td><td>3,260,026</td><td><span class="badge badge-med">4.5×</span></td></tr>
+<tr><td class="ind"><strong>Indosat</strong></td><td>0.00%</td><td>0.00%</td><td>1</td><td>0.92%</td><td>1.14%</td><td>1,691,740</td><td>n/a</td></tr>
+<tr><td class="tri"><strong>3</strong></td><td>—</td><td>—</td><td>0</td><td>0.85%</td><td>1.04%</td><td>931,645</td><td>—</td></tr>
+<tr><td class="sf"><strong>Smartfren</strong></td><td>—</td><td>—</td><td>0</td><td>0.58%</td><td>0.87%</td><td>385,759</td><td>—</td></tr>
+</tbody>
+</table>
+</div>
+</div>
+
+<div class="section">
+<h2>🖥️ Per-Server IP Detail (198.18.x.x)</h2>
+<div class="card" style="overflow-x:auto;">
+<table>
+<thead>
+<tr><th>Server IP</th><th>Operator</th><th>Lost%</th><th>Discard%</th><th>Records</th><th>Severity</th></tr>
+</thead>
+<tbody>
+<tr><td><code>198.18.0.171</code></td><td class="xl">XL</td><td>0.19%</td><td>9.06%</td><td>16</td><td><span class="badge badge-low">Low</span></td></tr>
+<tr><td><code>198.18.0.12</code></td><td class="xl">XL</td><td><span class="badge badge-high">59.90%</span></td><td><span class="badge badge-high">74.70%</span></td><td>10</td><td><span class="badge badge-high">Critical</span></td></tr>
+<tr><td><code>198.18.0.34</code></td><td class="xl">XL</td><td>0.00%</td><td>0.00%</td><td>5</td><td><span class="badge badge-low">Low</span></td></tr>
+<tr><td><code>198.18.0.19</code></td><td class="xl">XL</td><td><span class="badge badge-high">67.75%</span></td><td><span class="badge badge-high">83.50%</span></td><td>4</td><td><span class="badge badge-high">Critical</span></td></tr>
+<tr><td><code>198.18.0.26</code></td><td class="xl">XL</td><td><span class="badge badge-high">69.25%</span></td><td><span class="badge badge-high">81.00%</span></td><td>4</td><td><span class="badge badge-high">Critical</span></td></tr>
+<tr><td><code>198.18.0.22</code></td><td class="xl">XL</td><td><span class="badge badge-high">49.00%</span></td><td><span class="badge badge-high">57.00%</span></td><td>3</td><td><span class="badge badge-high">Critical</span></td></tr>
+<tr><td><code>198.18.0.132</code></td><td class="tsel">Telkomsel</td><td>0.00%</td><td>12.00%</td><td>3</td><td><span class="badge badge-med">Medium</span></td></tr>
+<tr><td><code>198.18.0.18</code></td><td class="xl">XL</td><td>0.00%</td><td>0.00%</td><td>3</td><td><span class="badge badge-low">Low</span></td></tr>
+<tr><td><code>198.18.0.41</code></td><td class="xl">XL</td><td>0.00%</td><td>0.00%</td><td>3</td><td><span class="badge badge-low">Low</span></td></tr>
+<tr><td><code>198.18.1.17</code></td><td class="tsel">Telkomsel</td><td>0.00%</td><td>0.00%</td><td>3</td><td><span class="badge badge-low">Low</span></td></tr>
+<tr><td><code>198.18.0.77</code></td><td class="tsel">Telkomsel</td><td>0.00%</td><td>0.00%</td><td>3</td><td><span class="badge badge-low">Low</span></td></tr>
+<tr><td><code>198.18.235.113</code></td><td class="xl">XL</td><td>0.00%</td><td>1.00%</td><td>3</td><td><span class="badge badge-low">Low</span></td></tr>
+<tr><td><code>198.18.0.59</code></td><td class="xl">XL</td><td>0.00%</td><td>0.00%</td><td>2</td><td><span class="badge badge-low">Low</span></td></tr>
+<tr><td><code>198.18.0.45</code></td><td class="xl">XL</td><td><span class="badge badge-high">29.00%</span></td><td><span class="badge badge-high">39.50%</span></td><td>2</td><td><span class="badge badge-high">Critical</span></td></tr>
+<tr><td><code>198.18.0.7</code></td><td class="xl">XL</td><td>0.00%</td><td>0.00%</td><td>2</td><td><span class="badge badge-low">Low</span></td></tr>
+</tbody>
+</table>
+</div>
+</div>
+
+<div class="section">
+<h2>📍 Per-Province Breakdown (198.18.x.x)</h2>
+<div class="card" style="overflow-x:auto;">
+<table>
+<thead>
+<tr><th>Provinsi</th><th>Operator</th><th>Lost%</th><th>Discard%</th><th>Records</th></tr>
+</thead>
+<tbody>
+<tr><td>JAWA BARAT</td><td class="xl">XL</td><td>0.21%</td><td>6.26%</td><td>19</td></tr>
+<tr><td>JAWA TIMUR</td><td class="xl">XL</td><td><span class="badge badge-high">45.06%</span></td><td><span class="badge badge-high">54.56%</span></td><td>18</td></tr>
+<tr><td>JAWA BARAT</td><td class="tsel">Telkomsel</td><td>0.00%</td><td>3.17%</td><td>18</td></tr>
+<tr><td>JAWA TENGAH</td><td class="xl">XL</td><td>4.56%</td><td>5.38%</td><td>16</td></tr>
+<tr><td>BALI</td><td class="xl">XL</td><td>0.00%</td><td>0.00%</td><td>15</td></tr>
+<tr><td>SULAWESI SELATAN</td><td class="xl">XL</td><td><span class="badge badge-high">43.83%</span></td><td><span class="badge badge-high">57.67%</span></td><td>12</td></tr>
+<tr><td>KALIMANTAN TENGAH</td><td class="xl">XL</td><td>15.60%</td><td>17.80%</td><td>10</td></tr>
+<tr><td>JAWA TIMUR</td><td class="tsel">Telkomsel</td><td>0.33%</td><td>10.33%</td><td>6</td></tr>
+<tr><td>JAWA TENGAH</td><td class="tsel">Telkomsel</td><td>0.00%</td><td>6.67%</td><td>3</td></tr>
+<tr><td>NUSA TENGGARA BARAT</td><td class="xl">XL</td><td>0.00%</td><td>0.00%</td><td>2</td></tr>
+</tbody>
+</table>
+</div>
+</div>
+
+<div class="section">
+<h2>💡 Kesimpulan</h2>
+<div class="card">
+<ul style="line-height:2; padding-left:20px;">
+  <li><strong>198.18.0.0/16</strong> adalah Cloudflare WARP / localhost — bukan server real</li>
+  <li>Hanya <strong>127 records</strong> dari 7.44M total (<strong>0.002%</strong>) — dampak negligible pada statistik nasional</li>
+  <li>XL mendominasi traffic WARP (95/127 = 75%) dengan avg loss <strong>16.5%</strong> — jauh di atas real (0.61%)</li>
+  <li>Beberapa IP WARP menunjukkan loss >60% (<code>198.18.0.12</code>, <code>.19</code>, <code>.26</code>) — test artifact, bukan masalah jaringan</li>
+  <li>Telkomsel hanya 30 records WARP, avg loss 2.97% — lebih rendah dari XL di WARP</li>
+  <li><strong>Rekomendasi</strong>: Filter <code>WHERE qos_serverresponsetestserverip NOT LIKE '198.18.%'</code> untuk analisis bersih</li>
+</ul>
+</div>
+</div>
+
+</div>
+</body>
+</html>

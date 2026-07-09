@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html><head><meta charset="UTF-8">
+<title>Anomali Dashboard — Kabupaten Critical</title>
+<style>
+body{background:#0d1117;color:#e6edf3;font-family:-apple-system,sans-serif;margin:0;padding:15px}
+.container{max-width:1400px;margin:0 auto}
+h1{text-align:center;color:#f44336;margin-bottom:5px;font-size:22px}
+.subtitle{text-align:center;color:#8b949e;margin-bottom:20px;font-size:12px}
+.section{margin-bottom:30px}
+.section-title{font-size:18px;color:#42a5f5;border-bottom:2px solid #30363d;padding-bottom:8px;margin-bottom:15px;display:flex;align-items:center;gap:10px}
+.section-title .badge{font-size:12px;padding:3px 10px;border-radius:12px;font-weight:600}
+.badge-critical{background:#3d1414;color:#f85149}
+.cards{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:15px}
+.card{background:#161b22;border-radius:10px;padding:15px;border:1px solid #30363d}
+.card h3{margin:0 0 8px;font-size:13px;color:#8b949e}
+.card .value{font-size:28px;font-weight:800}
+.card .sub{font-size:11px;color:#8b949e;margin-top:3px}
+.card .value.red{color:#f85149}
+.card .value.orange{color:#ff9800}
+.card .value.green{color:#3fb950}
+.card .value.blue{color:#42a5f5}
+.anomaly-grid{display:grid;grid-template-columns:1fr 1fr;gap:15px}
+.anomaly-box{background:#161b22;border-radius:10px;padding:15px;border:1px solid #30363d}
+.anomaly-box h3{margin:0 0 10px;font-size:14px;color:#e6edf3}
+.bar-chart{margin:8px 0}
+.bar-row{display:flex;align-items:center;margin:4px 0;gap:8px}
+.bar-label{width:140px;font-size:11px;color:#8b949e;text-align:right;flex-shrink:0}
+.bar-container{flex:1;height:24px;background:#21262d;border-radius:4px;overflow:hidden;position:relative}
+.bar-fill{height:100%;border-radius:4px;display:flex;align-items:center;padding-left:8px;font-size:10px;font-weight:600;color:#fff;min-width:30px}
+.bar-fill.cdn-cf{background:linear-gradient(90deg,#d32f2f,#f44336)}
+.bar-fill.cdn-gc{background:linear-gradient(90deg,#1565c0,#42a5f5)}
+.bar-fill.cdn-ak{background:linear-gradient(90deg,#2e7d32,#66bb6a)}
+.bar-fill.bad{background:linear-gradient(90deg,#d32f2f,#f44336)}
+.bar-fill.mid{background:linear-gradient(90deg,#e65100,#ff9800)}
+.bar-fill.good{background:linear-gradient(90deg,#2e7d32,#66bb6a)}
+.bar-fill.warn{background:linear-gradient(90deg,#f9a825,#fdd835);color:#000}
+.bar-value{font-size:11px;width:80px;text-align:right;color:#e6edf3;flex-shrink:0}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{background:#161b22;color:#8b949e;padding:7px 6px;text-align:center;border-bottom:2px solid #30363d;font-weight:600}
+td{padding:5px;border-bottom:1px solid #21262d;text-align:center}
+tr:hover{background:#161b22}
+.device-name{text-align:left;font-weight:600;white-space:nowrap}
+.metric-badge{display:inline-block;padding:1px 6px;border-radius:6px;font-size:10px;font-weight:600}
+.metric-badge.extreme{background:#3d1414;color:#f85149}
+.metric-badge.bad{background:#3d2e00;color:#ff9800}
+.metric-badge.ok{background:#1b4332;color:#3fb950}
+.insight-box{background:#1a1a2e;border:1px solid #30363d;border-radius:10px;padding:15px;margin:10px 0}
+.insight-box h4{margin:0 0 8px;color:#f44336;font-size:13px}
+.insight-box ul{margin:0;padding-left:20px;font-size:12px;color:#e6edf3}
+.insight-box li{margin:3px 0}
+.highlight{background:#2d1b1b!important}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:15px}
+.dist-table{width:100%;font-size:11px}
+.dist-table td{padding:4px 6px}
+.dist-table .bucket{text-align:left;color:#8b949e}
+.dist-table .pct{text-align:right;font-weight:600}
+.signal-tier{display:inline-block;padding:2px 8px;border-radius:8px;font-size:11px;font-weight:600}
+.signal-tier.excellent{background:#1b4332;color:#3fb950}
+.signal-tier.good{background:#1b4332;color:#3fb950}
+.signal-tier.fair{background:#3d2e00;color:#fdd835}
+.signal-tier.poor{background:#3d1414;color:#f85149}
+.reco-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-top:10px}
+.reco-card{background:#161b22;border-radius:8px;padding:12px;border-left:4px solid #f44336;text-align:center}
+.reco-card .num{font-size:24px;font-weight:800;color:#f44336}
+.reco-card .title{font-size:11px;font-weight:600;color:#e6edf3;margin:5px 0}
+.reco-card .desc{font-size:10px;color:#8b949e}
+</style></head><body>
+<div class="container">
+
+<h1>🚨 Anomali Dashboard — Kabupaten Critical</h1>
+<div class="subtitle">Data 1-14 Juni 2026 | XL+Smartfren | 4G | Kota Cimahi (76.8) & Kab. Lebak (74.6)</div>
+
+<!-- ========== KOTA CIMAHI ========== -->
+<div class="section">
+<div class="section-title">🔴 #1 Kota Cimahi <span class="badge badge-critical">Priority 76.8</span></div>
+
+<div class="cards">
+<div class="card"><h3>📹 Video FF</h3><div class="value red">40.5s</div><div class="sub">Median: 4s (skew dari outlier)</div></div>
+<div class="card"><h3>⚡ DL Speed</h3><div class="value red">8.0 Mbps</div><div class="sub">96.9% test < 15 Mbps</div></div>
+<div class="card"><h3>🎮 Gaming Latency</h3><div class="value orange">37.4ms</div><div class="sub">4.9% test > 60ms</div></div>
+<div class="card"><h3>📶 Poor Signal</h3><div class="value orange">22.7%</div><div class="sub">RSRP < -105 dBm</div></div>
+</div>
+
+<div class="anomaly-grid">
+<!-- Video CDN Anomaly -->
+<div class="anomaly-box">
+<h3>📹 Video — CDN Platform Anomaly</h3>
+<div class="bar-chart">
+<div class="bar-row">
+<div class="bar-label">CLOUDFRONT</div>
+<div class="bar-container"><div class="bar-fill cdn-cf" style="width:85%">61.1s FF</div></div>
+<div class="bar-value">stall 580.5s</div>
+</div>
+<div class="bar-row">
+<div class="bar-label">GOOGLECLOUD</div>
+<div class="bar-container"><div class="bar-fill cdn-gc" style="width:10%">6.8s</div></div>
+<div class="bar-value">stall 240.9s</div>
+</div>
+<div class="bar-row">
+<div class="bar-label">AKAMAI ✅</div>
+<div class="bar-container"><div class="bar-fill cdn-ak" style="width:12%">8.0s</div></div>
+<div class="bar-value">stall 0s</div>
+</div>
+</div>
+<div class="insight-box">
+<h4>🔍 Temuan</h4>
+<ul>
+<li>10 test CLOUDFRONT COMPLETED: avg stall <b>13,022s (3.6 jam)</b></li>
+<li>1 test STALLING_TIMEOUT: <b>30,000s</b> (cap timeout)</li>
+<li>62% test lewat CLOUDFRONT → edge server bermasalah</li>
+<li>AKAMAI 0 stall, 96.2% success → routing perlu diubah</li>
+</ul>
+</div>
+</div>
+
+<!-- Speed Distribution -->
+<div class="anomaly-box">
+<h3>⚡ Speed — Distribution Anomaly</h3>
+<div class="bar-chart">
+<div class="bar-row">
+<div class="bar-label">Very Slow (<15)</div>
+<div class="bar-container"><div class="bar-fill bad" style="width:96.9%">96.9%</div></div>
+<div class="bar-value">avg 8.0 Mbps</div>
+</div>
+<div class="bar-row">
+<div class="bar-label">Slow (15-30)</div>
+<div class="bar-container"><div class="bar-fill mid" style="width:2%">0.7%</div></div>
+<div class="bar-value">avg 20.6 Mbps</div>
+</div>
+<div class="bar-row">
+<div class="bar-label">Medium (30-50)</div>
+<div class="bar-container"><div class="bar-fill warn" style="width:3%">1.4%</div></div>
+<div class="bar-value">avg 41.0 Mbps</div>
+</div>
+<div class="bar-row">
+<div class="bar-label">Fast (≥50)</div>
+<div class="bar-container"><div class="bar-fill good" style="width:2%">1.0%</div></div>
+<div class="bar-value">avg 78.4 Mbps</div>
+</div>
+</div>
+<div class="insight-box">
+<h4>🔍 Temuan</h4>
+<ul>
+<li>97% test DL < 15 Mbps di area urban → <b>masalah kapasitas</b></li>
+<li>Rata-rata 8 Mbps vs TSEL nasional 55.8 Mbps</li>
+<li>Hanya 1% test capai speed "acceptable" (≥50 Mbps)</li>
+<li>Kemungkinan backhaul congestion atau site capacity issue</li>
+</ul>
+</div>
+</div>
+</div>
+
+<div class="anomaly-grid">
+<!-- Gaming Device Anomaly -->
+<div class="anomaly-box">
+<h3>🎮 Gaming — Device Anomaly</h3>
+<table>
+<tr><th style="text-align:left">Device</th><th>n</th><th>Latency</th><th>Loss%</th><th>Jitter</th><th>Severity</th></tr>
+<tr class="highlight"><td class="device-name">Insignia HOT 30i</td><td>9</td><td>190.5ms</td><td>44.94%</td><td>71.5ms</td><td><span class="metric-badge extreme">EXTREME</span></td></tr>
+<tr><td class="device-name">Galaxy A15 5G</td><td>5</td><td>281.6ms</td><td>26.2%</td><td>22.9ms</td><td><span class="metric-badge extreme">EXTREME</span></td></tr>
+<tr><td class="device-name">A38</td><td>4</td><td>247.8ms</td><td>32.3%</td><td>39.3ms</td><td><span class="metric-badge extreme">EXTREME</span></td></tr>
+<tr><td class="device-name">Poco M4 Pro</td><td>2</td><td>406.4ms</td><td>9.77%</td><td>30.1ms</td><td><span class="metric-badge extreme">EXTREME</span></td></tr>
+<tr><td class="device-name">A17</td><td>2</td><td>621ms</td><td>51.5%</td><td>37.4ms</td><td><span class="metric-badge extreme">EXTREME</span></td></tr>
+</table>
+<div class="insight-box">
+<h4>🔍 Temuan</h4>
+<ul>
+<li>HOT 30i: <b>44.94% packet loss</b> → modem/firmware issue</li>
+<li>5 device dengan latency > 100ms dan loss > 9%</li>
+<li>Normal test (latency < 20ms): 29.4% → jaringan OK untuk device bagus</li>
+<li>Device low-end mendominasi anomali → bukan masalah jaringan</li>
+</ul>
+</div>
+</div>
+
+<!-- Signal Distribution -->
+<div class="anomaly-box">
+<h3>📶 Signal — RSRP Distribution</h3>
+<div class="bar-chart">
+<div class="bar-row">
+<div class="bar-label"><span class="signal-tier poor">Poor (<-105)</span></div>
+<div class="bar-container"><div class="bar-fill bad" style="width:23%">22.7%</div></div>
+<div class="bar-value">SNR -1.2 dB</div>
+</div>
+<div class="bar-row">
+<div class="bar-label"><span class="signal-tier fair">Fair (-105~-95)</span></div>
+<div class="bar-container"><div class="bar-fill warn" style="width:33%">33.3%</div></div>
+<div class="bar-value">SNR 2.0 dB</div>
+</div>
+<div class="bar-row">
+<div class="bar-label"><span class="signal-tier good">Good (-95~-85)</span></div>
+<div class="bar-container"><div class="bar-fill good" style="width:26%">26.4%</div></div>
+<div class="bar-value">SNR 4.5 dB</div>
+</div>
+<div class="bar-row">
+<div class="bar-label"><span class="signal-tier excellent">Excellent (≥-85)</span></div>
+<div class="bar-container"><div class="bar-fill good" style="width:18%">17.5%</div></div>
+<div class="bar-value">SNR 8.5 dB</div>
+</div>
+</div>
+<div class="insight-box">
+<h4>🔍 Temuan</h4>
+<ul>
+<li>56% area Fair/Poor signal → coverage gap</li>
+<li>Poor signal SNR = -1.2 dB → noise mendominasi signal</li>
+<li>Perlu tambah site atau optimasi antenna tilt/azimuth</li>
+</ul>
+</div>
+
+<h3 style="margin-top:15px">🗼 Enodeb Anomaly</h3>
+<table>
+<tr><th style="text-align:left">Enodeb ID</th><th>n</th><th>Avg FF</th><th>Avg Stall</th><th>Throughput</th></tr>
+<tr class="highlight"><td class="device-name">510250</td><td>6</td><td>8.8s</td><td>2,998s (50 min)</td><td>12.0 Mbps</td></tr>
+<tr><td class="device-name">157</td><td>5</td><td>6.2s</td><td>364.4s</td><td>13.2 Mbps</td></tr>
+<tr><td class="device-name">510066</td><td>6</td><td>5.8s</td><td>0s ✅</td><td>18.1 Mbps</td></tr>
+</table>
+</div>
+</div>
+</div>
+
+<!-- ========== KAB. LEBAK ========== -->
+<div class="section">
+<div class="section-title">🔴 #2 Kab. Lebak <span class="badge badge-critical">Priority 74.6</span></div>
+
+<div class="cards">
+<div class="card"><h3>📹 Video Stall</h3><div class="value red">592.1s</div><div class="sub">2 test timeout 30,000s</div></div>
+<div class="card"><h3>⚡ DL Speed</h3><div class="value red">8.1 Mbps</div><div class="sub">98.4% test < 15 Mbps</div></div>
+<div class="card"><h3>🎮 Gaming Latency</h3><div class="value orange">36.1ms</div><div class="sub">C75 device: 158ms</div></div>
+<div class="card"><h3>📶 Poor Signal</h3><div class="value red">37.5%</div><div class="sub">RSRP < -105 dBm (terburuk)</div></div>
+</div>
+
+<div class="anomaly-grid">
+<!-- Video CDN Anomaly -->
+<div class="anomaly-box">
+<h3>📹 Video — CDN Platform Anomaly</h3>
+<div class="bar-chart">
+<div class="bar-row">
+<div class="bar-label">CLOUDFRONT</div>
+<div class="bar-container"><div class="bar-fill cdn-cf" style="width:90%">stall 750s</div></div>
+<div class="bar-value">success 86.6%</div>
+</div>
+<div class="bar-row">
+<div class="bar-label">AKAMAI</div>
+<div class="bar-container"><div class="bar-fill mid" style="width:70%">stall 587.8s</div></div>
+<div class="bar-value">success 84.9%</div>
+</div>
+<div class="bar-row">
+<div class="bar-label">GOOGLECLOUD ✅</div>
+<div class="bar-container"><div class="bar-fill cdn-ak" style="width:8%">stall 69.9s</div></div>
+<div class="bar-value">success 87.7%</div>
+</div>
+</div>
+<div class="insight-box">
+<h4>🔍 Temuan</h4>
+<ul>
+<li>14 test CLOUDFRONT COMPLETED: avg stall <b>7,875s (2.2 jam)</b></li>
+<li>2 test STALLING_TIMEOUT: <b>30,000s</b> (1 AKAMAI + 1 CLOUDFRONT)</li>
+<li>GOOGLECLOUD stall 69.9s → <b>10x lebih baik</b> dari CLOUDFRONT</li>
+<li>AKAMAI juga bermasalah di Lebak (587.8s stall)</li>
+</ul>
+</div>
+</div>
+
+<!-- Speed Distribution -->
+<div class="anomaly-box">
+<h3>⚡ Speed — Distribution Anomaly</h3>
+<div class="bar-chart">
+<div class="bar-row">
+<div class="bar-label">Very Slow (<15)</div>
+<div class="bar-container"><div class="bar-fill bad" style="width:98%">98.4%</div></div>
+<div class="bar-value">avg 8.1 Mbps</div>
+</div>
+<div class="bar-row">
+<div class="bar-label">Slow (15-30)</div>
+<div class="bar-container"><div class="bar-fill mid" style="width:2%">1.0%</div></div>
+<div class="bar-value">avg 24.1 Mbps</div>
+</div>
+<div class="bar-row">
+<div class="bar-label">Fast (≥50)</div>
+<div class="bar-container"><div class="bar-fill good" style="width:1%">0.5%</div></div>
+<div class="bar-value">90.9 Mbps</div>
+</div>
+</div>
+<div class="insight-box">
+<h4>🔍 Temuan</h4>
+<ul>
+<li>98.4% test DL < 15 Mbps → <b>hampir seluruh area sangat lambat</b></li>
+<li>Hanya 1 test ≥50 Mbps (90.9 Mbps) → outlier, mungkin WiFi offload</li>
+<li>Kab. Lebak = area suburban/rural → backhaul terbatas</li>
+</ul>
+</div>
+</div>
+</div>
+
+<div class="anomaly-grid">
+<!-- Gaming Device Anomaly -->
+<div class="anomaly-box">
+<h3>🎮 Gaming — Device Anomaly</h3>
+<table>
+<tr><th style="text-align:left">Device</th><th>n</th><th>Latency</th><th>Loss%</th><th>Jitter</th><th>Severity</th></tr>
+<tr class="highlight"><td class="device-name">C75</td><td>24</td><td>158.1ms</td><td>26.19%</td><td>28.9ms</td><td><span class="metric-badge extreme">EXTREME</span></td></tr>
+<tr><td class="device-name">12 Lite</td><td>10</td><td>104.7ms</td><td>7.52%</td><td>15.1ms</td><td><span class="metric-badge bad">BAD</span></td></tr>
+<tr><td class="device-name">A96</td><td>12</td><td>80.1ms</td><td>5.17%</td><td>12.6ms</td><td><span class="metric-badge bad">BAD</span></td></tr>
+<tr><td class="device-name">A74 / F19</td><td>10</td><td>51.8ms</td><td>2.9%</td><td>11.0ms</td><td><span class="metric-badge bad">BAD</span></td></tr>
+<tr><td class="device-name">HOT 30i</td><td>23</td><td>48.9ms</td><td>5.93%</td><td>10.9ms</td><td><span class="metric-badge ok">MODERATE</span></td></tr>
+</table>
+<div class="insight-box">
+<h4>🔍 Temuan</h4>
+<ul>
+<li><b>C75 (24 test)</b>: 158ms latency, 26% loss → device modem parah</li>
+<li>12 Lite dan A96 juga bermasalah → device low-end issue</li>
+<li>C75 di Lebak vs HOT 30i di Cimahi → device berbeda, masalah sama</li>
+</ul>
+</div>
+</div>
+
+<!-- Signal Distribution -->
+<div class="anomaly-box">
+<h3>📶 Signal — RSRP Distribution</h3>
+<div class="bar-chart">
+<div class="bar-row">
+<div class="bar-label"><span class="signal-tier poor">Poor (<-105)</span></div>
+<div class="bar-container"><div class="bar-fill bad" style="width:38%">37.5%</div></div>
+<div class="bar-value">SNR 1.7 dB</div>
+</div>
+<div class="bar-row">
+<div class="bar-label"><span class="signal-tier fair">Fair (-105~-95)</span></div>
+<div class="bar-container"><div class="bar-fill warn" style="width:26%">26.0%</div></div>
+<div class="bar-value">SNR 6.0 dB</div>
+</div>
+<div class="bar-row">
+<div class="bar-label"><span class="signal-tier good">Good (-95~-85)</span></div>
+<div class="bar-container"><div class="bar-fill good" style="width:24%">23.7%</div></div>
+<div class="bar-value">SNR 8.9 dB</div>
+</div>
+<div class="bar-row">
+<div class="bar-label"><span class="signal-tier excellent">Excellent (≥-85)</span></div>
+<div class="bar-container"><div class="bar-fill good" style="width:13%">12.8%</div></div>
+<div class="bar-value">SNR 11.2 dB</div>
+</div>
+</div>
+<div class="insight-box">
+<h4>🔍 Temuan</h4>
+<ul>
+<li><b>37.5% Poor signal</b> → hampir 4 area dari 10 sinyal sangat lemah</li>
+<li>SNR Poor = 1.7 dB → signal hampir tenggelam di noise</li>
+<li>63.5% area Fair/Poor → coverage gap besar</li>
+<li>Excellent area SNR 11.2 dB → dimana ada site, kualitas bagus</li>
+</ul>
+</div>
+</div>
+</div>
+</div>
+
+<!-- ========== COMPARISON ========== -->
+<div class="section">
+<div class="section-title">📊 Perbandingan Anomali: Cimahi vs Lebak</div>
+<table>
+<tr><th>Metric</th><th>Kota Cimahi</th><th>Kab. Lebak</th><th>Insight</th></tr>
+<tr><td style="text-align:left">CDN Problem</td><td>CLOUDFRONT (62%)</td><td>CLOUDFRONT (61%) + AKAMAI (22%)</td><td>Lebak: 2 CDN bermasalah</td></tr>
+<tr><td style="text-align:left">Worst Stall</td><td>13,022s (3.6 jam)</td><td>7,875s (2.2 jam)</td><td>Cimahi lebih parah</td></tr>
+<tr><td style="text-align:left">Speed < 15 Mbps</td><td>96.9%</td><td>98.4%</td><td>Keduanya sangat buruk</td></tr>
+<tr><td style="text-align:left">Gaming Device</td><td>HOT 30i (45% loss)</td><td>C75 (26% loss)</td><td>Device berbeda, issue sama</td></tr>
+<tr><td style="text-align:left">Poor Signal</td><td>22.7%</td><td>37.5%</td><td>Lebak coverage lebih buruk</td></tr>
+<tr><td style="text-align:left">Area Type</td><td>Urban (Kota)</td><td>Suburban/Rural (Kab.)</td><td>Cimahi seharusnya lebih baik</td></tr>
+</table>
+</div>
+
+<!-- ========== RECOMMENDATIONS ========== -->
+<div class="section">
+<div class="section-title">🎯 Rekomendasi Fix</div>
+<div class="reco-grid">
+<div class="reco-card">
+<div class="num">1</div>
+<div class="title">CDN Routing</div>
+<div class="desc">Redirect CLOUDFRONT → AKAMAI/GoogleCloud. Impact: FF 61s → 8s</div>
+</div>
+<div class="reco-card">
+<div class="num">2</div>
+<div class="title">Speed Investigation</div>
+<div class="desc">97-98% DL < 15 Mbps di area urban. Cek backhaul capacity & site load</div>
+</div>
+<div class="reco-card">
+<div class="num">3</div>
+<div class="title">Device Issue</div>
+<div class="desc">HOT 30i & C75: loss >25%. Kemungkinan modem/firmware. Bukan jaringan</div>
+</div>
+<div class="reco-card">
+<div class="num">4</div>
+<div class="title">Enodeb 510250</div>
+<div class="desc">Stall 50 menit. Perlu cek hardware, backhaul, atau config di site ini</div>
+</div>
+<div class="reco-card">
+<div class="num">5</div>
+<div class="title">Coverage Gap</div>
+<div class="desc">37-56% area Poor signal. Tambah site atau optimasi antenna tilt/azimuth</div>
+</div>
+</div>
+</div>
+
+<div style="text-align:center;color:#8b949e;font-size:11px;margin-top:20px;padding:10px;border-top:1px solid #30363d">
+Scoring: Priority = Video 30% + Gaming 30% + Speed 25% + Signal 15% | 100 = worst | Data: 1-14 Juni 2026
+</div>
+
+</div></body></html>

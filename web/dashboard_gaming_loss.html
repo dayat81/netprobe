@@ -1,0 +1,178 @@
+<!DOCTYPE html><html><head><meta charset="utf-8">
+<title>Gaming + Loss Analysis</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0a1a;color:#e0e0e0;font-family:'Segoe UI',sans-serif;padding:16px}
+.header{text-align:center;margin-bottom:16px}
+.header h1{color:#fff;font-size:20px;margin-bottom:3px}
+.header .sub{color:#666;font-size:11px}
+.cards{display:flex;gap:10px;justify-content:center;margin-bottom:14px;flex-wrap:wrap}
+.card{background:linear-gradient(135deg,#1a1a2e,#16213e);border-radius:8px;padding:12px;min-width:180px;flex:1;max-width:240px;border:1px solid #2a2a4a}
+.card .top{display:flex;align-items:center;gap:6px;margin-bottom:6px}
+.card .dot{width:8px;height:8px;border-radius:50%}
+.card .name{font-size:12px;font-weight:700}
+.card .tests{font-size:18px;font-weight:800}
+.card .tests-label{font-size:8px;color:#666}
+.card .metrics{display:grid;grid-template-columns:1fr 1fr;gap:3px;margin-top:6px}
+.card .metric{background:#0d0d1a;border-radius:4px;padding:3px 5px}
+.card .metric .label{font-size:7px;color:#666;text-transform:uppercase}
+.card .metric .val{font-size:11px;font-weight:700}
+.good{color:#4caf50}.warn{color:#ffeb3b}.bad{color:#f44336}
+.section{background:#1a1a2e;border-radius:8px;padding:12px;margin-bottom:12px;border:1px solid #2a2a4a}
+.section h2{color:#fff;font-size:13px;margin-bottom:8px;display:flex;align-items:center;gap:6px}
+table{width:100%;border-collapse:collapse;font-size:10px}
+th{background:#252540;color:#999;padding:4px 5px;text-align:left;font-weight:600;border-bottom:2px solid #3a3a5a;position:sticky;top:0}
+td{padding:3px 5px;border-bottom:1px solid #1e1e35}
+tr:hover{background:#1e1e38}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.badge{padding:1px 5px;border-radius:3px;font-size:8px;font-weight:700}
+.badge-up{background:#0d2b0d;color:#4caf50}
+.badge-down{background:#2b0d0d;color:#f44336}
+.badge-flat{background:#1a1a1a;color:#888}
+.plat-badge{padding:1px 4px;border-radius:3px;font-size:8px;font-weight:700}
+.plat-cf{background:#0d1b2a;color:#3498db}
+.plat-ak{background:#2b0d0d;color:#e74c3c}
+.plat-gc{background:#2b2b0d;color:#f39c12}
+.loss-bar{height:20px;background:#252540;border-radius:4px;overflow:hidden;margin:4px 0}
+.loss-fill{height:100%;border-radius:4px;display:flex;align-items:center;padding-left:6px;font-size:9px;font-weight:700}
+.device-card{background:#0d0d1a;border-radius:6px;padding:8px;margin:6px 0;border-left:3px solid #f44336}
+.device-card.warning{border-left-color:#ffeb3b}
+.device-card .device-name{font-size:12px;font-weight:700;margin-bottom:4px}
+.device-card .device-metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:4px}
+.device-card .dm{background:#1a1a2e;border-radius:3px;padding:3px 4px;text-align:center}
+.device-card .dm .label{font-size:7px;color:#666}
+.device-card .dm .val{font-size:10px;font-weight:700}
+</style>
+</head><body>
+
+<div class="header">
+<h1>🎮 Gaming Performance + Packet Loss Analysis</h1>
+<div class="sub">Data: GUNUNG PUTRI | XL | 1 Juni 2026 jam 10:00 | 13 UDP tests</div>
+</div>
+
+<!-- OVERVIEW CARDS -->
+<div class="cards">
+<div class="card">
+<div class="top"><div class="dot" style="background:#3498db"></div><div class="name" style="color:#3498db">XL — Gaming Overview</div></div>
+<div class="tests">13</div><div class="tests-label">UDP Tests</div>
+<div class="metrics">
+<div class="metric"><div class="label">Total Tests</div><div class="val">13</div></div>
+<div class="metric"><div class="label">With Loss</div><div class="val bad">2</div></div>
+<div class="metric"><div class="label">Avg Loss</div><div class="val bad">2.72%</div></div>
+<div class="metric"><div class="label">Max Loss</div><div class="val bad">11.5%</div></div>
+<div class="metric"><div class="label">Avg Latency</div><div class="val warn">49.2 ms</div></div>
+<div class="metric"><div class="label">Avg Jitter</div><div class="val warn">7.2 ms</div></div>
+<div class="metric"><div class="label">Avg SNR</div><div class="val warn">4.9 dB</div></div>
+<div class="metric"><div class="label">Avg RSRP</div><div class="val">-95.2 dBm</div></div>
+</div></div>
+
+<div class="card">
+<div class="top"><div class="dot" style="background:#4caf50"></div><div class="name" style="color:#4caf50">No Loss Devices</div></div>
+<div class="tests">11</div><div class="tests-label">Clean Tests</div>
+<div class="metrics">
+<div class="metric"><div class="label">Avg Latency</div><div class="val good">12.8 ms</div></div>
+<div class="metric"><div class="label">Avg Jitter</div><div class="val good">3.2 ms</div></div>
+<div class="metric"><div class="label">Packet Loss</div><div class="val good">0.00%</div></div>
+<div class="metric"><div class="label">Status</div><div class="val good">Gaming OK</div></div>
+</div></div>
+
+<div class="card">
+<div class="top"><div class="dot" style="background:#f44336"></div><div class="name" style="color:#f44336">Loss Devices</div></div>
+<div class="tests">2</div><div class="tests-label">Problem Tests</div>
+<div class="metrics">
+<div class="metric"><div class="label">Avg Latency</div><div class="val bad">101.3 ms</div></div>
+<div class="metric"><div class="label">Avg Jitter</div><div class="val bad">12.7 ms</div></div>
+<div class="metric"><div class="label">Avg Loss</div><div class="val bad">6.79%</div></div>
+<div class="metric"><div class="label">Status</div><div class="val bad">Unplayable</div></div>
+</div></div>
+</div>
+
+<!-- LOSS ANALYSIS -->
+<div class="section">
+<h2>🔴 Packet Loss Analysis — Problem Devices</h2>
+
+<div class="device-card">
+<div class="device-name">🔴 Vivo Y19s — CRITICAL</div>
+<div class="device-metrics">
+<div class="dm"><div class="label">Loss</div><div class="val bad">11.5%</div></div>
+<div class="dm"><div class="label">Latency</div><div class="val bad">187.2 ms</div></div>
+<div class="dm"><div class="label">Jitter</div><div class="val bad">22.0 ms</div></div>
+<div class="dm"><div class="label">SNR</div><div class="val warn">1.0 dB</div></div>
+<div class="dm"><div class="label">RSRP</div><div class="val">-82 dBm</div></div>
+<div class="dm"><div class="label">RSRQ</div><div class="val">—</div></div>
+<div class="dm"><div class="label">Band</div><div class="val">—</div></div>
+<div class="dm"><div class="label">Tech</div><div class="val">LTE</div></div>
+</div>
+<div class="loss-bar"><div class="loss-fill" style="width:11.5%;background:#f44336">11.5% loss</div></div>
+<div style="font-size:9px;color:#888;margin-top:4px">
+⚠️ <b>Impact:</b> 11.5% packet loss = ~1 in 9 packets dropped. For gaming: input delay, teleporting, disconnects.<br>
+⚠️ <b>Root cause:</b> SNR 1 dB (fair) but RSRP -82 dBm (strong signal). Possible device WiFi/cellular handoff issue or app-level problem.<br>
+⚠️ <b>Latency 187ms</b> = 6x higher than normal (~30ms). Jitter 22ms = highly unstable connection.
+</div>
+</div>
+
+<div class="device-card warning">
+<div class="device-name">🟡 Motorola moto g45 5G — WARNING</div>
+<div class="device-metrics">
+<div class="dm"><div class="label">Loss</div><div class="val warn">2.08%</div></div>
+<div class="dm"><div class="label">Latency</div><div class="val good">15.3 ms</div></div>
+<div class="dm"><div class="label">Jitter</div><div class="val good">3.4 ms</div></div>
+<div class="dm"><div class="label">SNR</div><div class="val bad">-1.0 dB</div></div>
+<div class="dm"><div class="label">RSRP</div><div class="val bad">-101 dBm</div></div>
+<div class="dm"><div class="label">RSRQ</div><div class="val bad">-18 dB</div></div>
+<div class="dm"><div class="label">Band</div><div class="val">2100 MHz</div></div>
+<div class="dm"><div class="label">Tech</div><div class="val">LTE</div></div>
+</div>
+<div class="loss-bar"><div class="loss-fill" style="width:2.08%;background:#ffeb3b">2.08% loss</div></div>
+<div style="font-size:9px;color:#888;margin-top:4px">
+⚠️ <b>Impact:</b> 2% loss = occasional lag spikes. Playable but not smooth for FPS/competitive games.<br>
+⚠️ <b>Root cause:</b> SNR -1 dB (poor) + RSRP -101 dBm (weak signal). Band 2100 MHz = high frequency, poor penetration.<br>
+✅ <b>Latency 15ms</b> = good. Jitter 3.4ms = acceptable. Signal issue, not device issue.
+</div>
+</div>
+</div>
+
+<!-- NO LOSS DEVICES -->
+<div class="section">
+<h2>✅ Clean Gaming Devices — No Packet Loss</h2>
+<table>
+<tr><th>#</th><th>Device</th><th>Gen</th><th>Latency</th><th>Jitter</th><th>Loss</th><th>SNR</th><th>RSRP</th><th>Status</th></tr>
+<tr><td>1</td><td>Samsung Galaxy S22 Ultra 5G</td><td>5G</td><td class="good">14.1 ms</td><td class="good">3.9 ms</td><td class="good">0%</td><td class="warn">4.0 dB</td><td>-88 dBm</td><td><span class="badge badge-up">GAMING OK</span></td></tr>
+<tr><td>2</td><td>Oppo Reno3</td><td>4G</td><td class="good">15.1 ms</td><td class="good">4.2 ms</td><td class="good">0%</td><td class="warn">5.0 dB</td><td>-95 dBm</td><td><span class="badge badge-up">GAMING OK</span></td></tr>
+<tr><td>3</td><td>Samsung Galaxy A33 5G</td><td>4G</td><td class="good">14.1 ms</td><td class="good">2.5 ms</td><td class="good">0%</td><td class="warn">2.0 dB</td><td>-109 dBm</td><td><span class="badge badge-up">GAMING OK</span></td></tr>
+</table>
+</div>
+
+<!-- LOSS METRICS SUMMARY -->
+<div class="grid2">
+<div class="section">
+<h2>📊 Loss Metrics Summary</h2>
+<table>
+<tr><th>Metric</th><th>With Loss</th><th>No Loss</th><th>Impact</th></tr>
+<tr><td>Count</td><td class="bad">2 devices</td><td class="good">11 devices</td><td>15.4% affected</td></tr>
+<tr><td>Avg Latency</td><td class="bad">101.3 ms</td><td class="good">12.8 ms</td><td>8x slower</td></tr>
+<tr><td>Avg Jitter</td><td class="bad">12.7 ms</td><td class="good">3.2 ms</td><td>4x unstable</td></tr>
+<tr><td>Avg SNR</td><td class="warn">0.0 dB</td><td class="warn">5.5 dB</td><td>Signal weaker</td></tr>
+<tr><td>Avg RSRP</td><td class="warn">-91.5 dBm</td><td>-95.6 dBm</td><td>Similar</td></tr>
+</table>
+</div>
+
+<div class="section">
+<h2>🎮 Gaming Quality Impact</h2>
+<table>
+<tr><th>Loss %</th><th>Game Type</th><th>Experience</th></tr>
+<tr><td class="good">0%</td><td>All games</td><td class="good">Smooth, responsive</td></tr>
+<tr><td class="warn">0-2%</td><td>FPS/MOBA</td><td class="warn">Occasional lag spikes</td></tr>
+<tr><td class="bad">2-5%</td><td>FPS/MOBA</td><td class="bad">Frequent rubber-banding</td></tr>
+<tr><td class="bad">5-10%</td><td>All games</td><td class="bad">Input delay, teleporting</td></tr>
+<tr><td class="bad">>10%</td><td>All games</td><td class="bad">Unplayable, disconnects</td></tr>
+</table>
+<div style="margin-top:8px;font-size:10px;color:#888">
+<b>Recommendation:</b> Vivo Y19s (11.5% loss) needs investigation — check if device-specific or cell tower issue. 
+Motorola (2.08%) is signal-related — consider band optimization or small cell deployment.
+</div>
+</div>
+</div>
+
+<div style="text-align:center;color:#444;font-size:9px;margin-top:12px">Data: OpenSignal ONX | ClickHouse udp_signal_tests | Generated by Hermes Agent</div>
+</body></html>
