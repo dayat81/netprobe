@@ -31,7 +31,7 @@ android {
     signingConfigs {
         create("release") {
             val storePath = keystoreProperties.getProperty("storeFile")
-                ?: "app/netprobe-release.jks"
+                ?: "netprobe-release.jks"
             val storePass = keystoreProperties.getProperty("storePassword")
                 ?: System.getenv("KEYSTORE_PASSWORD")
             val alias = keystoreProperties.getProperty("keyAlias")
