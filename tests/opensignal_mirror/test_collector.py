@@ -564,6 +564,24 @@ def wifi_payload():
     }
 
 
+def test_subscription_accepts_optional_apn():
+    plain = measurement_plain()
+    plain["snapshots"][0]["subscriptions"][0].update(
+        {
+            "apn": "ggsb02",
+            "apn_name": "ggsb02",
+            "apn_types": "default,mms,supl",
+            "apn_protocol": "IPV4V6",
+        }
+    )
+    parsed = schema.validate_measurement_plain(plain)
+    sub = parsed["snapshots"][0]["subscriptions"][0]
+    assert sub["apn"] == "ggsb02"
+    assert sub["apn_protocol"] == "IPV4V6"
+    legacy = schema.validate_measurement_plain(measurement_plain())
+    assert legacy["snapshots"][0]["subscriptions"][0]["apn"] == ""
+
+
 def test_snapshot_accepts_optional_wifi_and_keeps_legacy():
     legacy = schema.validate_measurement_plain(measurement_plain())
     assert "wifi" not in legacy["snapshots"][0]

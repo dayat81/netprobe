@@ -68,7 +68,7 @@ class SpeedtestGaugeView @JvmOverloads constructor(
             canvas.drawArc(arc, 180f, 180f * frac, false, fill)
             fill.shader = null
         }
-        listOf(0, 50, 100, 150, 200).forEach { mark ->
+        listOf(0, 100, 250, 500, 1000).forEach { mark ->
             val t = mark / SCALE
             val angle = Math.PI - t * Math.PI
             val r = arc.width() / 2f
@@ -90,6 +90,6 @@ class SpeedtestGaugeView @JvmOverloads constructor(
     private fun dp(value: Float): Float = value * resources.displayMetrics.density
 
     companion object {
-        private const val SCALE = 200f
+        private const val SCALE = 1000f
     }
 }

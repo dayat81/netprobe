@@ -79,6 +79,19 @@ class SpeedtestMathTest {
     }
 
     @Test
+    fun trimmedMeanDropsOutliersWhenEnoughSamples() {
+        val samples = (1..10).map { it * 10.0 } // 10..100
+        // trim 1 each side → 20..90, mean = 55
+        assertEquals(55.0, SpeedtestMath.trimmedMeanMbps(samples), 0.0001)
+    }
+
+    @Test
+    fun trimmedMeanFallsBackToMedianWhenFewSamples() {
+        assertEquals(20.0, SpeedtestMath.trimmedMeanMbps(listOf(10.0, 20.0, 100.0)), 0.0001)
+        assertEquals(0.0, SpeedtestMath.trimmedMeanMbps(emptyList()), 0.0)
+    }
+
+    @Test
     fun ooklaServerUrls() {
         val base = "http://20.205.188.36:8080/speedtest/"
         assertEquals("http://20.205.188.36:8080/speedtest/hello", SpeedtestEngine.helloUrl(base))

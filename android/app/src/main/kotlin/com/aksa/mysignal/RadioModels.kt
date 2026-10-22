@@ -204,6 +204,10 @@ data class SubscriptionRadio(
     val imsi: Secret = Secret.ABSENT,
     val msisdn: Secret = Secret.ABSENT,
     val iccid: Secret = Secret.ABSENT,
+    val apn: String = "",
+    val apnName: String = "",
+    val apnTypes: String = "",
+    val apnProtocol: String = "",
     val cellBandwidthKhz: List<Int> = emptyList(),
 ) {
     val plmn: String get() = if (mcc.isNotEmpty() && mnc.isNotEmpty()) "$mcc-$mnc" else ""
@@ -234,11 +238,25 @@ data class SubscriptionRadio(
         .put("imsi", imsi.toJson())
         .put("msisdn", msisdn.toJson())
         .put("iccid", iccid.toJson())
+        .put("apn", apn)
+        .put("apn_name", apnName)
+        .put("apn_types", apnTypes)
+        .put("apn_protocol", apnProtocol)
 
     companion object {
         const val MAX_CARRIERS = 8
     }
 }
+
+/** Preferred APN row from the telephony carriers table. */
+data class PreferApn(
+    val apn: String = "",
+    val name: String = "",
+    val types: String = "",
+    val protocol: String = "",
+    val numeric: String = "",
+    val subId: Int? = null,
+)
 
 data class NetworkInfo(
     val transport: String,

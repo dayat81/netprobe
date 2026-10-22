@@ -12,20 +12,30 @@ import kotlinx.coroutines.yield
 import java.io.InputStream
 import java.net.HttpURLConnection
 import java.net.URL
+import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicLong
 import kotlin.coroutines.coroutineContext
 
-/** HTTP speedtest against our Azure OoklaServer-like endpoints. */
+/**
+ * HTTP speedtest against Azure OoklaServer-like endpoints.
+ *
+ * Aligned with Ookla RE on azvm: 4 streams, 5–15 s measure, discard ramp,
+ * EMA live needle, trimmed-mean score over post-ramp 200 ms windows.
+ */
 class SpeedtestEngine(
     private val baseUrl: String,
     private val io: CoroutineDispatcher = Dispatchers.IO,
-    private val pingCount: Int = 12,
+    private val pingCount: Int = 10,
     private val pingWarmup: Int = 2,
     private val streams: Int = 4,
-    private val durationMs: Long = 10_000L,
-    private val downloadChunk: Int = 2 * 1024 * 1024,
-    private val uploadChunk: Int = 512 * 1024,
+    private val minDurationMs: Long = 5_000L,
+    private val maxDurationMs: Long = 15_000L,
+    private val rampMs: Long = 2_000L,
+    private val sampleMs: Long = 200L,
+    private val downloadChunk: Int = 4 * 1024 * 1024,
+    private val uploadChunk: Int = 1 * 1024 * 1024,
+    private val emaAlpha: Double = 0.35,
 ) {
     enum class Phase { IDLE, PING, DOWNLOAD, UPLOAD, DONE, FAILED }
 
@@ -135,6 +145,7 @@ class SpeedtestEngine(
         val bytes = AtomicLong(0)
         val stop = AtomicBoolean(false)
         val started = System.nanoTime()
+        val scoreSamples = CopyOnWriteArrayList<Double>()
         val workers = List(streams) {
             async(io) {
                 while (!stop.get() && coroutineContext.isActive) {
@@ -144,12 +155,27 @@ class SpeedtestEngine(
             }
         }
         val ticker = async(io) {
+            var lastBytes = 0L
+            var lastElapsed = 0L
+            var live = 0.0
             try {
                 while (!stop.get() && coroutineContext.isActive) {
-                    delay(200)
+                    delay(sampleMs)
+                    val total = bytes.get()
                     val elapsed = (System.nanoTime() - started) / 1_000_000L
-                    onMbps(SpeedtestMath.mbps(bytes.get(), elapsed))
-                    if (elapsed >= durationMs) stop.set(true)
+                    val windowMs = (elapsed - lastElapsed).coerceAtLeast(1L)
+                    val window = SpeedtestMath.mbps(total - lastBytes, windowMs)
+                    lastBytes = total
+                    lastElapsed = elapsed
+                    if (elapsed >= rampMs) {
+                        scoreSamples += window
+                    }
+                    live = if (live <= 0.0) window else emaAlpha * window + (1.0 - emaAlpha) * live
+                    onMbps(live)
+                    val pastMin = elapsed >= minDurationMs
+                    val pastMax = elapsed >= maxDurationMs
+                    val enough = scoreSamples.size >= ((minDurationMs - rampMs) / sampleMs).toInt().coerceAtLeast(5)
+                    if (pastMax || (pastMin && enough)) stop.set(true)
                 }
             } finally {
                 stop.set(true)
@@ -161,8 +187,12 @@ class SpeedtestEngine(
         } finally {
             stop.set(true)
         }
-        val elapsed = ((System.nanoTime() - started) / 1_000_000L).coerceAtLeast(1L)
-        SpeedtestMath.mbps(bytes.get(), elapsed)
+        val scored = SpeedtestMath.trimmedMeanMbps(scoreSamples.toList())
+        if (scored > 0.0) scored
+        else {
+            val elapsed = ((System.nanoTime() - started) / 1_000_000L).coerceAtLeast(1L)
+            SpeedtestMath.mbps(bytes.get(), elapsed)
+        }
     }
 
     private fun downloadOnce(root: String): Int {
@@ -209,7 +239,7 @@ class SpeedtestEngine(
         }
 
     private fun drain(stream: InputStream): Int {
-        val buf = ByteArray(64 * 1024)
+        val buf = ByteArray(256 * 1024)
         var total = 0
         stream.use {
             while (true) {

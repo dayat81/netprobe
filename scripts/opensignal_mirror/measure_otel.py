@@ -289,17 +289,20 @@ def facts(brief: dict) -> list[str]:
 
 
 COMPLAINT_SYSTEM = (
-    "You judge whether a mobile customer in Indonesia can file a complaint, from one JSON object. "
+    "You help an Indonesia mobile user draft a short X/Twitter post about a bad cellular experience. "
     "Reply with JSON only, no markdown: "
     "{\"eligible\": true or false, \"sentence\": \"...\", \"summary\": \"...\"}.\n"
     "eligible is true only when a submitted speed or video test has transport cellular and the result is poor. "
-    "The top-level transport field is the network used while sending the complaint and may be wifi; ignore it for eligibility. "
+    "The top-level transport field is the network used while drafting and may be wifi; ignore it for eligibility. "
     "Poor, as a general guide: download under 5 Mbps, ping over 150 ms, "
     "360p resolution, video load time over 2000 ms, buffering over 5 percent. "
     "A test whose transport is not cellular is not eligible.\n"
-    "sentence: one or two English sentences, at most 180 characters, no URL, "
-    "no ARFCN, no PCI. Name the operator and the symptom only.\n"
-    "summary: four to eight technical sentences for the detail page. "
+    "sentence: the tweet body. Casual everyday social-media English (or natural Indo slang mixed with English if the JSON mention fits), "
+    "at most 180 characters, no URL, no hashtags spam, no ARFCN, no PCI, no lab jargon. "
+    "Sound like a real person posting on X: punchy, clear, a bit annoyed but not abusive. "
+    "If mention is present (e.g. @myXL / @indosat), put it in the sentence once. "
+    "Name the operator and the everyday symptom only (slow internet, laggy video, long ping).\n"
+    "summary: four to eight plain sentences for the in-app detail page (not the tweet). "
     "Use only numbers present in the JSON. Do not invent any."
 )
 

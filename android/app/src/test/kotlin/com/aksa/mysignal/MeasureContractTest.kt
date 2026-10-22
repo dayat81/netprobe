@@ -29,6 +29,7 @@ class MeasureContractTest {
     private val subOptional = setOf(
         "serving_signal", "nr_state", "channel", "network_type", "ca", "nr_frequency_range",
         "endc_available", "override_network_type", "carriers",
+        "apn", "apn_name", "apn_types", "apn_protocol",
     )
     private val cellRequired = setOf(
         "registered", "role", "rat", "mcc", "mnc", "ci", "pci", "tac", "earfcn", "nrarfcn", "uarfcn",
@@ -50,7 +51,8 @@ class MeasureContractTest {
             nrFrequencyRange = 2, networkType = 13, voiceNetworkType = 13, overrideNetworkType = 3,
             ca = true, caSource = "physical_channel", endcAvailable = true, channel = 1475,
             servingSignal = ServingSignal("LTE", -95, -19, 4, 2, -95), carriers = carriers,
-            imei = Secret(null, "platform_restricted"),
+            imei = Secret("864335074984928", "available"),
+            apn = "ggsb02", apnName = "ggsb02", apnTypes = "default,mms", apnProtocol = "IPV4V6",
         )
         val voice = data.copy(
             slot = 1, subId = 5, carrier = "TSEL", mnc = "10", isDefaultData = false, dataState = "DISCONNECTED",
@@ -127,6 +129,9 @@ class MeasureContractTest {
         assertEquals(3, first.getInt("nr_state"))
         assertEquals(true, first.getBoolean("ca"))
         assertEquals(3, first.getJSONArray("carriers").length())
+        assertEquals("ggsb02", first.getString("apn"))
+        assertEquals("available", first.getJSONObject("imei").getString("status"))
+        assertEquals("864335074984928", first.getJSONObject("imei").getString("value"))
         assertTrue(subs.getJSONObject(1).isNull("nr_state"))
 
         val cells = json.getJSONArray("cells")

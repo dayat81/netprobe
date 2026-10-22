@@ -30,6 +30,27 @@ object SpeedtestMath {
         return (bytes * 8.0) / (elapsedMs * 1_000.0)
     }
 
+    /**
+     * Ookla-style trimmed mean over post-ramp window samples.
+     * Drops lowest/highest 10% (at least one each side when n ≥ 10); falls back to median when n < 10.
+     */
+    fun trimmedMeanMbps(samples: List<Double>): Double {
+        if (samples.isEmpty()) return 0.0
+        val sorted = samples.sorted()
+        if (sorted.size < 10) {
+            val mid = sorted.size / 2
+            return if (sorted.size % 2 == 0) {
+                (sorted[mid - 1] + sorted[mid]) / 2.0
+            } else {
+                sorted[mid]
+            }
+        }
+        val trim = (sorted.size * 0.10).toInt().coerceAtLeast(1)
+        val kept = sorted.subList(trim, sorted.size - trim)
+        if (kept.isEmpty()) return sorted[sorted.size / 2]
+        return kept.sum() / kept.size
+    }
+
     fun formatMbps(value: Double): String =
         if (value >= 100.0) "%.0f".format(value) else "%.1f".format(value)
 

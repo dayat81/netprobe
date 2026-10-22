@@ -577,7 +577,7 @@
             style="@style/TabLabel"
             android:layout_width="0dp"
             android:layout_height="match_parent"
-            android:layout_weight="1.35"
+            android:layout_weight="1"
             android:text="@string/tab_complaint"
             android:textColor="@color/text_secondary" />
     </LinearLayout>

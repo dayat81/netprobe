@@ -8,6 +8,7 @@ import android.location.Location
 import android.location.LocationManager
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
+import android.net.Uri
 import android.net.wifi.ScanResult
 import android.net.wifi.WifiInfo
 import android.net.wifi.WifiManager
@@ -69,6 +70,7 @@ class RadioSampler(private val context: Context) {
     private val random = SecureRandom()
     private val device: DeviceInfo by lazy { readDevice() }
     @Volatile private var lastWifiScanRequestMs = 0L
+    @Volatile private var preferApnCache: Pair<Long, List<PreferApn>>? = null
 
     fun hasCorePermissions(): Boolean =
         granted(Manifest.permission.ACCESS_FINE_LOCATION) && granted(Manifest.permission.READ_PHONE_STATE)
@@ -178,9 +180,11 @@ class RadioSampler(private val context: Context) {
             ?: reportedRange
         val info = t.info
         val ids = t.identifiers()
+        val subId = if (t.subId == NO_SUB) null else t.subId
+        val prefer = preferApn(subId, defaultData)
         return SubscriptionRadio(
             slot = info?.simSlotIndex ?: 0,
-            subId = if (t.subId == NO_SUB) null else t.subId,
+            subId = subId,
             carrier = RadioRules.clean(info?.carrierName, 64),
             mcc = RadioRules.clean(info?.mccString, 4),
             mnc = RadioRules.clean(info?.mncString, 4),
@@ -208,8 +212,106 @@ class RadioSampler(private val context: Context) {
             imsi = ids.imsi,
             msisdn = ids.msisdn,
             iccid = ids.iccid,
+            apn = prefer?.apn.orEmpty(),
+            apnName = prefer?.name.orEmpty(),
+            apnTypes = prefer?.types.orEmpty(),
+            apnProtocol = prefer?.protocol.orEmpty(),
             cellBandwidthKhz = RadioRules.cellBandwidthsKhz(serviceText),
         )
+    }
+
+    /** Preferred APN for this subscription. Provider access is blocked on many OEMs; fall back to NetworkInfo.extraInfo. */
+    private fun preferApn(subId: Int?, defaultData: Int): PreferApn? {
+        val rows = preferApnRows()
+        if (rows.isNotEmpty()) {
+            if (subId != null) {
+                rows.firstOrNull { it.subId == subId }?.let { return it }
+            }
+            if (subId != null && subId == defaultData) {
+                rows.firstOrNull { it.subId == null || it.subId == -1 || it.subId == defaultData }?.let { return it }
+            }
+            if (subId == null || subId == defaultData) return rows.firstOrNull()
+        }
+        if (subId == null || subId == defaultData) {
+            activeDataApn()?.let { return it }
+        }
+        return null
+    }
+
+    /**
+     * APN from cellular NetworkInfo.extraInfo. Prefer the INTERNET PDN even when Wi-Fi is the
+     * default route (activeNetwork would then be Wi-Fi and hide the APN).
+     */
+    @Suppress("DEPRECATION")
+    private fun activeDataApn(): PreferApn? {
+        val cm = connectivity ?: return null
+        return try {
+            var best: PreferApn? = null
+            for (network in cm.allNetworks) {
+                val caps = cm.getNetworkCapabilities(network) ?: continue
+                if (!caps.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR)) continue
+                val info = cm.getNetworkInfo(network) ?: continue
+                if (!info.isConnected) continue
+                val extra = RadioRules.clean(info.extraInfo, 64)
+                if (extra.isEmpty() || extra.equals("ims", ignoreCase = true)) continue
+                val internet = caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+                val row = PreferApn(apn = extra, name = extra, types = if (internet) "default" else info.typeName.orEmpty(), subId = null)
+                if (internet) {
+                    if (loggedMiss.add("apn-extra")) Log.i(TAG, "apn via NetworkInfo.extraInfo=$extra")
+                    return row
+                }
+                if (best == null) best = row
+            }
+            best?.also {
+                if (loggedMiss.add("apn-extra")) Log.i(TAG, "apn via NetworkInfo.extraInfo=${it.apn} (non-internet)")
+            }
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    private fun preferApnRows(): List<PreferApn> {
+        preferApnCache?.let { (at, rows) ->
+            if (System.currentTimeMillis() - at < APN_CACHE_MS) return rows
+        }
+        val rows = ArrayList<PreferApn>()
+        try {
+            context.contentResolver.query(
+                Uri.parse("content://telephony/carriers/preferapn"),
+                arrayOf("name", "apn", "type", "protocol", "numeric", "sub_id"),
+                null,
+                null,
+                null,
+            )?.use { cursor ->
+                val nameIdx = cursor.getColumnIndex("name")
+                val apnIdx = cursor.getColumnIndex("apn")
+                val typeIdx = cursor.getColumnIndex("type")
+                val protoIdx = cursor.getColumnIndex("protocol")
+                val numericIdx = cursor.getColumnIndex("numeric")
+                val subIdx = cursor.getColumnIndex("sub_id")
+                while (cursor.moveToNext()) {
+                    val apn = if (apnIdx >= 0) cursor.getString(apnIdx).orEmpty() else ""
+                    if (apn.isBlank()) continue
+                    rows += PreferApn(
+                        apn = RadioRules.clean(apn, 64),
+                        name = RadioRules.clean(if (nameIdx >= 0) cursor.getString(nameIdx) else "", 64),
+                        types = RadioRules.clean(if (typeIdx >= 0) cursor.getString(typeIdx) else "", 64),
+                        protocol = RadioRules.clean(if (protoIdx >= 0) cursor.getString(protoIdx) else "", 16),
+                        numeric = RadioRules.clean(if (numericIdx >= 0) cursor.getString(numericIdx) else "", 8),
+                        subId = if (subIdx >= 0 && !cursor.isNull(subIdx)) cursor.getInt(subIdx) else null,
+                    )
+                }
+            }
+        } catch (e: SecurityException) {
+            if (loggedMiss.add("preferapn")) Log.i(TAG, "preferapn denied: ${e.javaClass.simpleName}")
+        } catch (e: Exception) {
+            if (loggedMiss.add("preferapn")) Log.i(TAG, "preferapn failed: ${e.javaClass.simpleName}")
+        }
+        preferApnCache = System.currentTimeMillis() to rows
+        if (rows.isNotEmpty() && loggedMiss.add("preferapn-ok")) {
+            Log.i(TAG, "preferapn ${rows.joinToString { "${it.apn}(sub=${it.subId})" }}")
+        }
+        return rows
     }
 
     /**
@@ -950,18 +1052,27 @@ class RadioSampler(private val context: Context) {
             return mergeCellInfos(live, fresh)
         }
 
-        /** Restricted identifiers are probed once; Android keeps refusing them for normal apps. */
+        /** Restricted identifiers are probed once; OEM getprop can still expose IMEI on Xiaomi. */
         @SuppressLint("MissingPermission", "HardwareIds")
         fun identifiers(): Identifiers {
             ids?.let { return it }
+            val slot = info?.simSlotIndex ?: 0
             val created = Identifiers(
-                imei = identifier { tm.imei },
+                imei = resolveImei(slot),
                 imsi = identifier { tm.subscriberId },
                 msisdn = identifier { tm.line1Number },
                 iccid = identifier { tm.simSerialNumber },
             )
             ids = created
             return created
+        }
+
+        private fun resolveImei(slot: Int): Secret {
+            val primary = identifier { tm.imei }
+            if (primary.status == "available") return primary
+            val oem = oemImei(slot) ?: return primary
+            if (loggedMiss.add("imei-oem-$slot")) Log.i(TAG, "imei slot=$slot via oem prop")
+            return Secret(oem, "available")
         }
 
         private fun identifier(read: () -> String?): Secret = try {
@@ -977,6 +1088,56 @@ class RadioSampler(private val context: Context) {
         } catch (_: Exception) {
             Secret(null, "not_supported")
         }
+    }
+
+    /** Xiaomi and some OEMs publish slot IMEIs as readable system properties. */
+    private fun oemImei(slot: Int): String? {
+        exemptHiddenApi()
+        try {
+            HiddenApiBypass.addHiddenApiExemptions("Landroid/os/SystemProperties;")
+        } catch (_: Throwable) {
+        }
+        val names = when (slot) {
+            0 -> listOf("ro.ril.miui.imei0", "ro.ril.oem.imei", "ro.ril.oem.imei1")
+            1 -> listOf("ro.ril.miui.imei1", "ro.ril.oem.imei2")
+            else -> listOf("ro.ril.miui.imei$slot", "ro.ril.oem.imei${slot + 1}")
+        }
+        for (name in names) {
+            val value = systemProp(name) ?: getprop(name) ?: continue
+            val cleaned = RadioRules.clean(value, 32)
+            if (DIGIT_ID.matches(cleaned) && cleaned.length in 14..16) {
+                if (loggedMiss.add("imei-prop-$name")) Log.i(TAG, "imei prop $name len=${cleaned.length}")
+                return cleaned
+            }
+        }
+        if (loggedMiss.add("imei-oem-miss-$slot")) Log.i(TAG, "imei oem miss slot=$slot")
+        return null
+    }
+
+    private fun systemProp(name: String): String? {
+        return try {
+            val clazz = Class.forName("android.os.SystemProperties")
+            val method = try {
+                clazz.getMethod("get", String::class.java, String::class.java)
+            } catch (_: Exception) {
+                null
+            }
+            val viaMethod = method?.invoke(null, name, "") as? String
+            if (!viaMethod.isNullOrBlank()) return viaMethod.trim()
+            val viaBypass = HiddenApiBypass.invoke(clazz, null, "get", name, "") as? String
+            viaBypass?.trim()?.takeIf { it.isNotEmpty() }
+        } catch (_: Throwable) {
+            null
+        }
+    }
+
+    private fun getprop(name: String): String? = try {
+        val process = ProcessBuilder("/system/bin/getprop", name).redirectErrorStream(true).start()
+        val text = process.inputStream.bufferedReader().use { it.readText() }.trim()
+        process.waitFor()
+        text.takeIf { it.isNotEmpty() }
+    } catch (_: Exception) {
+        null
     }
 
     @RequiresApi(Build.VERSION_CODES.S)
@@ -1014,6 +1175,7 @@ class RadioSampler(private val context: Context) {
         private val loggedMiss = CopyOnWriteArraySet<String>()
         private const val CELL_REQUEST_MS = 2_500L
         private const val WIFI_SCAN_MS = 30_000L
+        private const val APN_CACHE_MS = 30_000L
         private const val FUSED_PROVIDER = "fused"
         private val ANDROID_ID = Regex("[0-9a-fA-F]{8,32}")
         private val DIGIT_ID = Regex("""\+?[0-9]{6,20}""")

@@ -26,11 +26,11 @@
     <string name="rat_nr">NR</string>
     <string name="tab_speed">Speed</string>
     <string name="tab_video">Video</string>
-    <string name="tab_complaint">Complaint</string>
-    <string name="complaint_preview">Preview</string>
+    <string name="tab_complaint">Post</string>
+    <string name="complaint_preview">Draft for X</string>
     <string name="complaint_share">Share to X</string>
     <string name="complaint_history">History</string>
-    <string name="complaint_history_empty">No history yet. Swipe left for the latest review.</string>
+    <string name="complaint_history_empty">No posts yet. Swipe left for the latest draft.</string>
     <string name="complaint_swipe">Swipe right for history</string>
     <string name="radio_wifi_swipe">Swipe right for Wi-Fi</string>
     <string name="radio_wifi_title">Wi-Fi</string>
@@ -43,6 +43,7 @@
     <string name="video_resolution">Resolution</string>
     <string name="video_buffering">Buffering</string>
     <string name="speed_go">GO</string>
+    <string name="speed_stop">STOP</string>
     <string name="speed_ping">Ping</string>
     <string name="speed_download">Download</string>
     <string name="speed_upload">Upload</string>
@@ -50,6 +51,8 @@
     <string name="speed_jitter_idle">jitter —</string>
     <string name="speed_server">Azure · %1$s</string>
     <string name="speed_running">Testing…</string>
+    <string name="speed_loop">Loop %1$d · tap STOP to end</string>
     <string name="speed_done">Done</string>
     <string name="speed_failed">Failed: %1$s</string>
+    <string name="speed_retry">Retrying… %1$s</string>
 </resources>

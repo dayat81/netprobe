@@ -296,6 +296,10 @@ def _public_subscription(item: dict) -> dict:
         "override_network_type": item.get("override_network_type"),
         "carriers": item.get("carriers"),
         "serving_signal": item.get("serving_signal"),
+        "apn": item.get("apn"),
+        "apn_name": item.get("apn_name"),
+        "apn_types": item.get("apn_types"),
+        "apn_protocol": item.get("apn_protocol"),
     }
 
 

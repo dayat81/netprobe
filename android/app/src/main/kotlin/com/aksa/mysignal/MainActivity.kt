@@ -18,6 +18,7 @@ import com.google.android.material.button.MaterialButton
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
@@ -292,7 +293,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun showComplaint() {
         complaintJob?.cancel()
-        binding.complaintVerdict.text = "Reviewing eligibility…"
+        binding.complaintVerdict.text = "Drafting post…"
         binding.complaintPreview.text = ""
         binding.complaintShare.isEnabled = false
         complaintJob = lifecycleScope.launch(Dispatchers.IO) {
@@ -372,36 +373,51 @@ class MainActivity : AppCompatActivity() {
         binding.downloadValue.text = "—"
         binding.uploadValue.text = "—"
         binding.jitterValue.text = getString(R.string.speed_jitter_idle)
-        binding.speedCenter.text = "…"
+        binding.speedCenter.text = getString(R.string.speed_stop)
         binding.speedStatus.text = getString(R.string.speed_running)
         speedJob = lifecycleScope.launch {
+            var round = 0
             try {
-                val result = SpeedtestEngine(SpeedtestEngine.defaultBaseUrl()).run { progress ->
-                    runOnUiThread { renderProgress(progress) }
+                while (running) {
+                    round += 1
+                    binding.speedStatus.text = getString(R.string.speed_loop, round)
+                    binding.speedCenter.text = getString(R.string.speed_stop)
+                    try {
+                        val result = SpeedtestEngine(SpeedtestEngine.defaultBaseUrl()).run { progress ->
+                            runOnUiThread { renderProgress(progress) }
+                        }
+                        SpeedtestReport.upload(applicationContext, result)
+                    } catch (cancelled: CancellationException) {
+                        throw cancelled
+                    } catch (error: Exception) {
+                        if (!running) break
+                        binding.speedStatus.text = getString(
+                            R.string.speed_retry,
+                            error.message?.take(60) ?: error.javaClass.simpleName,
+                        )
+                        delay(2_000)
+                    }
                 }
-                SpeedtestReport.upload(applicationContext, result)
-            } catch (cancelled: CancellationException) {
-                throw cancelled
-            } catch (error: Exception) {
+            } catch (_: CancellationException) {
+            } finally {
                 running = false
                 binding.speedCenter.text = getString(R.string.speed_go)
-                binding.gauge.setReading(0.0, "")
-                binding.speedStatus.text = getString(
-                    R.string.speed_failed,
-                    error.message?.take(80) ?: error.javaClass.simpleName,
-                )
+                if (binding.speedStatus.text?.toString()?.startsWith("Retrying") != true) {
+                    binding.speedStatus.text = ""
+                }
             }
         }
     }
 
     private fun renderProgress(progress: SpeedtestEngine.Progress) {
+        if (!running) return
         progress.pingMs?.let { binding.pingValue.text = SpeedtestMath.formatMs(it) }
         progress.jitterMs?.let { binding.jitterValue.text = "jitter ${it} ms" }
         progress.downloadMbps?.let { binding.downloadValue.text = SpeedtestMath.formatMbps(it) }
         progress.uploadMbps?.let { binding.uploadValue.text = SpeedtestMath.formatMbps(it) }
         when (progress.phase) {
             SpeedtestEngine.Phase.PING -> {
-                binding.speedCenter.text = "…"
+                binding.speedCenter.text = getString(R.string.speed_stop)
                 binding.gauge.setReading(0.0, "PING")
             }
             SpeedtestEngine.Phase.DOWNLOAD -> {
@@ -413,10 +429,8 @@ class MainActivity : AppCompatActivity() {
                 binding.gauge.setReading(progress.liveMbps, "UPLOAD")
             }
             SpeedtestEngine.Phase.DONE -> {
-                running = false
-                binding.speedCenter.text = getString(R.string.speed_go)
+                binding.speedCenter.text = getString(R.string.speed_stop)
                 binding.gauge.setReading(progress.downloadMbps ?: 0.0, "DONE")
-                binding.speedStatus.text = getString(R.string.speed_done)
             }
             SpeedtestEngine.Phase.FAILED, SpeedtestEngine.Phase.IDLE -> Unit
         }

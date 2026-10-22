@@ -304,6 +304,10 @@ def _subscription(value: object) -> dict:
             "endc_available",
             "override_network_type",
             "carriers",
+            "apn",
+            "apn_name",
+            "apn_types",
+            "apn_protocol",
         },
         "subscription",
     )
@@ -333,6 +337,10 @@ def _subscription(value: object) -> dict:
         "imsi": _secret(item["imsi"], "imsi"),
         "msisdn": _secret(item["msisdn"], "msisdn"),
         "iccid": _secret(item["iccid"], "iccid"),
+        "apn": _plain(item.get("apn"), 64),
+        "apn_name": _plain(item.get("apn_name"), 64),
+        "apn_types": _plain(item.get("apn_types"), 64),
+        "apn_protocol": _plain(item.get("apn_protocol"), 16),
     }
 
 

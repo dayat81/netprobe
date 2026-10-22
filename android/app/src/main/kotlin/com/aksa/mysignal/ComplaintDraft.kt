@@ -177,7 +177,7 @@ object ComplaintDraft {
         if (wifiTabs.isNotEmpty()) {
             return Review(
                 false,
-                "Not eligible\nThe ${wifiTabs.joinToString(" and ")} ${if (wifiTabs.size == 1) "result" else "results"} used Wi-Fi. Run ${if (wifiTabs.size == 1) "that test" else "those tests"} again on cellular data.",
+                "Not ready to post\nThe ${wifiTabs.joinToString(" and ")} ${if (wifiTabs.size == 1) "result" else "results"} used Wi-Fi. Run ${if (wifiTabs.size == 1) "that test" else "those tests"} again on cellular data.",
                 "",
             )
         }
@@ -187,7 +187,7 @@ object ComplaintDraft {
             val sentence = response.optString("sentence")
             val summary = response.optString("summary")
             val url = response.optString("url")
-            val headline = if (eligible) "Poor result. Eligible to complain" else "Not eligible"
+            val headline = if (eligible) "Ready to post" else "Not ready to post"
             val tweet = if (eligible && url.isNotBlank()) "$sentence\n$url" else ""
             Review(eligible && tweet.isNotBlank(), "$headline\n$summary", tweet, reviewed = true)
         } catch (error: Exception) {
