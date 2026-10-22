@@ -1,0 +1,27 @@
+[Unit]
+Description=OpenSignal flow metadata collector
+After=network.target
+
+[Service]
+Type=simple
+User=osm
+Group=osm
+WorkingDirectory=/opt/opensignal-mirror/app
+Environment=PYTHONPATH=/opt/opensignal-mirror/app
+Environment=OSM_ROLE=flows
+Environment=OSM_PORT=8000
+Environment=OSM_MAX_BODY=524288
+Environment=OSM_CLICKHOUSE_URL=http://127.0.0.1:8123
+EnvironmentFile=/etc/opensignal-mirror/collector.env
+ExecStart=/usr/bin/python3 -m opensignal_mirror
+Restart=on-failure
+RestartSec=3
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ReadWritePaths=/var/lib/opensignal-mirror
+ReadOnlyPaths=/etc/opensignal-mirror
+
+[Install]
+WantedBy=multi-user.target

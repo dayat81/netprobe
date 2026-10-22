@@ -1,0 +1,873 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Measurements · device / PLMN / ARFCN / RSRP·SINR / NR</title>
+<style>
+  :root {
+    --bg: #0b0f14; --panel: #131a23; --panel2: #18212c; --line: #263241; --ink: #e6eef8;
+    --muted: #8fa0b5; --good: #4ade80; --fair: #fbbf24; --weak: #f87171; --accent: #60a5fa;
+    --nr3: #22c55e; --nr2: #f59e0b; --nr1: #64748b; --nr0: #334155;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink);
+         font: 13px/1.45 "Segoe UI", system-ui, -apple-system, sans-serif; }
+  header { position: sticky; top: 0; z-index: 5; background: rgba(11,15,20,.94);
+           backdrop-filter: blur(8px); border-bottom: 1px solid var(--line); padding: 14px 20px; }
+  .bar { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; }
+  h1 { margin: 0; font-size: 17px; font-weight: 650; letter-spacing: .2px; }
+  h1 span { color: var(--muted); font-weight: 400; }
+  .grow { flex: 1 1 auto; }
+  label { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .6px; }
+  select, input[type=search] { background: var(--panel2); color: var(--ink); border: 1px solid var(--line);
+         border-radius: 7px; padding: 6px 8px; font: inherit; min-width: 96px; }
+  .toggle { display: inline-flex; gap: 6px; align-items: center; color: var(--muted); cursor: pointer; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--good); box-shadow: 0 0 8px var(--good); }
+  .dot.stale { background: var(--weak); box-shadow: 0 0 8px var(--weak); }
+  main { padding: 18px 20px 60px; display: grid; gap: 16px; }
+  .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; }
+  .kpi { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; }
+  .kpi .k { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .6px; }
+  .kpi .v { font-size: 22px; font-weight: 650; margin-top: 4px; font-variant-numeric: tabular-nums; }
+  .kpi .s { color: var(--muted); font-size: 11px; margin-top: 2px; }
+  .grid2 { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 16px; }
+  @media (max-width: 1080px) { .grid2 { grid-template-columns: 1fr; } }
+  section { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+  section > h2 { margin: 0; padding: 11px 14px; font-size: 12px; text-transform: uppercase;
+                 letter-spacing: .7px; color: var(--muted); border-bottom: 1px solid var(--line);
+                 display: flex; gap: 10px; align-items: center; }
+  section > h2 .note { text-transform: none; letter-spacing: 0; color: #64748b; font-size: 11px; }
+  .scroll { max-height: 460px; overflow: auto; }
+  table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+  th, td { padding: 7px 10px; text-align: right; white-space: nowrap; }
+  th { position: sticky; top: 0; background: var(--panel2); color: var(--muted); font-weight: 500;
+       font-size: 11px; text-transform: uppercase; letter-spacing: .4px; z-index: 1; }
+  th:first-child, td:first-child { text-align: left; }
+  th.sortable { cursor: pointer; user-select: none; }
+  th.sortable:hover { color: var(--ink); }
+  th.sortable::after { content: "↕"; margin-left: 4px; opacity: .3; font-size: 10px; }
+  th.sortable.asc::after { content: "↑"; opacity: 1; color: var(--accent); }
+  th.sortable.desc::after { content: "↓"; opacity: 1; color: var(--accent); }
+  td.l, th.l { text-align: left; }
+  tbody tr { border-top: 1px solid rgba(38,50,65,.55); }
+  tbody tr:hover { background: rgba(96,165,250,.07); }
+  .mono { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; }
+  .pill { display: inline-block; padding: 1px 7px; border-radius: 999px; font-size: 11px;
+          border: 1px solid var(--line); color: var(--muted); }
+  .pill.srv { color: #bbf7d0; border-color: #14532d; background: #052e16; }
+  .pill.nb { color: #cbd5e1; border-color: #334155; background: #1e293b; }
+  .pill.nr { color: #bfdbfe; border-color: #1e3a8a; background: #0b1f3a; }
+  .sharebar { display: block; height: 3px; border-radius: 2px; margin-top: 4px; min-width: 46px;
+              background: rgba(148,163,184,.18); overflow: hidden; }
+  .sharebar i { display: block; height: 100%; border-radius: 2px; background: #4ade80; }
+  .shares { display: grid; gap: 6px; padding: 10px 14px 12px; border-top: 1px solid rgba(38,50,65,.55); }
+  .shares .row { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; font-size: 11.5px; color: var(--muted); }
+  .shares b { color: var(--ink); font-weight: 600; }
+  .shares .leaf { display: inline-flex; align-items: center; gap: 5px; padding: 2px 7px;
+                  border: 1px solid var(--line); border-radius: 999px; font-variant-numeric: tabular-nums; }
+  .shares .leaf i { width: 7px; height: 7px; border-radius: 2px; background: #4ade80; }
+  .shares .verdict { color: #86efac; }
+  .shares .verdict.warn { color: #fbbf24; }
+  .rsrp { font-weight: 600; }
+  .rsrp.good { color: var(--good); } .rsrp.fair { color: var(--fair); } .rsrp.weak { color: var(--weak); }
+  .muted { color: var(--muted); }
+  .btn { background: var(--panel2); color: var(--ink); border: 1px solid var(--line); border-radius: 7px;
+         padding: 5px 10px; font: inherit; cursor: pointer; }
+  .btn:hover:not(:disabled) { border-color: var(--accent); }
+  .btn:disabled { opacity: .55; cursor: progress; }
+  .otel { padding: 12px 14px 14px; display: grid; gap: 10px; }
+  .otelmeta { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; color: #64748b; font-size: 11px; }
+  .otelfacts { display: flex; flex-wrap: wrap; gap: 6px; }
+  .fchip { padding: 2px 8px; border: 1px solid var(--line); border-radius: 999px; font-size: 11px;
+           color: var(--muted); font-variant-numeric: tabular-nums; }
+  .oteltext { display: grid; gap: 7px; font-size: 12.5px; color: #d3e2f4; max-width: 96ch; }
+  .oteltext h4 { margin: 4px 0 0; font-size: 11px; text-transform: uppercase; letter-spacing: .5px; color: #93c5fd; }
+  .oteltext p { margin: 0; }
+  .oteltext ul, .oteltext ol { margin: 0; padding-left: 18px; display: grid; gap: 3px; }
+  .oteltext li { margin: 0; }
+  .oteltext strong { color: #fff; font-weight: 600; }
+  .otelsk { display: grid; gap: 8px; }
+  .otelsk i { display: block; height: 8px; border-radius: 4px;
+              background: linear-gradient(90deg, #1b2634, #243244, #1b2634);
+              background-size: 200% 100%; animation: otsh 1.4s linear infinite; }
+  @keyframes otsh { from { background-position: 0 0; } to { background-position: -200% 0; } }
+  .empty { padding: 22px 16px; color: var(--muted); }
+  .empty b { color: var(--ink); font-weight: 600; }
+  .nrstats { padding: 10px 14px 6px; display: grid; gap: 6px; }
+  .nrstats div { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); }
+  .nrstats b { color: var(--ink); font-variant-numeric: tabular-nums; min-width: 44px; text-align: right; }
+  .nrstats i { width: 9px; height: 9px; border-radius: 2px; display: inline-block; }
+  .chips { display: flex; flex-wrap: wrap; gap: 3px; padding: 12px 14px; }
+  .chip { width: 13px; height: 18px; border-radius: 3px; background: var(--nr0); }
+  .chip.n3 { background: var(--nr3); } .chip.n2 { background: var(--nr2); } .chip.n1 { background: var(--nr1); }
+  .legend { display: flex; flex-wrap: wrap; gap: 12px; padding: 0 14px 12px; color: var(--muted); font-size: 11px; }
+  .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 5px; vertical-align: -1px; }
+  .filters { display: flex; gap: 8px; align-items: center; margin-left: auto; }
+  .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 7px; overflow: hidden; }
+  .seg button { background: transparent; color: var(--muted); border: 0; padding: 5px 10px; font: inherit; cursor: pointer; }
+  .seg button.on { background: var(--panel2); color: var(--ink); }
+  .chart { padding: 8px 10px 2px; }
+  svg { width: 100%; height: 210px; display: block; }
+  .bandwrap { padding: 0 10px 4px; }
+  .bandwrap svg { height: 56px; }
+  .bandlabel { color: #64748b; font-size: 10px; text-transform: uppercase; letter-spacing: .5px; padding: 0 2px 2px; }
+  .axis { stroke: #22303f; stroke-width: 1; }
+  .axislabel { fill: #64748b; font-size: 10px; }
+  .traces { display: flex; flex-wrap: wrap; gap: 10px; padding: 4px 14px 12px; font-size: 11px; color: var(--muted); }
+  .traces i { display: inline-block; width: 14px; height: 3px; border-radius: 2px; margin-right: 5px; vertical-align: 3px; }
+  .timeline-row { flex-basis: 100%; display: flex; flex-wrap: wrap; gap: 14px; font-size: 11px; }
+  .timeline { white-space: nowrap; }
+  .timeline .mono { color: #dbeafe; }
+  footer { color: #55657a; font-size: 11px; padding: 0 4px; }
+  error { color: var(--weak); }
+</style>
+</head>
+<body>
+<header>
+  <div class="bar">
+    <h1>Measurements <span>· device · PLMN · ARFCN · RSRP/SINR · NR</span></h1>
+    <div class="grow"></div>
+    <label for="device">Device</label>
+    <select id="device"><option value="">All devices</option></select>
+    <label for="minutes">Window</label>
+    <select id="minutes">
+      <option value="5">5 min</option>
+      <option value="15" selected>15 min</option>
+      <option value="60">1 hour</option>
+      <option value="360">6 hours</option>
+      <option value="1440">24 hours</option>
+    </select>
+    <label class="toggle"><input type="checkbox" id="auto" checked> <span class="dot" id="dot"></span> live · 5 s</label>
+    <span class="muted" id="status">loading…</span>
+  </div>
+</header>
+
+<main>
+  <div class="kpis" id="kpis"></div>
+
+  <section>
+    <h2>Interpretasi OTel · <span class="note" id="otelnote">model telco membaca window yang sama dengan tabel di bawah</span>
+      <span class="filters"><button class="btn" id="otelrefresh" title="baca ulang window ini (1 panggilan model)">Interpret ulang</button></span>
+    </h2>
+    <div class="otel">
+      <div class="otelmeta" id="otelmeta">menunggu data measurements…</div>
+      <div class="otelfacts" id="otelfacts"></div>
+      <div class="oteltext" id="oteltext"></div>
+    </div>
+  </section>
+
+  <div class="grid2">
+    <section>
+      <h2>SIM &amp; NR state <span class="note">nr_state sama seperti CORE: 0 NONE · 1 RESTRICTED · 2 EN-DC advertised · 3 NR SCG. CA = LTE_CA (network type 19) atau isUsingCarrierAggregation.</span></h2>
+      <div class="scroll">
+        <table>
+          <thead><tr>
+            <th class="l">SIM</th><th class="l">Carrier</th><th class="l">PLMN</th><th class="l">RAT</th>
+            <th>NR</th><th title="LTE carrier aggregation, same signal CORE reports as network type 19">CA</th><th title="serving cell seen in CELLS_INFO">ARFCN</th><th>PCI</th>
+            <th>RSRP</th><th>RSRQ</th><th>SINR</th>
+            <th title="CellInfoNr serving the SIM in this window">NR cell</th>
+            <th title="channel reported per subscription">Sub ch</th><th>Samples</th><th>Last</th>
+          </tr></thead>
+          <tbody id="sims"></tbody>
+        </table>
+      </div>
+      <div class="chips" id="nrchips"></div>
+      <div class="legend">
+        <span><i style="background:var(--nr3)"></i>3 · NR SCG connected</span>
+        <span><i style="background:var(--nr2)"></i>2 · EN-DC advertised</span>
+        <span><i style="background:var(--nr1)"></i>1 · restricted</span>
+        <span><i style="background:var(--nr0)"></i>0 · none</span>
+      </div>
+    </section>
+
+    <section>
+      <h2>NR details</h2>
+      <div id="nrbox"></div>
+    </section>
+  </div>
+
+  <section>
+    <h2>Cells per ARFCN
+      <span class="note" id="cellsnote"></span>
+      <span class="filters">
+        <span class="seg" id="roleseg">
+          <button data-role="all" class="on">All</button>
+          <button data-role="serving">Serving</button>
+          <button data-role="neighbor">Neighbor</button>
+        </span>
+        <input type="search" id="q" placeholder="filter ARFCN / PCI / PLMN">
+      </span>
+    </h2>
+    <div class="scroll">
+      <table id="cellstable">
+        <thead><tr>
+          <th class="l sortable" data-key="device_id">Device</th>
+          <th class="l sortable" data-key="sim_slot">SIM</th>
+          <th class="l sortable" data-key="plmn">PLMN</th>
+          <th class="l sortable" data-key="rat">RAT</th>
+          <th class="sortable" data-key="arfcn">ARFCN</th>
+          <th class="l sortable" data-key="role">Serving</th>
+          <th class="l sortable" data-key="pci">PCI</th>
+          <th class="sortable" data-key="rsrp">RSRP</th>
+          <th class="sortable" data-key="rsrp_min">min</th>
+          <th class="sortable" data-key="rsrp_max">max</th>
+          <th class="sortable" data-key="rsrq">RSRQ</th>
+          <th class="sortable" data-key="sinr">SINR</th>
+          <th class="sortable" data-key="samples">Samples</th>
+          <th class="sortable" data-key="last_seen">Last</th>
+        </tr></thead>
+        <tbody id="cells"></tbody>
+      </table>
+    </div>
+    <div class="shares" id="cellshares"></div>
+  </section>
+
+  <section>
+    <h2>RSRP trend · serving cells
+      <span class="note" id="trendnote"></span>
+      <span class="filters">
+        <span class="seg" id="modegseg">
+          <button data-mode="sim" class="on">Per SIM</button>
+          <button data-mode="arfcn">Per ARFCN</button>
+        </span>
+      </span>
+    </h2>
+    <div class="chart"><svg id="trend" viewBox="0 0 900 210" preserveAspectRatio="none"></svg></div>
+    <div class="bandwrap">
+      <div class="bandlabel">serving ARFCN</div>
+      <svg id="band" viewBox="0 0 900 56" preserveAspectRatio="none"></svg>
+    </div>
+    <div class="traces" id="traces"></div>
+  </section>
+
+  <footer id="foot"></footer>
+</main>
+
+<script>
+const PALETTE = ["#60a5fa", "#4ade80", "#fbbf24", "#f472b6", "#a78bfa", "#22d3ee", "#fb923c", "#84cc16"];
+const state = { minutes: 15, device: "", auto: true, role: "all", q: "", sortKey: null, sortDir: "desc", trendMode: "sim", otelKey: null };
+let timer = null;
+let lastPayload = null;
+let otelAttempt = null;
+
+const $ = (id) => document.getElementById(id);
+const esc = (v) => String(v == null ? "" : v).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const fmt = (v, digits = 1) => (v == null || Number.isNaN(v) ? "–" : Number(v).toFixed(digits).replace(/\.0$/, ""));
+const int = (v) => (v == null || Number.isNaN(v) ? "–" : Number(v).toLocaleString());
+const arfcn = (v) => (v == null || Number.isNaN(v) ? "–" : String(Math.round(v)));
+const dBm = (v) => (v == null ? "–" : (v > 0 ? "+" : "") + Math.round(v));
+const clock = (unix) => unix ? new Date(unix * 1000).toLocaleTimeString("en-GB", { hour12: false, timeZone: "Asia/Jakarta" }) : "–";
+const ago = (unix) => {
+  if (!unix) return "–";
+  const s = Math.max(0, Math.round(Date.now() / 1000 - unix));
+  return s < 90 ? s + " s" : Math.round(s / 60) + " min";
+};
+const quality = (v) => (v == null ? "" : v >= -85 ? "good" : v >= -100 ? "fair" : "weak");
+const sinrQuality = (v) => (v == null ? "" : v >= 12 ? "good" : v >= 0 ? "fair" : "weak");
+const nrLabel = (v) => (v === 3 ? "3 NR" : v === 2 ? "2 EN-DC" : v === 1 ? "1 restricted" : "0 none");
+
+async function load() {
+  const params = new URLSearchParams({ minutes: state.minutes });
+  if (state.device) params.set("device", state.device);
+  try {
+    const response = await fetch("api/measure?" + params.toString(), { cache: "no-store" });
+    const payload = await response.json();
+    if (!response.ok) throw new Error(payload.error || response.statusText);
+    lastPayload = payload;
+    render(payload);
+    $("dot").className = "dot";
+    $("status").textContent = "updated " + clock(payload.now) + " WIB · " + payload.elapsed_ms + " ms";
+    $("foot").innerHTML = "ClickHouse <span class='mono'>opensignal.radio_cells</span> + <span class='mono'>telemetry_events</span> · device " +
+      esc(payload.device || "all") + " · window " + payload.minutes + " min · " + esc(payload.devices.length) + " device(s)";
+  } catch (error) {
+    $("dot").className = "dot stale";
+    $("status").innerHTML = "<error>error: " + esc(error.message) + "</error>";
+  }
+}
+
+function fillDevices(payload) {
+  const select = $("device");
+  const current = state.device;
+  const options = ['<option value="">All devices</option>'];
+  for (const device of payload.devices) {
+    const label = (device.model ? device.model + " · " : "") + device.device_id.slice(0, 12);
+    options.push('<option value="' + esc(device.device_id) + '">' + esc(label) + "</option>");
+  }
+  select.innerHTML = options.join("");
+  select.value = current;
+}
+
+function renderKpis(payload) {
+  const serving = payload.cells.filter((cell) => cell.serving_samples > 0 && cell.sim_slot != null);
+  const snapshots = payload.devices.reduce((sum, item) => sum + (item.snapshots || 0), 0);
+  const plmns = new Set(payload.sims.map((sim) => sim.plmn).filter(Boolean));
+  const states = payload.nr.states || {};
+  const nrCells = payload.nr.cells.length;
+  const nrServing = payload.nr.cells.find((cell) => cell.serving_samples);
+  const nrAttached = Boolean((payload.nr.summary || {}).attached || nrServing);
+  const sims = payload.sims.length;
+  const cards = [
+    { k: "Devices", v: int(payload.devices.length), s: payload.devices.map((d) => (d.model || d.device_id.slice(0, 10))).join(", ") || "none" },
+    { k: "Snapshots", v: int(snapshots), s: (snapshots ? (snapshots / Math.max(1, payload.minutes)).toFixed(1) + " /min · 3 s cadence" : "no samples") },
+    { k: "SIMs", v: int(sims), s: [...plmns].join(", ") || "no PLMN attributed" },
+    { k: "Serving ARFCN", v: int(new Set(serving.map((c) => c.arfcn)).size), s: int(serving.length) + " attributed rows" },
+    { k: "NR state 3", v: int(states["3"] || 0), s: "NR data path samples" },
+    { k: "NR state 2", v: int(states["2"] || 0), s: "ENDC / 5G icon" },
+    { k: "NR cells", v: int(nrCells),
+      s: nrAttached && nrServing
+        ? "serving " + arfcn(nrServing.arfcn) + " / PCI " + nrServing.pci + " · " + dBm(nrServing.rsrp) + " dBm"
+        : (nrCells ? "seen as neighbor only" : "none reported by modem") },
+    { k: "NR attached", v: nrAttached ? "YES" : "no",
+      s: nrAttached ? "CellInfoNr registered" : "modem reports LTE only" },
+    { k: "Serving / snapshot", v: payload.serving ? payload.serving.per_snapshot_max : "–",
+      s: payload.serving
+        ? (payload.serving.parallel_carriers ? "parallel carriers detected" : "1 per SIM · time-share, not parallel")
+        : "no data" },
+    { k: "Transport", v: esc((payload.transport.transport || "–").toUpperCase()), s: (payload.transport.connected ? "connected" : "not connected") + (payload.transport.roaming ? " · roaming" : "") },
+  ];
+  $("kpis").innerHTML = cards.map((card) =>
+    '<div class="kpi"><div class="k">' + card.k + '</div><div class="v">' + card.v + '</div><div class="s">' + (card.s || "") + "</div></div>"
+  ).join("");
+}
+
+function renderSims(payload) {
+  if (!payload.sims.length) {
+    $("sims").innerHTML = '<tr><td colspan="14" class="empty">Belum ada <b>SUBSCRIPTIONS</b> pada payload MEASURE di window ini.</td></tr>';
+  } else {
+    $("sims").innerHTML = payload.sims.map((sim) => {
+      const simLabel = (sim.slot == null ? "?" : "slot " + sim.slot) + (sim.sub_id == null ? "" : " · sub " + sim.sub_id);
+      const nr = sim.nr || {};
+      const nrCell = (nr.cells || [])[0];
+      const nrState = sim.nr_state;
+      const ca = sim.ca || sim.network_type === 19;
+      const caCell = ca ? '<span class="pill srv">CA</span>' : '<span class="muted">–</span>';
+      const badge = nrState === 3
+        ? '<span class="pill nr" title="nrState=CONNECTED · NR SCG">3 NR</span>'
+        : nrState === 2
+          ? '<span class="pill nr" title="nrState=NOT_RESTRICTED · EN-DC advertised">2 EN-DC</span>'
+          : '<span class="pill">' + (nrState === 1 ? "1" : "0") + "</span>";
+      const rsrp = sim.cell_rsrp != null ? sim.cell_rsrp : sim.rsrp;
+      const rsrq = sim.cell_rsrq != null ? sim.cell_rsrq : sim.rsrq;
+      const sinr = sim.cell_sinr != null ? sim.cell_sinr : sim.sinr;
+      const servingCh = sim.serving_arfcn != null ? sim.serving_arfcn : sim.channel;
+      const nrText = nrCell
+        ? '<span class="mono">' + arfcn(nrCell.arfcn) + "</span> / " + esc(nrCell.pci) +
+          ' <span class="muted">' + dBm(nrCell.rsrp) + " dBm</span>"
+        : '<span class="muted">–</span>';
+      return "<tr>" +
+        '<td class="l mono">' + esc(simLabel) + "</td>" +
+        '<td class="l">' + esc(sim.carrier || "–") + "</td>" +
+        '<td class="l mono">' + esc(sim.plmn || "–") + "</td>" +
+        '<td class="l">' + esc(sim.rat || "–") + "</td>" +
+        "<td>" + badge + "</td>" +
+        "<td>" + caCell + "</td>" +
+        '<td class="mono">' + arfcn(servingCh) + "</td>" +
+        '<td class="mono">' + (sim.serving_pci != null ? esc(sim.serving_pci) : "–") + "</td>" +
+        '<td class="rsrp ' + quality(rsrp) + '">' + dBm(rsrp) + "</td>" +
+        "<td>" + dBm(rsrq) + "</td>" +
+        '<td class="rsrp ' + sinrQuality(sinr) + '">' + (sinr == null ? "–" : fmt(sinr, 1)) + "</td>" +
+        '<td class="l">' + nrText + "</td>" +
+        '<td class="mono muted">' + (sim.channel != null && sim.channel !== sim.serving_arfcn ? arfcn(sim.channel) : "–") + "</td>" +
+        "<td>" + int(sim.samples) + "</td>" +
+        '<td class="muted">' + ago(sim.last_seen) + "</td>" +
+        "</tr>";
+    }).join("");
+  }
+
+  const groups = new Map();
+  for (const point of payload.nr.timeline) {
+    const key = "sub " + (point.sub_id == null ? "?" : point.sub_id);
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(point);
+  }
+  const chips = [];
+  for (const [key, points] of groups) {
+    chips.push('<span class="muted" style="margin-right:4px">' + esc(key) + "</span>");
+    for (const point of points.slice(-120)) {
+      const level = point.nr_state === 3 ? "n3" : point.nr_state === 2 ? "n2" : point.nr_state === 1 ? "n1" : "";
+      chips.push('<span class="chip ' + level + '" title="' + clock(point.t) + " · nr_state " + nrLabel(point.nr_state) +
+        (point.channel ? " · ARFCN " + point.channel : "") + '"></span>');
+    }
+    chips.push('<span style="width:10px"></span>');
+  }
+  $("nrchips").innerHTML = chips.join("");
+}
+
+function renderNr(payload) {
+  const rows = payload.nr.cells;
+  const states = payload.nr.states || {};
+  const summary = payload.nr.summary || {};
+  const serving = rows[0] && rows[0].serving_samples ? rows[0] : null;
+  const head = '<div class="nrstats">' +
+    (serving
+      ? '<div><i style="background:var(--nr3)"></i><span>NR serving</span><b>' + arfcn(serving.arfcn) + "</b><span>PCI " +
+        esc(serving.pci) + " · SS-RSRP " + dBm(serving.rsrp) + " dBm · SS-SINR " + fmt(serving.sinr, 1) +
+        (serving.carrier ? " · " + esc(serving.carrier) : "") + "</span></div>"
+      : "") +
+    ['3', '2', '1'].map((key) =>
+    '<div><i style="background:var(--nr' + key + ')"></i><span>nr_state ' + key + '</span><b>' + int(states[key] || 0) + '</b><span>' +
+      (key === '3' ? 'NR attached (SA / EN-DC)' : key === '2' ? '5G icon, NR not attached' : 'LTE only') + '</span></div>'
+    ).join('') + '</div>';
+
+  if (!rows.length) {
+    const hint = summary.attached
+      ? 'Ringkasan NR masih memuat sel serving, coba muat ulang.'
+      : 'Tidak ada <b>CellInfoNr</b> di window ini — modem hanya melaporkan LTE.';
+    $("nrbox").innerHTML = head +
+      '<div class="empty">' + hint +
+      '<br><span class="muted">nr_state per SIM ikut terekam: 3 = NR attached (SA / EN-DC), 2 = ikon 5G tanpa NR, 1 = LTE only.</span>' +
+      '<br><span class="muted">Jika ponsel sedang di 5G, pastikan Wi-Fi mati: modem bisa melepas NR saat trafik pindah ke Wi-Fi.</span></div>';
+    return;
+  }
+  $("nrbox").innerHTML = head + '<div class="scroll"><table><thead><tr>' +
+    '<th class="l">SIM</th><th class="l">Role</th><th>nrarfcn</th><th>PCI</th><th class="l">PLMN</th><th>SS-RSRP</th><th>SS-RSRQ</th><th>SS-SINR</th><th>Samples</th>' +
+    "</tr></thead><tbody>" + rows.map((cell) =>
+      "<tr>" +
+      '<td class="l mono">' + esc(cell.sim_slot == null ? "–" : "slot " + cell.sim_slot) +
+        (cell.carrier ? ' <span class="muted">' + esc(cell.carrier) + "</span>" : "") + "</td>" +
+      '<td class="l">' + (cell.serving_samples
+        ? '<span class="pill srv">serving</span>'
+        : '<span class="pill nb">neighbor</span>') + "</td>" +
+      '<td class="mono">' + arfcn(cell.arfcn) + "</td>" +
+      '<td class="mono">' + esc(cell.pci != null ? cell.pci : "–") + "</td>" +
+      '<td class="l mono">' + esc(cell.plmn || "–") + "</td>" +
+      '<td class="rsrp ' + quality(cell.rsrp) + '">' + dBm(cell.rsrp) + "</td>" +
+      "<td>" + dBm(cell.rsrq) + "</td>" +
+      "<td>" + fmt(cell.sinr, 1) + "</td>" +
+      "<td>" + int(cell.samples) + "</td>" +
+      "</tr>").join("") + "</tbody></table></div>";
+}
+
+function cellVisible(cell) {
+  if (state.role === "serving" && !cell.serving_samples) return false;
+  if (state.role === "neighbor" && cell.serving_samples) return false;
+  if (state.q) {
+    const haystack = [cell.arfcn, cell.plmn, cell.carrier, cell.device_id, cell.pci].join(" ").toLowerCase();
+    if (!haystack.includes(state.q)) return false;
+  }
+  return true;
+}
+
+const SORT_VALUE = {
+  role: (cell) => cell.serving_share || 0,
+  last_seen: (cell) => cell.last_seen,
+  sim_slot: (cell) => cell.sim_slot,
+};
+
+function sortCells(rows) {
+  if (!state.sortKey) return rows;
+  const direction = state.sortDir === "asc" ? 1 : -1;
+  const pick = SORT_VALUE[state.sortKey] || ((cell) => cell[state.sortKey]);
+  return rows.slice().sort((a, b) => {
+    const va = pick(a);
+    const vb = pick(b);
+    if (va == null && vb == null) return 0;
+    if (va == null) return 1;
+    if (vb == null) return -1;
+    if (typeof va === "string" || typeof vb === "string") {
+      return direction * String(va).localeCompare(String(vb), undefined, { numeric: true });
+    }
+    return direction * (va - vb);
+  });
+}
+
+function sharePct(ratio) {
+  if (!ratio) return "0%";
+  const pct = Math.round(ratio * 100);
+  return pct < 1 ? "&lt;1%" : pct + "%";
+}
+
+function renderCells(payload) {
+  const visible = payload.cells.filter(cellVisible);
+  const rows = sortCells(visible);
+  const parallel = payload.serving ? payload.serving.parallel_carriers : null;
+  $("cellsnote").textContent = rows.length + " of " + payload.cells.length + " cells · MEASURE only · window " + payload.minutes + " min" +
+    (payload.serving ? (parallel ? " · parallel carriers detected" : " · 1 serving cell per SIM per snapshot") : "");
+  if (!rows.length) {
+    $("cells").innerHTML = '<tr><td colspan="14" class="empty">Tidak ada sel pada filter ini.</td></tr>';
+    return;
+  }
+  $("cells").innerHTML = rows.map((cell) => {
+    const ratio = cell.serving_share != null ? cell.serving_share : cell.serving_ratio || 0;
+    const role = cell.serving_samples
+      ? '<span class="pill srv">serving</span> <span class="muted" title="share of snapshots in this window where this cell was the serving cell">' +
+        sharePct(ratio) + "</span>" +
+        '<span class="sharebar" title="' + sharePct(ratio) + ' of window serving"><i style="width:' + Math.max(2, Math.round(ratio * 100)) + '%"></i></span>'
+      : '<span class="pill nb">neighbor</span>';
+    const sim = cell.sim_slot == null && cell.sub_id == null
+      ? '<span class="muted">–</span>'
+      : esc((cell.sim_slot == null ? "" : "slot " + cell.sim_slot) + (cell.sub_id == null ? "" : " · " + cell.sub_id));
+    const carrier = cell.carrier ? '<div class="muted" style="font-size:11px">' + esc(cell.carrier) + "</div>" : "";
+    return "<tr>" +
+      '<td class="l mono" title="' + esc(cell.device_id) + '">' + esc(cell.device_id.slice(0, 10)) + "</td>" +
+      '<td class="l mono">' + sim + carrier + "</td>" +
+      '<td class="l mono">' + esc(cell.plmn || "–") + "</td>" +
+      '<td class="l">' + (cell.rat === "NR" ? '<span class="pill nr">NR</span>' : esc(cell.rat || "–")) + "</td>" +
+      '<td class="mono">' + arfcn(cell.arfcn) + "</td>" +
+      '<td class="l">' + role + "</td>" +
+      '<td class="l mono">' + esc(cell.pci != null ? cell.pci : "–") + "</td>" +
+      '<td class="rsrp ' + quality(cell.rsrp) + '">' + dBm(cell.rsrp) + "</td>" +
+      '<td class="muted">' + dBm(cell.rsrp_min) + "</td>" +
+      '<td class="muted">' + dBm(cell.rsrp_max) + "</td>" +
+      "<td>" + dBm(cell.rsrq) + "</td>" +
+      "<td>" + fmt(cell.sinr, 1) + "</td>" +
+      "<td>" + int(cell.samples) + "</td>" +
+      '<td class="muted">' + ago(cell.last_seen) + "</td>" +
+      "</tr>";
+  }).join("");
+  renderShares(payload);
+}
+
+function renderShares(payload) {
+  const serving = payload.serving;
+  if (!serving || !serving.by_slot.length) {
+    $("cellshares").innerHTML = "";
+    return;
+  }
+  const verdict = serving.parallel_carriers
+    ? '<span class="verdict warn">parallel carriers detected · max ' + serving.per_snapshot_max + " serving per snapshot</span>"
+    : '<span class="verdict">1 serving cell per SIM per snapshot · max ' + serving.per_snapshot_max +
+      " over " + int(serving.snapshots) + " snapshots — rows below are time-share, not parallel carriers</span>";
+  const rows = serving.by_slot.map((slot) => {
+    const total = slot.items.reduce((sum, item) => sum + item.sample_share, 0);
+    const leaves = slot.items.map((item) =>
+      '<span class="leaf" title="' + int(item.samples) + ' serving snapshots · avg RSRP ' + dBm(item.rsrp) + '">' +
+        "<i></i>ARFCN " + esc(item.arfcn) + " / PCI " + esc(item.pci == null ? "–" : item.pci) +
+        " · <b>" + sharePct(item.sample_share) + "</b></span>"
+    ).join("");
+    const pciNote = slot.pci_changes
+      ? '<span class="muted">· ' + int(slot.pci_changes) + " intra-frequency PCI change (same ARFCN, different PCI over time)</span>"
+      : "";
+    return '<div class="row"><b>' + esc(simLabel({ slot: slot.slot, carrier: slot.carrier })) + "</b>" +
+      '<span class="muted">' + Math.round(total * 100) + "% of window serving:</span>" + leaves + pciNote + "</div>";
+  }).join("");
+  $("cellshares").innerHTML = '<div class="row">' + verdict + "</div>" + rows;
+}
+
+const TREND = { W: 900, H: 210, padL: 44, padR: 12, padT: 12, padB: 26 };
+
+function arfcnColor(keys, arfcn) {
+  const index = keys.indexOf(arfcn);
+  return index < 0 ? "#475569" : PALETTE[index % PALETTE.length];
+}
+
+function simLabel(point) {
+  const slot = point.slot == null ? "slot ?" : "slot " + point.slot;
+  return point.carrier ? slot + " · " + point.carrier : slot;
+}
+
+function renderTrend(payload) {
+  const svg = $("trend");
+  const band = $("band");
+  const trend = payload.trend;
+  const points = (trend.points || []).filter((p) => p.rsrp != null);
+  const keys = trend.keys || [];
+  const slots = trend.slots || [];
+  if (!points.length) {
+    svg.innerHTML = '<text x="20" y="110" class="axislabel">Belum ada serving cell pada window ini.</text>';
+    band.innerHTML = "";
+    $("traces").innerHTML = "";
+    $("trendnote").textContent = "";
+    return;
+  }
+
+  const seriesOf = {};
+  if (state.trendMode === "arfcn") {
+    for (const key of keys) seriesOf["ARFCN " + key] = { color: arfcnColor(keys, key), points: [] };
+    for (const point of points) {
+      const bucket = seriesOf["ARFCN " + point.arfcn];
+      if (bucket) bucket.points.push(point);
+    }
+  } else {
+    for (const slot of slots) {
+      seriesOf[(slot.carrier ? slot.label + " · " + slot.carrier : slot.label)] = {
+        color: PALETTE[slots.indexOf(slot) % PALETTE.length],
+        slot: slot.slot,
+        points: [],
+      };
+    }
+    for (const point of points) seriesOf[simLabel(point)].points.push(point);
+  }
+
+  const { W, H, padL, padR, padT, padB } = TREND;
+  const times = points.map((p) => p.t);
+  const values = points.map((p) => p.rsrp);
+  const tMin = Math.min(...times), tMax = Math.max(...times);
+  let vMin = Math.min(...values), vMax = Math.max(...values);
+  vMin = Math.max(-140, Math.floor((vMin - 6) / 10) * 10);
+  vMax = Math.min(-40, Math.ceil((vMax + 6) / 10) * 10);
+  if (vMax - vMin < 20) vMax = vMin + 20;
+  const x = (t) => padL + (tMax === tMin ? 0 : ((t - tMin) / (tMax - tMin)) * (W - padL - padR));
+  const y = (v) => padT + ((vMax - v) / (vMax - vMin)) * (H - padT - padB);
+
+  const parts = [];
+  for (let i = 0; i <= 4; i += 1) {
+    const value = vMin + ((vMax - vMin) * i) / 4;
+    const yy = y(value);
+    parts.push('<line class="axis" x1="' + padL + '" y1="' + yy + '" x2="' + (W - padR) + '" y2="' + yy + '"/>');
+    parts.push('<text class="axislabel" x="4" y="' + (yy + 3) + '">' + Math.round(value) + "</text>");
+  }
+  for (let i = 0; i <= 4; i += 1) {
+    const t = tMin + ((tMax - tMin) * i) / 4;
+    parts.push('<text class="axislabel" text-anchor="middle" x="' + x(t) + '" y="' + (H - 6) + '">' + clock(t) + "</text>");
+  }
+
+  const legend = [];
+  for (const [name, series] of Object.entries(seriesOf)) {
+    const usable = series.points.slice().sort((a, b) => a.t - b.t);
+    if (!usable.length) continue;
+    // break the polyline whenever the serving cell changed (handover) in ARFCN mode
+    let path = "";
+    let previous = null;
+    for (const point of usable) {
+      const gap = state.trendMode === "arfcn" && previous && point.t - previous.t > trend.bucket_s * 3;
+      path += (path === "" || gap ? "M" : "L") + x(point.t).toFixed(1) + " " + y(point.rsrp).toFixed(1) + " ";
+      previous = point;
+    }
+    parts.push('<path d="' + path + '" fill="none" stroke="' + series.color + '" stroke-width="2" stroke-linejoin="round"/>');
+    const last = usable[usable.length - 1];
+    parts.push('<circle cx="' + x(last.t).toFixed(1) + '" cy="' + y(last.rsrp).toFixed(1) + '" r="3" fill="' + series.color + '"/>');
+    parts.push('<title>' + esc(name) + " · " + dBm(last.rsrp) + " dBm</title>");
+    const avg = usable.reduce((sum, p) => sum + p.rsrp, 0) / usable.length;
+    legend.push(
+      '<span><i style="background:' + series.color + '"></i>' + esc(name) +
+      ' <span class="muted">now ' + dBm(last.rsrp) + " · avg " + dBm(avg) +
+      " · " + usable.length + " pts</span></span>"
+    );
+  }
+  svg.innerHTML = parts.join("");
+
+  const rows = slots.length ? slots : [{ label: "slot ?", slot: null, carrier: null, segments: [] }];
+  const rowH = 18, bandTop = 4;
+  // Fixed layout: slot 1 stays on top, slot 0 below, unknown slots last. The
+  // number of band rows is reserved (>= 2) so a refresh never resizes the panel
+  // and the chart above keeps its position.
+  const maxSlot = Math.max(1, ...rows.map((slot) => (slot.slot == null ? 0 : slot.slot)));
+  const bandRows = Math.max(2, maxSlot + 1, rows.length);
+  const rowFor = (slot) => (slot.slot == null ? bandRows - 1 : Math.max(0, maxSlot - slot.slot));
+  const bandH = bandRows * rowH + bandTop;
+  band.setAttribute("viewBox", "0 0 " + W + " " + (bandH + 16));
+  band.style.height = (bandH + 16) + "px";
+  const bandPadL = 96;
+  const bandX = (t) => bandPadL + (tMax === tMin ? 0 : ((t - tMin) / (tMax - tMin)) * (W - bandPadL - padR));
+  const bandParts = [];
+  const timeline = [];
+  const byRow = new Map();
+  for (const slot of rows) byRow.set(rowFor(slot), slot);
+  for (let rowIndex = 0; rowIndex < bandRows; rowIndex += 1) {
+    const slot = byRow.get(rowIndex);
+    const top = bandTop + rowIndex * rowH;
+    if (!slot) continue;
+    bandParts.push('<text class="axislabel" x="2" y="' + (top + rowH / 2 + 3) + '">' +
+      esc(slot.carrier ? slot.label + " · " + slot.carrier : slot.label) + "</text>");
+    const segments = slot.segments || [];
+    if (!segments.length) {
+      bandParts.push('<text class="axislabel" x="' + (bandPadL + 4) + '" y="' + (top + rowH / 2 + 3) + '">no serving cell</text>');
+      timeline.push({ label: slot.label, carrier: slot.carrier, steps: [] });
+      continue;
+    }
+    const steps = [];
+    segments.forEach((segment, index) => {
+      const from = bandX(segment.start);
+      const nextStart = index + 1 < segments.length ? segments[index + 1].start : segment.end + trend.bucket_s;
+      const to = Math.max(from + 2, bandX(nextStart));
+      const width = to - from;
+      const seconds = segment.duration_s || trend.bucket_s;
+      const duration = seconds >= 60 ? Math.round(seconds / 60) + "m" : seconds + "s";
+      bandParts.push('<rect x="' + from.toFixed(1) + '" y="' + top + '" width="' + width.toFixed(1) + '" height="' + (rowH - 4) +
+        '" rx="2" fill="' + arfcnColor(keys, segment.arfcn) + '" opacity="0.9"><title>' + esc(slot.label) +
+        " · ARFCN " + segment.arfcn + " · " + clock(segment.start) + " → " + clock(segment.end) +
+        " (" + duration + ", " + segment.samples + " samples" + (segment.rsrp == null ? "" : ", " + dBm(segment.rsrp) + " dBm") +
+        ")</title></rect>");
+      if (width > 26) {
+        bandParts.push('<text x="' + (from + 3).toFixed(1) + '" y="' + (top + rowH / 2 + 2) + '" fill="#08131f" ' +
+          'style="font-size:9px;font-weight:600">' + segment.arfcn + (width > 78 ? " · " + duration : "") + "</text>");
+      }
+      steps.push({ arfcn: segment.arfcn, duration, start: segment.start, end: segment.end });
+    });
+    timeline.push({ label: slot.label, carrier: slot.carrier, steps });
+  }
+  // time axis under the band so it reads as a timeline, not a legend
+  for (let i = 0; i <= 4; i += 1) {
+    const t = tMin + ((tMax - tMin) * i) / 4;
+    bandParts.push('<text class="axislabel" text-anchor="middle" x="' + bandX(t) + '" y="' + (bandH + 11) + '">' + clock(t) + "</text>");
+  }
+  band.innerHTML = bandParts.join("");
+
+  const arfcnLegend = keys.map((key) =>
+    '<span><i style="background:' + arfcnColor(keys, key) + '"></i>ARFCN <b>' + key + "</b></span>"
+  ).join("");
+  const timelineText = timeline
+    .filter((slot) => slot.steps.length)
+    .map((slot) => {
+      const head = '<b>' + esc(slot.carrier ? slot.label + " · " + slot.carrier : slot.label) + "</b>";
+      const chain = slot.steps.map((step, index) =>
+        '<span class="muted">' + (index ? "→ " : "") + '</span><span class="mono">' + step.arfcn + "</span> " +
+        '<span class="muted">' + step.duration + "</span>"
+      ).join("");
+      return '<span class="timeline">' + head + ": " + chain + "</span>";
+    }).join("");
+  $("traces").innerHTML = legend.join("") +
+    '<div class="timeline-row">' + timelineText + "</div>" +
+    '<div class="timeline-row muted">band = timeline serving ARFCN per SIM · ' + arfcnLegend + "</div>";
+  $("trendnote").textContent = slots.length + " SIM · " + keys.length + " ARFCN · bucket " + trend.bucket_s + " s · RSRP dBm";
+}
+
+function otelKey() {
+  return state.minutes + "|" + state.device;
+}
+
+function mdInline(text) {
+  return text
+    .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
+    .replace(/`([^`]+)`/g, '<span class="mono">$1</span>');
+}
+
+function mdLite(text) {
+  const lines = esc(text).split(/\r?\n/);
+  const out = [];
+  let list = null;
+  const flush = () => { if (list) { out.push("</" + list + ">"); list = null; } };
+  for (const raw of lines) {
+    const line = raw.trim();
+    if (!line) { flush(); continue; }
+    const heading = line.match(/^#{1,6}\s+(.*)$/);
+    if (heading) { flush(); out.push("<h4>" + mdInline(heading[1]) + "</h4>"); continue; }
+    const bullet = line.match(/^[-*•]\s+(.*)$/);
+    if (bullet) {
+      if (list !== "ul") { flush(); out.push("<ul>"); list = "ul"; }
+      out.push("<li>" + mdInline(bullet[1]) + "</li>");
+      continue;
+    }
+    const numbered = line.match(/^\d+[.)]\s+(.*)$/);
+    if (numbered) {
+      if (list !== "ol") { flush(); out.push("<ol>"); list = "ol"; }
+      out.push("<li>" + mdInline(numbered[1]) + "</li>");
+      continue;
+    }
+    flush();
+    const boldLead = line.match(/^\*\*([^*]+)\*\*\s*[—:-]?\s*(.*)$/);
+    if (boldLead) {
+      out.push("<h4>" + mdInline(boldLead[1]) + "</h4>");
+      if (boldLead[2]) out.push("<p>" + mdInline(boldLead[2]) + "</p>");
+      continue;
+    }
+    out.push("<p>" + mdInline(line) + "</p>");
+  }
+  flush();
+  return out.join("");
+}
+
+function renderOtel(payload) {
+  $("otelnote").textContent = "window " + payload.minutes + " min · " +
+    (payload.device ? payload.device.slice(0, 12) : "semua device") +
+    " · penjelasan model, bukan data tambahan";
+  const meta = [
+    '<span class="mono">' + esc(payload.model) + "</span>",
+    "<span>" + clock(payload.generated_at) + " WIB</span>",
+    "<span>" + Math.round((payload.elapsed_ms || 0) / 1000) + " s</span>",
+  ];
+  if (payload.cached) meta.push("cache 10 min");
+  if (payload.usage && payload.usage.total_tokens) meta.push(int(payload.usage.total_tokens) + " token");
+  $("otelmeta").innerHTML = meta.join('<span class="muted">·</span>');
+  $("otelfacts").innerHTML = (payload.facts || [])
+    .map((fact) => '<span class="fchip">' + esc(fact) + "</span>").join("");
+  $("oteltext").innerHTML = mdLite(payload.text || "");
+}
+
+async function loadOtel(force) {
+  const button = $("otelrefresh");
+  button.disabled = true;
+  const key = otelKey();
+  $("otelmeta").textContent = force ? "OTel membaca ulang window ini…" : "OTel membaca window ini…";
+  if (force || !$("oteltext").innerHTML) {
+    $("otelfacts").innerHTML = "";
+    $("oteltext").innerHTML = '<div class="otelsk"><i style="width:96%"></i><i style="width:88%"></i>' +
+      '<i style="width:93%"></i><i style="width:60%"></i></div>';
+  }
+  const params = new URLSearchParams({ minutes: state.minutes });
+  if (state.device) params.set("device", state.device);
+  if (force) params.set("refresh", "1");
+  const controller = new AbortController();
+  const deadline = setTimeout(() => controller.abort(), 225000);
+  try {
+    const response = await fetch("api/interpret?" + params.toString(), { cache: "no-store", signal: controller.signal });
+    const payload = await response.json();
+    if (!response.ok) throw new Error(payload.error || response.statusText);
+    if (otelKey() !== key) return; // window changed while the model was thinking
+    state.otelKey = key;
+    renderOtel(payload);
+  } catch (error) {
+    const message = error.name === "AbortError" ? "waktu tunggu model habis (> 225 s)" : error.message;
+    $("otelfacts").innerHTML = "";
+    $("oteltext").innerHTML = '<div class="empty">Interpretasi OTel tidak tersedia untuk window ini.' +
+      '<br><span class="muted">' + esc(message) + '</span><br><span class="muted">Periksa FEATHERLESS_API_KEY di service, lalu tekan “Interpret ulang”.</span></div>';
+    $("otelmeta").innerHTML = "<error>OTel gagal</error>";
+  } finally {
+    clearTimeout(deadline);
+    button.disabled = false;
+  }
+}
+
+function maybeLoadOtel() {
+  const key = otelKey();
+  if (state.otelKey === key || otelAttempt === key) return;
+  otelAttempt = key;
+  loadOtel(false);
+}
+
+function render(payload) {
+  fillDevices(payload);
+  renderKpis(payload);
+  renderSims(payload);
+  renderNr(payload);
+  renderCells(payload);
+  renderTrend(payload);
+  maybeLoadOtel();
+}
+
+$("minutes").addEventListener("change", (event) => { state.minutes = Number(event.target.value); load(); });
+$("device").addEventListener("change", (event) => { state.device = event.target.value; load(); });
+$("q").addEventListener("input", (event) => { state.q = event.target.value.trim().toLowerCase(); if (lastPayload) renderCells(lastPayload); });
+$("roleseg").addEventListener("click", (event) => {
+  const button = event.target.closest("button[data-role]");
+  if (!button) return;
+  state.role = button.dataset.role;
+  for (const item of $("roleseg").querySelectorAll("button")) item.classList.toggle("on", item === button);
+  if (lastPayload) renderCells(lastPayload);
+});
+$("cellstable").addEventListener("click", (event) => {
+  const header = event.target.closest("th[data-key]");
+  if (!header) return;
+  const key = header.dataset.key;
+  state.sortDir = state.sortKey === key && state.sortDir === "desc" ? "asc" : "desc";
+  state.sortKey = key;
+  for (const item of $("cellstable").querySelectorAll("th[data-key]")) {
+    item.classList.toggle("desc", item === header && state.sortDir === "desc");
+    item.classList.toggle("asc", item === header && state.sortDir === "asc");
+  }
+  if (lastPayload) renderCells(lastPayload);
+});
+$("modegseg").addEventListener("click", (event) => {
+  const button = event.target.closest("button[data-mode]");
+  if (!button) return;
+  state.trendMode = button.dataset.mode;
+  for (const item of $("modegseg").querySelectorAll("button")) item.classList.toggle("on", item === button);
+  if (lastPayload) renderTrend(lastPayload);
+});
+$("auto").addEventListener("change", (event) => {
+  state.auto = event.target.checked;
+  if (timer) clearInterval(timer);
+  timer = state.auto ? setInterval(load, 5000) : null;
+});
+$("otelrefresh").addEventListener("click", () => {
+  otelAttempt = null;
+  loadOtel(true);
+});
+
+load();
+timer = setInterval(load, 5000);
+</script>
+</body>
+</html>

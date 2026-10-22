@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MySignal · Indosat vs XL per POI</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: Inter, "Segoe UI", system-ui, sans-serif; background: #f5f7fa; color: #1a1a2e; height: 100vh; overflow: hidden; }
+    .topnav { height: 64px; background: #fff; border-bottom: 1px solid #e5e7eb; display: flex; align-items: center; padding: 0 24px; gap: 16px; }
+    .logo { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 18px; white-space: nowrap; }
+    .logo-icon { width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, #10b981, #059669); color: #fff; display: flex; align-items: center; justify-content: center; }
+    .logo span { color: #6b7280; font-weight: 400; font-size: 13px; }
+    .nav-right { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+    select, input[type=date], .live-badge button, #btnApply { border: 1px solid #e5e7eb; border-radius: 10px; background: #fff; padding: 8px 12px; font-size: 14px; }
+    #btnApply { border-color: #10b981; background: #ecfdf5; color: #047857; font-weight: 600; cursor: pointer; }
+    .live-badge { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: #6b7280; padding: 6px 10px; border: 1px solid #e5e7eb; border-radius: 10px; }
+    .dot { width: 8px; height: 8px; border-radius: 50%; background: #10b981; }
+    .main { display: flex; height: calc(100vh - 64px); }
+    .sidebar { width: 360px; background: #fff; border-right: 1px solid #e5e7eb; display: flex; flex-direction: column; }
+    .sidebar-header { padding: 20px 20px 12px; }
+    .sidebar-header h2 { font-size: 16px; }
+    .sidebar-header p { font-size: 12px; color: #6b7280; margin-top: 4px; }
+    .rank-tabs { display: flex; gap: 6px; padding: 0 12px 10px; }
+    .rank-tabs button { flex: 1; padding: 8px 10px; border: 1px solid #e5e7eb; border-radius: 10px; background: #f9fafb; font-size: 12px; font-weight: 600; color: #6b7280; cursor: pointer; }
+    .rank-tabs button.active { background: #ecfdf5; border-color: #a7f3d0; color: #065f46; }
+    .ranking-list { flex: 1; overflow-y: auto; padding: 0 12px 16px; }
+    .rank-item { display: flex; gap: 12px; align-items: center; padding: 12px; border-radius: 12px; cursor: pointer; margin-bottom: 4px; }
+    .rank-item:hover { background: #f3f4f6; }
+    .rank-item.active { background: #ecfdf5; border: 1px solid #a7f3d0; }
+    .rank-num { width: 28px; height: 28px; border-radius: 8px; background: #f3f4f6; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 13px; color: #6b7280; }
+    .rank-info { flex: 1; min-width: 0; }
+    .rank-name { font-weight: 600; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .rank-cat, .rank-metrics { font-size: 12px; color: #6b7280; }
+    .operator-badge { display: inline-flex; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+    .op-indosat { background: #ffedd5; color: #9a3412; }
+    .op-xl { background: #dbeafe; color: #1e40af; }
+    .op-tsel { background: #ffe4e6; color: #9f1239; }
+    .op-other { background: #f3f4f6; color: #4b5563; }
+    .rank-score { font-weight: 700; font-size: 14px; text-align: right; }
+    .sidebar-footer { padding: 12px 20px; border-top: 1px solid #f3f4f6; font-size: 11px; color: #9ca3af; }
+    .map-container { flex: 1; position: relative; }
+    #map { width: 100%; height: 100%; }
+    .poi-marker { background: #fff; border-radius: 50%; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,.25); border: 3px solid; font-size: 16px; }
+    .legend, .status-bar, .map-controls { position: absolute; z-index: 1000; }
+    .legend { bottom: 24px; left: 50%; transform: translateX(-50%); background: #fff; border-radius: 12px; padding: 10px 18px; display: flex; gap: 16px; font-size: 12px; border: 1px solid #e5e7eb; box-shadow: 0 4px 20px rgba(0,0,0,.12); }
+    .legend-item { display: flex; align-items: center; gap: 6px; }
+    .legend-dot { width: 12px; height: 12px; border-radius: 50%; }
+    .status-bar { top: 12px; left: 12px; background: #fff; border-radius: 10px; padding: 8px 12px; font-size: 12px; color: #6b7280; border: 1px solid #e5e7eb; }
+    .map-controls { top: 12px; right: 12px; }
+    .map-btn { width: 36px; height: 36px; border-radius: 10px; border: 1px solid #e5e7eb; background: #fff; cursor: pointer; }
+    .leaflet-popup-content-wrapper { border-radius: 12px; padding: 0; }
+    .leaflet-popup-content { margin: 0; min-width: 320px; }
+    .popup-card { padding: 14px 16px; }
+    .popup-title { font-weight: 700; font-size: 15px; }
+    .popup-cat { font-size: 12px; color: #9ca3af; margin: 2px 0 10px; }
+    .popup-best { display: flex; justify-content: space-between; align-items: center; background: #f0fdf4; border-radius: 8px; padding: 8px 12px; margin-bottom: 8px; }
+    .popup-score { font-size: 18px; font-weight: 800; color: #166534; }
+    .popup-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    .popup-table th { text-align: left; color: #9ca3af; font-size: 10px; text-transform: uppercase; padding: 4px 6px; }
+    .popup-table td { padding: 5px 6px; border-top: 1px solid #f3f4f6; }
+  </style>
+</head>
+<body>
+  <nav class="topnav">
+    <div class="logo"><div class="logo-icon">📡</div> MySignal <span>Indosat vs XL</span></div>
+    <div class="nav-right">
+      <label>POI
+        <select id="radius" aria-label="Radius agregasi POI">
+          <option value="10" selected>10 m</option>
+          <option value="25">25 m</option>
+          <option value="50">50 m</option>
+          <option value="150">150 m</option>
+        </select>
+      </label>
+      <input type="date" id="dateFrom" aria-label="Tanggal mulai">
+      <span>–</span>
+      <input type="date" id="dateTo" aria-label="Tanggal selesai">
+      <button type="button" id="btnApply">Terapkan</button>
+      <div class="live-badge"><span class="dot"></span><span id="livetext">loading…</span><button type="button" id="btnRefresh">Refresh</button></div>
+    </div>
+  </nav>
+  <div class="main">
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <h2>Ranking per POI</h2>
+        <p id="sidebarSub">POI dari pengukuran MySignal</p>
+      </div>
+      <div class="rank-tabs">
+        <button type="button" class="active" data-mode="radio" id="tabRadio">Radio (RSRP)</button>
+        <button type="button" data-mode="speed" id="tabSpeed">Speed (DL)</button>
+        <button type="button" data-mode="video" id="tabVideo">Video</button>
+      </div>
+      <div class="ranking-list" id="rankingList"></div>
+      <div class="sidebar-footer" id="sidebarFooter">Marker membandingkan SNR (dB) pada ARFCN LTE dan ARFCN NR, dari sampel nrState 2 dan 3. Pemenang adalah SNR NR yang lebih tinggi.</div>
+    </aside>
+    <div class="map-container">
+      <div id="map"></div>
+      <div class="status-bar" id="statusBar">Memuat POI…</div>
+      <div class="map-controls"><button class="map-btn" id="btnFit" title="Fit">⌂</button></div>
+      <div class="legend">
+        <div class="legend-item"><div class="legend-dot" style="background:#f97316"></div> Indosat</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#3b82f6"></div> XL</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#e11d48"></div> Telkomsel</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#9ca3af"></div> Belum ada pemenang</div>
+      </div>
+    </div>
+  </div>
+  <script>
+    const REFRESH_MS = 60000;
+    let map, markersLayer, markers = {}, pois = [], mode = "radio", fitDone = false;
+
+    map = L.map("map", { zoomControl: false }).setView([-6.3, 106.67], 13);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      attribution: "&copy; OpenStreetMap contributors",
+      maxZoom: 19,
+    }).addTo(map);
+    L.control.zoom({ position: "bottomright" }).addTo(map);
+    markersLayer = L.layerGroup().addTo(map);
+
+    function icon(color) {
+      return L.divIcon({
+        className: "",
+        html: `<div class="poi-marker" style="border-color:${color}">📍</div>`,
+        iconSize: [36, 36],
+        iconAnchor: [18, 18],
+        popupAnchor: [0, -18],
+      });
+    }
+    const FOOT = {
+      radio: "Marker membandingkan SINR (dB) pada ARFCN LTE dan ARFCN NR. Pemenang adalah SINR NR jika ada, selain itu SINR LTE.",
+      speed: "Marker membandingkan download terbaru. Angka di sidebar adalah Mbps pemenang.",
+      video: "Marker membandingkan tes video terbaru. Pemenang adalah resolusi lebih tinggi; buffering lebih rendah memecah seri.",
+    };
+    function opKey(label) {
+      return label === "XL" ? "xl" : label === "Indosat" ? "indosat" : label === "Telkomsel" ? "telkomsel" : "";
+    }
+    function winner(poi) {
+      if (mode === "speed") {
+        const key = opKey(poi.best_speed);
+        const dl = key && poi.speed && poi.speed[key] ? poi.speed[key].dl : null;
+        return {
+          label: poi.best_speed,
+          cls: poi.speed_badge,
+          score: dl == null ? "—" : Number(dl).toFixed(1) + " Mbps",
+          color: poi.speed_color,
+        };
+      }
+      if (mode === "video") {
+        const key = opKey(poi.best_video);
+        const res = key && poi.video && poi.video[key] ? poi.video[key].resolution : "";
+        return { label: poi.best_video, cls: poi.video_badge, score: res || "—", color: poi.video_color };
+      }
+      return { label: poi.best, cls: poi.badgeClass, score: poi.score, color: poi.color };
+    }
+    function dbm(value) { return value == null ? "—" : Number(value).toFixed(1); }
+    function mbps(value) { return value == null ? "—" : Number(value).toFixed(1) + " Mbps"; }
+    function loadMs(value) { return value == null ? "—" : Math.round(Number(value)) + " ms"; }
+    function bufPct(value) { return value == null ? "—" : Number(value).toFixed(1) + "%"; }
+    function videoLine(stat) {
+      if (!stat) return "—";
+      return (stat.resolution || "—") + " " + bufPct(stat.buffering_pct);
+    }
+    function when(ts) {
+      if (!ts) return "—";
+      const n = Number(ts);
+      const ms = n < 1e12 ? n * 1000 : n;
+      return new Date(ms).toLocaleString("id-ID", {
+        timeZone: "Asia/Jakarta",
+        day: "2-digit",
+        month: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+    }
+    function table(rows, kind) {
+      if (!rows.length) return `<div class="popup-cat">Belum ada data ${kind}</div>`;
+      if (kind === "radio") {
+        return `<table class="popup-table"><thead><tr><th>#</th><th>Op</th><th>LTE SNR</th><th>Waktu LTE</th><th>NR SNR</th><th>Waktu NR</th></tr></thead><tbody>` +
+          rows.map((row) => `<tr><td>${row.rank}</td><td><span class="operator-badge ${row.badgeClass}">${row.op}</span></td><td>${row.lte_arfcn ?? "—"} <b>${dbm(row.lte_snr)}</b></td><td>${when(row.lte_ts)}</td><td>${row.nr_arfcn ?? "—"} <b>${dbm(row.nr_snr)}</b></td><td>${when(row.nr_ts)}</td></tr>`).join("") +
+          `</tbody></table>`;
+      }
+      if (kind === "speed") {
+        return `<table class="popup-table"><thead><tr><th>#</th><th>Op</th><th>DL</th><th>UL</th><th>Ping</th><th>Waktu</th></tr></thead><tbody>` +
+          rows.map((row) => `<tr><td>${row.rank}</td><td><span class="operator-badge ${row.badgeClass}">${row.op}</span></td><td><b>${mbps(row.dl)}</b></td><td>${mbps(row.ul)}</td><td>${row.ping ?? "—"}</td><td>${when(row.ts)}</td></tr>`).join("") +
+          `</tbody></table>`;
+      }
+      return `<table class="popup-table"><thead><tr><th>#</th><th>Op</th><th>Load</th><th>Resolusi</th><th>Buffering</th><th>Waktu</th></tr></thead><tbody>` +
+        rows.map((row) => `<tr><td>${row.rank}</td><td><span class="operator-badge ${row.badgeClass}">${row.op}</span></td><td>${loadMs(row.load_ms)}</td><td><b>${row.resolution || "—"}</b></td><td>${bufPct(row.buffering_pct)}</td><td>${when(row.ts)}</td></tr>`).join("") +
+        `</tbody></table>`;
+    }
+    function rankOf(poi) {
+      if (mode === "speed") return poi.rank_speed;
+      if (mode === "video") return poi.rank_video;
+      return poi.rank_radio;
+    }
+    function selectPoi(id) {
+      const poi = pois.find((item) => item.id === id);
+      if (!poi) return;
+      document.querySelectorAll(".rank-item").forEach((item) => item.classList.toggle("active", item.dataset.id === String(id)));
+      map.setView([poi.lat, poi.lng], Math.max(map.getZoom(), 15));
+      if (markers[id]) markers[id].openPopup();
+    }
+    function renderSidebar() {
+      const list = document.getElementById("rankingList");
+      const ranked = pois
+        .filter((poi) => rankOf(poi) != null)
+        .sort((a, b) => rankOf(a) - rankOf(b));
+      list.replaceChildren();
+      if (!ranked.length) {
+        list.innerHTML = `<div style="padding:16px;color:#9ca3af">Belum ada POI untuk mode ini.</div>`;
+        return;
+      }
+      ranked.forEach((poi) => {
+        const badge = winner(poi);
+        const radio = poi.radio || {};
+        const speed = poi.speed || {};
+        const video = poi.video || {};
+        const key = opKey(badge.label);
+        const stamp = key && (mode === "speed" ? speed[key] : mode === "video" ? video[key] : radio[key]);
+        const metrics = mode === "speed"
+          ? `ISAT ${mbps(speed.indosat && speed.indosat.dl)} · XL ${mbps(speed.xl && speed.xl.dl)}`
+          : mode === "video"
+            ? `ISAT ${videoLine(video.indosat)} · XL ${videoLine(video.xl)}`
+            : `ISAT LTE ${dbm(radio.indosat && radio.indosat.lte_snr)} / NR ${dbm(radio.indosat && radio.indosat.nr_snr)} · XL LTE ${dbm(radio.xl && radio.xl.lte_snr)} / NR ${dbm(radio.xl && radio.xl.nr_snr)} · TSEL LTE ${dbm(radio.telkomsel && radio.telkomsel.lte_snr)} / NR ${dbm(radio.telkomsel && radio.telkomsel.nr_snr)}`;
+        const item = document.createElement("div");
+        item.className = "rank-item";
+        item.dataset.id = poi.id;
+        item.innerHTML = `
+          <div class="rank-num">${rankOf(poi)}</div>
+          <div class="rank-info">
+            <div class="rank-name">${poi.name}</div>
+            <div class="rank-cat">${when(stamp && stamp.ts)}</div>
+            <div class="rank-metrics">${metrics}</div>
+          </div>
+          <div><div class="operator-badge ${badge.cls}">${badge.label}</div><div class="rank-score">${badge.score ?? "—"}</div></div>`;
+        item.addEventListener("click", () => selectPoi(poi.id));
+        list.appendChild(item);
+      });
+    }
+    function render(data) {
+      pois = data.pois || [];
+      document.getElementById("sidebarSub").textContent =
+        `${pois.length} POI · radius ${data.radius_m || 10} m · ${data.radio_count || 0} radio · ${data.speedtest_count || 0} speed · ${data.video_count || 0} video · ${data.start} → ${data.end}`;
+      document.getElementById("statusBar").textContent =
+        `${data.devices || 0} perangkat · ${pois.length} POI` + (data.note ? " · " + data.note : "");
+      document.getElementById("livetext").textContent = new Date().toLocaleTimeString("id-ID");
+      renderSidebar();
+      markersLayer.clearLayers();
+      markers = {};
+      pois.forEach((poi) => {
+        const marker = L.marker([poi.lat, poi.lng], { icon: icon(winner(poi).color) });
+        marker.bindPopup(`
+          <div class="popup-card">
+            <div class="popup-title">${poi.name}</div>
+            <div class="popup-cat">${poi.n} sampel · ${when(poi.last_ts)}</div>
+            <div class="popup-best"><div><div style="font-size:11px;color:#6b7280">SNR lebih tinggi pada ARFCN NR</div><b>${poi.best}</b></div><div class="popup-score">${poi.score ?? "—"}</div></div>
+            <div class="popup-cat">nrState 2 dan 3 · SNR dalam dB</div>
+            ${table(poi.ranking.radio, "radio")}
+            <div class="popup-cat">Speedtest</div>
+            ${table(poi.ranking.speed, "speed")}
+            <div class="popup-cat">Video</div>
+            ${table(poi.ranking.video, "video")}
+          </div>`);
+        marker.addTo(markersLayer);
+        markers[poi.id] = marker;
+      });
+      if (!fitDone && pois.length) {
+        map.fitBounds(pois.map((poi) => [poi.lat, poi.lng]), { padding: [30, 30], maxZoom: 16 });
+        fitDone = true;
+      }
+    }
+    function todayWib() {
+      return new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Jakarta" });
+    }
+    async function load() {
+      const start = document.getElementById("dateFrom").value;
+      const end = document.getElementById("dateTo").value;
+      const radius = document.getElementById("radius").value;
+      const response = await fetch("/crowd/api?start=" + start + "&end=" + end + "&radius=" + radius, { cache: "no-store" });
+      const data = await response.json();
+      if (!response.ok) {
+        document.getElementById("livetext").textContent = data.error || "error";
+        return;
+      }
+      render(data);
+    }
+    document.getElementById("btnApply").addEventListener("click", () => { fitDone = false; load(); });
+    document.getElementById("btnRefresh").addEventListener("click", load);
+    document.getElementById("btnFit").addEventListener("click", () => {
+      if (!pois.length) return;
+      map.fitBounds(pois.map((poi) => [poi.lat, poi.lng]), { padding: [30, 30], maxZoom: 16 });
+    });
+    document.querySelectorAll(".rank-tabs button").forEach((button) => {
+      button.addEventListener("click", () => {
+        mode = button.dataset.mode;
+        document.querySelectorAll(".rank-tabs button").forEach((item) => item.classList.toggle("active", item === button));
+        document.getElementById("sidebarFooter").textContent = FOOT[mode] || FOOT.radio;
+        renderSidebar();
+        pois.forEach((poi) => { if (markers[poi.id]) markers[poi.id].setIcon(icon(winner(poi).color)); });
+      });
+    });
+    const today = todayWib();
+    document.getElementById("dateFrom").value = today;
+    document.getElementById("dateTo").value = today;
+    load();
+    setInterval(load, REFRESH_MS);
+  </script>
+</body>
+</html>

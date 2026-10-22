@@ -1,0 +1,20 @@
+[Unit]
+Description=MySignal OoklaServer-like HTTP speedtest
+After=network.target
+
+[Service]
+Type=simple
+User=www-data
+Group=www-data
+Environment=SPEEDTEST_HOST=127.0.0.1
+Environment=SPEEDTEST_PORT=8099
+Environment=SPEEDTEST_SERVER_NAME=mysignal-azure
+Environment=SPEEDTEST_REGION=southeastasia
+ExecStart=/usr/bin/python3 /opt/mysignal-speedtest/http_server.py
+Restart=on-failure
+RestartSec=2
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

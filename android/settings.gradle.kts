@@ -14,5 +14,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "UdpClient"
+rootProject.name = "netprobe"
 include(":app")

@@ -1,59 +1,56 @@
-import java.util.Properties
-
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
 }
 
-val keystorePropertiesFile = rootProject.file("keystore.properties")
-val keystoreProperties = Properties()
-if (keystorePropertiesFile.exists()) {
-    keystorePropertiesFile.inputStream().use { keystoreProperties.load(it) }
-}
-
 android {
-    namespace = "com.telcoagent.udpclient"
+    namespace = "com.aksa.mysignal"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.telcoagent.udpclient"
-        minSdk = 26
+        applicationId = "com.aksa.mysignal"
+        minSdk = 30
         targetSdk = 35
-        versionCode = 55
-        versionName = "2.44"
-        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        versionCode = 44
+        versionName = "2.5.18"
 
-        buildConfigField("String", "NETPROBE_UPLOAD_URL", "\"https://netprobe.xyz/api/logs/upload\"")
-        buildConfigField("String", "NETPROBE_API_BASE_URL", "\"https://netprobe.xyz\"")
-        buildConfigField("String", "ISP_LOOKUP_URL", "\"https://whatismyip.technology/api/me\"")
-    }
+        val collectorHost = (project.findProperty("mysignal.collectorHost") as String?)
+            ?.trim()
+            ?.ifEmpty { null }
+            ?: "127.0.0.1"
+        val collectorPort = (project.findProperty("mysignal.collectorPort") as String?)
+            ?.trim()
+            ?.toIntOrNull()
+            ?: 8000
+        val hmacKeyId = (project.findProperty("mysignal.hmacKeyId") as String?)
+            ?.trim()
+            ?.ifEmpty { null }
+            ?: "unset"
+        val hmacKeyHex = (project.findProperty("mysignal.hmacKeyHex") as String?)
+            ?.trim()
+            ?.ifEmpty { null }
+            ?: "00"
+        val measureKeyHex = (project.findProperty("mysignal.measureKeyHex") as String?)
+            ?.trim()
+            ?.ifEmpty { null }
+            ?: "00"
+        val reportingEnabled = hmacKeyId != "unset" && hmacKeyHex.length >= 32
+        val measureEnabled = reportingEnabled && Regex("[0-9a-fA-F]{64}").matches(measureKeyHex)
 
-    signingConfigs {
-        create("release") {
-            val storePath = keystoreProperties.getProperty("storeFile")
-                ?: "netprobe-release.jks"
-            val storePass = keystoreProperties.getProperty("storePassword")
-                ?: System.getenv("KEYSTORE_PASSWORD")
-            val alias = keystoreProperties.getProperty("keyAlias")
-                ?: System.getenv("KEY_ALIAS")
-                ?: "netprobe"
-            val keyPass = keystoreProperties.getProperty("keyPassword")
-                ?: System.getenv("KEY_PASSWORD")
-                ?: storePass
-
-            if (!storePath.isNullOrBlank() && !storePass.isNullOrBlank()) {
-                storeFile = file(storePath)
-                storePassword = storePass
-                keyAlias = alias
-                keyPassword = keyPass
-            }
-        }
+        buildConfigField("String", "COLLECTOR_HOST", "\"${collectorHost.replace("\"", "")}\"")
+        buildConfigField("int", "COLLECTOR_PORT", collectorPort.toString())
+        buildConfigField("String", "HMAC_KEY_ID", "\"${hmacKeyId.replace("\"", "")}\"")
+        buildConfigField("String", "HMAC_KEY_HEX", "\"${hmacKeyHex.replace("\"", "")}\"")
+        buildConfigField("String", "MEASURE_KEY_HEX", "\"${measureKeyHex.replace("\"", "")}\"")
+        buildConfigField("boolean", "REPORTING_ENABLED", reportingEnabled.toString())
+        buildConfigField("boolean", "MEASURE_ENABLED", measureEnabled.toString())
+        buildConfigField("int", "SPEEDTEST_PORT", "443")
+        buildConfigField("String", "SPEEDTEST_PATH", "\"/speedtest/\"")
     }
 
     buildTypes {
         release {
             isMinifyEnabled = false
-            signingConfig = signingConfigs.getByName("release")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
@@ -62,7 +59,6 @@ android {
     }
 
     compileOptions {
-        isCoreLibraryDesugaringEnabled = true
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
@@ -80,40 +76,24 @@ android {
         val vName = versionName
         outputs.configureEach {
             val outputImpl = this as com.android.build.gradle.internal.api.BaseVariantOutputImpl
-            outputImpl.outputFileName = "netprobe-$vName.apk"
+            outputImpl.outputFileName = "mysignal-$vName.apk"
         }
     }
 }
 
 dependencies {
-    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
     implementation("androidx.core:core-ktx:1.15.0")
     implementation("androidx.appcompat:appcompat:1.7.0")
+    implementation("androidx.activity:activity-ktx:1.9.3")
     implementation("com.google.android.material:material:1.12.0")
     implementation("androidx.constraintlayout:constraintlayout:2.2.0")
-    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.7")
-    implementation("androidx.lifecycle:lifecycle-service:2.8.7")
-    implementation("androidx.fragment:fragment-ktx:1.8.5")
     implementation("androidx.viewpager2:viewpager2:1.1.0")
-    implementation("androidx.recyclerview:recyclerview:1.3.2")
+    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.7")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")
+    implementation("org.lsposed.hiddenapibypass:hiddenapibypass:6.1")
+    implementation("androidx.media3:media3-exoplayer:1.5.1")
+    implementation("androidx.media3:media3-ui:1.5.1")
 
-    // WireGuard VPN (Go backend)
-    implementation("com.wireguard.android:tunnel:1.0.20260102") {
-        exclude(group = "androidx.lifecycle")
-        exclude(group = "org.jetbrains.kotlin")
-    }
-
-    // OpenTelemetry — RUM + Grafana Cloud (via OTLP/HTTP)
-    implementation("io.opentelemetry:opentelemetry-api:1.48.0")
-    implementation("io.opentelemetry:opentelemetry-sdk:1.48.0")
-    implementation("io.opentelemetry:opentelemetry-exporter-otlp:1.48.0")
-
-    // Espresso UI tests
-    androidTestImplementation("androidx.test.ext:junit:1.2.1")
-    androidTestImplementation("androidx.test:runner:1.6.2")
-    androidTestImplementation("androidx.test:rules:1.6.1")
-    androidTestImplementation("androidx.test.espresso:espresso-core:3.6.1")
-    androidTestImplementation("androidx.test.espresso:espresso-contrib:3.6.1")
-    androidTestImplementation("androidx.test:core:1.6.1")
+    testImplementation("junit:junit:4.13.2")
+    testImplementation("org.json:json:20240303")
 }

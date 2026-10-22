@@ -1,1 +1,1 @@
-# Keep defaults for this debug-oriented UDP probe app.
+# Keep for now — minify disabled in v1.

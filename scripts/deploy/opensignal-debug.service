@@ -1,0 +1,26 @@
+[Unit]
+Description=OpenSignal debug event collector
+After=network.target
+
+[Service]
+Type=simple
+User=osm
+Group=osm
+WorkingDirectory=/opt/opensignal-mirror/app
+Environment=PYTHONPATH=/opt/opensignal-mirror/app
+Environment=OSM_ROLE=debug
+Environment=OSM_PORT=8001
+Environment=OSM_MAX_BODY=65536
+EnvironmentFile=/etc/opensignal-mirror/collector.env
+ExecStart=/usr/bin/python3 -m opensignal_mirror
+Restart=on-failure
+RestartSec=3
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ReadWritePaths=/var/lib/opensignal-mirror
+ReadOnlyPaths=/etc/opensignal-mirror
+
+[Install]
+WantedBy=multi-user.target

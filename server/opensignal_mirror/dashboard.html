@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>OpenSignal measurements</title>
+  <style>
+    :root { color-scheme: dark; --bg: #10141a; --card: #1a212b; --line: #2c3644; --text: #e7eef7; --muted: #93a0b3; --up: #7dcea0; --down: #85c1e9; --open: #f7dc6f; --bad: #f5b7b1; }
+    * { box-sizing: border-box; }
+    body { margin: 0; font: 15px/1.45 Segoe UI, sans-serif; background: var(--bg); color: var(--text); }
+    header, main { width: min(1480px, calc(100% - 32px)); margin: 0 auto; }
+    header { display: flex; justify-content: space-between; gap: 16px; align-items: end; padding: 28px 0 12px; }
+    h1, h2 { margin: 0; }
+    h1 { font-size: 28px; } h2 { margin: 22px 0 10px; font-size: 18px; }
+    p { margin: 4px 0 0; color: var(--muted); }
+    form { display: flex; gap: 8px; }
+    input, button { border: 1px solid var(--line); background: var(--card); color: var(--text); border-radius: 8px; padding: 8px 10px; }
+    button { cursor: pointer; }
+    .cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 16px 0; }
+    .card, .panel { background: var(--card); border: 1px solid var(--line); border-radius: 12px; }
+    .card { padding: 14px 16px; }
+    .card span, .muted { color: var(--muted); }
+    .card span { display: block; font-size: 13px; }
+    .card strong { font-size: 24px; overflow-wrap: anywhere; }
+    .panel { overflow: auto; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--line); white-space: nowrap; }
+    td.wrap { white-space: normal; max-width: 280px; }
+    tr.sdk-row { cursor: pointer; }
+    tr.sdk-row.selected { background: #243140; }
+    .sdk-layout { display: grid; grid-template-columns: minmax(420px, 0.85fr) minmax(520px, 1.15fr); gap: 12px; align-items: start; }
+    .sdk-list { max-height: 760px; }
+    .json-pane { max-height: 760px; overflow: auto; padding: 14px 16px 24px; position: sticky; top: 12px; }
+    .json-toolbar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 12px; }
+    .json-toolbar strong { margin-right: auto; }
+    .json-note { color: var(--open); margin: 0 0 12px; }
+    .json-nested { margin: 4px 0 8px; padding-left: 12px; border-left: 2px solid var(--line); }
+    .json-row { display: grid; grid-template-columns: minmax(150px, 34%) 1fr; gap: 8px 16px; padding: 6px 0; border-bottom: 1px solid var(--line); }
+    .json-block { padding: 8px 0 2px; border-bottom: 1px solid var(--line); }
+    .json-block > .json-key, .json-block > .json-index { display: block; margin-bottom: 4px; }
+    .json-key { color: var(--down); overflow-wrap: anywhere; }
+    .json-num { color: var(--up); }
+    .json-str { overflow-wrap: anywhere; white-space: pre-wrap; }
+    .json-index { color: var(--muted); margin-top: 8px; }
+    th { color: var(--muted); font-weight: 600; font-size: 13px; }
+    .up { color: var(--up); } .down { color: var(--down); } .open { color: var(--open); } .bad { color: var(--bad); }
+    .debug { margin: 16px 0 32px; padding: 12px 16px; }
+    .debug div { color: var(--muted); margin-top: 6px; }
+    @media (max-width: 800px) { .cards, .sdk-layout { grid-template-columns: 1fr; } header { display: block; } form, .json-pane { margin-top: 12px; position: static; } }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <h1>OpenSignal measurements</h1>
+      <p id="status">Connecting…</p>
+    </div>
+    <form id="search">
+      <input id="query" placeholder="IMEI, IMSI, or device" minlength="6" required>
+      <button type="submit">Find</button>
+    </form>
+  </header>
+  <main>
+    <section class="cards" id="cards"></section>
+    <h2>Radio</h2>
+    <section class="panel"><table>
+      <thead><tr><th>Device</th><th>SIM</th><th>IMEI</th><th>IMSI</th><th>Operator</th><th>RAT</th><th>State</th></tr></thead>
+      <tbody id="sims"></tbody>
+    </table></section>
+    <h2>Cells</h2>
+    <section class="panel"><table>
+      <thead><tr><th>Role</th><th>RAT</th><th>CI</th><th>PCI</th><th>TAC</th><th>Channel</th><th>RSRP</th><th>RSRQ</th><th>SINR</th><th>RSSI</th></tr></thead>
+      <tbody id="cells"></tbody>
+    </table></section>
+    <h2>Radio per ARFCN</h2>
+    <p>Average signal per carrier channel, from the SDK snapshot (sdk) and our own interval mirror (mirror). Neighbor cells expose no PLMN, so their carrier stays unknown.</p>
+    <section class="panel">
+      <div class="json-toolbar">
+        <label for="radio-window">Window</label>
+        <select id="radio-window">
+          <option value="15">15m</option>
+          <option value="60" selected>1h</option>
+          <option value="360">6h</option>
+          <option value="1440">24h</option>
+        </select>
+        <span class="muted" id="radio-status"></span>
+      </div>
+      <table>
+        <thead><tr><th>Source</th><th>RAT</th><th>ARFCN</th><th>PLMN</th><th>SIM</th><th>Carrier</th><th>Samples</th><th>Serving %</th><th>RSRP</th><th>RSRQ</th><th>SINR</th></tr></thead>
+        <tbody id="radio"></tbody>
+      </table>
+    </section>
+    <h2>OpenSignal results</h2>
+    <section class="panel"><table>
+      <thead><tr><th>When</th><th>Stage</th><th>Phase</th><th>Download</th><th>Upload</th><th>Latency</th><th>Network</th><th>Payload</th></tr></thead>
+      <tbody id="original"></tbody>
+    </table></section>
+    <h2>SDK telemetry</h2>
+    <p>JSON captured inside the APK before OpenSignal transport. Geography and hosting labels in the downstream CSV are added by OpenSignal's servers and are not in this payload.</p>
+    <section class="sdk-layout">
+      <section class="panel sdk-list"><table>
+        <thead><tr><th>When</th><th>Job</th><th>Task</th><th>Download</th><th>Upload</th></tr></thead>
+        <tbody id="sdk"></tbody>
+      </table></section>
+      <article class="panel json-pane" id="sdk-detail">
+        <div class="json-toolbar">
+          <strong id="sdk-title">Select a measurement</strong>
+          <input id="sdk-filter" placeholder="Filter keys" aria-label="Filter JSON keys">
+          <button type="button" id="sdk-copy">Copy JSON</button>
+        </div>
+        <div id="sdk-tree"></div>
+      </article>
+    </section>
+    <h2>Speed tests</h2>
+    <section class="panel"><table>
+      <thead><tr><th>When</th><th>Source</th><th>Type</th><th>Download</th><th>Upload</th><th>Latency</th><th>Server</th><th>Summary</th></tr></thead>
+      <tbody id="tests"></tbody>
+    </table></section>
+    <h2>Traffic</h2>
+    <section class="panel"><table>
+      <thead><tr><th>Last seen</th><th>Phone</th><th>Proto</th><th>Destination</th><th>Upload</th><th>Download</th><th>State</th></tr></thead>
+      <tbody id="flows"></tbody>
+    </table></section>
+    <section class="debug panel" id="debug"></section>
+    <section class="panel debug" id="found"></section>
+  </main>
+  <script>
+    const size = (value) => {
+      const n = Number(value) || 0;
+      if (n >= 1048576) return (n / 1048576).toFixed(1) + " MB";
+      if (n >= 1024) return (n / 1024).toFixed(1) + " KB";
+      return n + " B";
+    };
+    const bps = (value) => value == null ? "–" : (Number(value) / 1000000).toFixed(2) + " Mbps";
+    const stages = {
+      phase_payload: "Phase payload (engine JSON)",
+      phase_merged: "Merged phase result",
+      final_ui: "Final UI result, before local save",
+      sdk_json: "SDK JSON before network",
+      drive_mode: "Drive mode"
+    };
+    const field = (fields, name) => fields && fields[name] ? fields[name] : "–";
+    let selectedSdkId = "";
+    let sdkFilter = "";
+    let detailSignature = "";
+    let selectedPayload = "";
+    let latestSdkRows = [];
+    const age = (ms, nowMs) => {
+      const seconds = Math.max(0, Math.round((nowMs - ms) / 1000));
+      if (seconds < 60) return seconds + "s ago";
+      return Math.floor(seconds / 60) + "m " + (seconds % 60) + "s ago";
+    };
+    const cell = (text, className) => {
+      const td = document.createElement("td");
+      td.textContent = text == null || text === "" ? "–" : String(text);
+      if (className) td.className = className;
+      return td;
+    };
+    function repairJson(text) {
+      let out = "";
+      const stack = [];
+      let inString = false;
+      let escape = false;
+      for (const ch of text) {
+        if (inString) {
+          out += ch;
+          if (escape) escape = false;
+          else if (ch === "\\") escape = true;
+          else if (ch === '"') inString = false;
+          continue;
+        }
+        if (ch === '"') inString = true;
+        else if (ch === "{" || ch === "[") stack.push(ch);
+        else if ((ch === "}" || ch === "]") && stack.length) stack.pop();
+        out += ch;
+      }
+      if (inString) out += escape ? '\\"' : '"';
+      let previous = "";
+      while (out !== previous) {
+        previous = out;
+        out = out.replace(/,\s*$/, "").replace(/:\s*$/, ":null").replace(/,\s*"(?:\\.|[^"\\])*"\s*$/, "");
+      }
+      while (stack.length) out += stack.pop() === "{" ? "}" : "]";
+      return out;
+    }
+    function parsePayload(text) {
+      if (!text) return { value: null, complete: false };
+      try { return { value: JSON.parse(text), complete: true }; } catch (error) { /* truncated payloads are repaired below */ }
+      try { return { value: JSON.parse(repairJson(text)), complete: false }; } catch (error) { return { value: null, complete: false }; }
+    }
+    function unwrap(value) {
+      if (typeof value !== "string") return value;
+      const trimmed = value.trim();
+      if (!((trimmed.startsWith("{") && trimmed.endsWith("}")) || (trimmed.startsWith("[") && trimmed.endsWith("]")))) return value;
+      try { return JSON.parse(trimmed); } catch (error) { return value; }
+    }
+    function filterMatch(key, value, query) {
+      if (!query) return true;
+      if (String(key).toLowerCase().includes(query)) return true;
+      const nested = unwrap(value);
+      if (nested && typeof nested === "object") return Object.entries(nested).some(([child, item]) => filterMatch(child, item, query));
+      return String(value == null ? "" : value).toLowerCase().includes(query);
+    }
+    function renderValue(parent, value) {
+      const nested = unwrap(value);
+      if (!nested || typeof nested !== "object") {
+        const text = document.createElement("div");
+        text.className = typeof nested === "number" ? "json-num" : "json-str";
+        text.textContent = nested == null ? "null" : String(nested);
+        parent.append(text);
+        return;
+      }
+      const box = document.createElement("div");
+      box.className = "json-nested";
+      const entries = Array.isArray(nested) ? nested.map((item, index) => [String(index), item]) : Object.entries(nested);
+      for (const [key, item] of entries) {
+        if (!filterMatch(key, item, sdkFilter.trim().toLowerCase())) continue;
+        const label = document.createElement("div");
+        label.className = Array.isArray(nested) ? "json-index" : "json-key";
+        label.textContent = Array.isArray(nested) ? "Item " + (Number(key) + 1) : key;
+        const child = unwrap(item);
+        if (child && typeof child === "object") {
+          const block = document.createElement("div");
+          block.className = "json-block";
+          block.append(label);
+          renderValue(block, child);
+          box.append(block);
+        } else {
+          const row = document.createElement("div");
+          row.className = "json-row";
+          const content = document.createElement("div");
+          content.className = typeof child === "number" ? "json-num" : "json-str";
+          content.textContent = child == null ? "null" : String(child);
+          row.append(label, content);
+          box.append(row);
+        }
+      }
+      parent.append(box);
+    }
+    function renderSdkDetail(row) {
+      const title = document.querySelector("#sdk-title");
+      const tree = document.querySelector("#sdk-tree");
+      tree.replaceChildren();
+      if (!row) {
+        title.textContent = "Select a measurement";
+        selectedPayload = "";
+        return;
+      }
+      const item = row.event;
+      const parsed = parsePayload(item.payload || "");
+      const readable = parsed.value && typeof parsed.value === "object" ? parsed.value : (item.fields || {});
+      const truncated = (item.fields && item.fields.payload_truncated === "1") || !parsed.complete;
+      selectedPayload = JSON.stringify(readable, null, 2);
+      title.textContent = (field(item.fields, "job_type") === "–" ? item.stage : field(item.fields, "job_type")) + " · " + field(item.fields, "task_name");
+      if (truncated) {
+        const note = document.createElement("p");
+        note.className = "json-note";
+        note.textContent = "The APK payload was truncated. Complete values captured before the limit are shown.";
+        tree.append(note);
+      }
+      renderValue(tree, readable);
+      if (!tree.querySelector(".json-row, .json-block")) {
+        const empty = document.createElement("p");
+        empty.textContent = "No keys match that filter.";
+        tree.append(empty);
+      }
+    }
+    function showSelectedSdk() {
+      const selected = latestSdkRows.find((row) => row.event.event_id === selectedSdkId);
+      document.querySelectorAll("#sdk tr").forEach((tr, index) => {
+        const row = latestSdkRows[index];
+        tr.classList.toggle("selected", Boolean(row && row.event.event_id === selectedSdkId));
+      });
+      const signature = selected ? selected.event.event_id + "|" + (selected.event.payload || "") + "|" + sdkFilter : "";
+      if (signature !== detailSignature) {
+        detailSignature = signature;
+        renderSdkDetail(selected);
+      }
+    }
+    const secret = (item) => {
+      if (!item) return "–";
+      if (item.status === "available") return item.value;
+      return item.status;
+    };
+    const copyCell = (item) => {
+      const td = document.createElement("td");
+      const text = secret(item);
+      td.textContent = text;
+      if (item && item.status === "available") {
+        const button = document.createElement("button");
+        button.textContent = "Copy";
+        button.style.marginLeft = "8px";
+        button.addEventListener("click", () => navigator.clipboard.writeText(item.value));
+        td.append(button);
+      } else td.className = "bad";
+      return td;
+    };
+    function cards(data) {
+      const latest = data.measurements[0];
+      const serving = latest && latest.event.cells.find((item) => item.role === "serving");
+      const sim = latest && latest.event.subscriptions[0];
+      const values = [
+        ["RAT", serving ? serving.rat : "–"],
+        ["RSRP", serving && serving.rsrp != null ? serving.rsrp + " dBm" : "–"],
+        ["RSRQ", serving && serving.rsrq != null ? serving.rsrq + " dB" : "–"],
+        ["SINR", serving && serving.sinr != null ? serving.sinr + " dB" : "–"],
+        ["IMEI", sim ? secret(sim.imei) : "–"],
+        ["IMSI", sim ? secret(sim.imsi) : "–"],
+        ["Upload", size(data.totals.up)],
+        ["Download", size(data.totals.down)]
+      ];
+      const root = document.querySelector("#cards");
+      root.replaceChildren();
+      for (const [label, value] of values) {
+        const card = document.createElement("div");
+        card.className = "card";
+        const span = document.createElement("span");
+        span.textContent = label;
+        const strong = document.createElement("strong");
+        strong.textContent = value;
+        card.append(span, strong);
+        root.append(card);
+      }
+    }
+    async function refresh() {
+      const status = document.querySelector("#status");
+      try {
+        const response = await fetch("/api/live", { cache: "no-store" });
+        if (response.status === 401) { location.reload(); return; }
+        const data = await response.json();
+        const nowMs = data.now * 1000;
+        status.textContent = "Live · updated " + new Date().toLocaleTimeString();
+        cards(data);
+        const sims = document.querySelector("#sims");
+        sims.replaceChildren();
+        for (const row of data.measurements) {
+          for (const sim of row.event.subscriptions) {
+            const tr = document.createElement("tr");
+            tr.append(cell(row.device_id), cell(sim.slot), copyCell(sim.imei), copyCell(sim.imsi), cell(sim.carrier || sim.network_operator), cell(sim.rat), cell(sim.service_state));
+            sims.append(tr);
+          }
+        }
+        const cells = document.querySelector("#cells");
+        cells.replaceChildren();
+        for (const row of data.measurements) {
+          for (const item of row.event.cells) {
+            const tr = document.createElement("tr");
+            const channel = item.nrarfcn || item.earfcn || item.uarfcn || item.arfcn;
+            tr.append(cell(item.role), cell(item.rat), cell(item.ci), cell(item.pci), cell(item.tac), cell(channel), cell(item.ss_rsrp || item.rsrp), cell(item.ss_rsrq || item.rsrq), cell(item.ss_sinr || item.sinr), cell(item.rssi));
+            cells.append(tr);
+          }
+        }
+        const original = document.querySelector("#original");
+        original.replaceChildren();
+        const sdkRows = [];
+        const sdkList = document.querySelector(".sdk-list");
+        const sdkScroll = sdkList.scrollTop;
+        const sdk = document.querySelector("#sdk");
+        sdk.replaceChildren();
+        for (const row of data.os_results || []) {
+          const item = row.event;
+          if (item.stage === "sdk_json") sdkRows.push(row);
+        }
+        if (!selectedSdkId || !sdkRows.some((row) => row.event.event_id === selectedSdkId)) {
+          selectedSdkId = sdkRows.length ? sdkRows[0].event.event_id : "";
+        }
+        for (const row of sdkRows) {
+          const item = row.event;
+          const tr = document.createElement("tr");
+          tr.className = "sdk-row" + (item.event_id === selectedSdkId ? " selected" : "");
+          tr.tabIndex = 0;
+          tr.setAttribute("role", "button");
+          tr.setAttribute("aria-label", field(item.fields, "job_type") + " " + field(item.fields, "task_name"));
+          tr.append(cell(age(item.ts_ms, nowMs)), cell(field(item.fields, "job_type")), cell(field(item.fields, "task_name")), cell(field(item.fields, "download_speed")), cell(field(item.fields, "upload_speed")));
+          const choose = () => {
+            selectedSdkId = item.event_id;
+            detailSignature = "";
+            showSelectedSdk();
+          };
+          tr.addEventListener("click", choose);
+          tr.addEventListener("keydown", (event) => {
+            if (event.key === "Enter" || event.key === " ") {
+              event.preventDefault();
+              choose();
+            }
+          });
+          sdk.append(tr);
+        }
+        sdkList.scrollTop = sdkScroll;
+        latestSdkRows = sdkRows;
+        showSelectedSdk();
+        for (const row of data.os_results || []) {
+          const item = row.event;
+          if (item.stage === "sdk_json") continue;
+          const tr = document.createElement("tr");
+          tr.append(
+            cell(age(item.ts_ms, nowMs)),
+            cell(stages[item.stage] || item.stage),
+            cell(field(item.fields, "phase") !== "–" ? field(item.fields, "phase") : field(item.fields, "action")),
+            cell(field(item.fields, "download_speed")),
+            cell(field(item.fields, "upload_speed")),
+            cell(field(item.fields, "latency_ms")),
+            cell(field(item.fields, "generation") !== "–" ? field(item.fields, "generation") : field(item.fields, "network_name")),
+            cell(field(item.fields, "payload") !== "–" ? field(item.fields, "payload") : field(item.fields, "detail"))
+          );
+          original.append(tr);
+        }
+        const tests = document.querySelector("#tests");
+        tests.replaceChildren();
+        for (const row of data.tests) {
+          const item = row.event;
+          const tr = document.createElement("tr");
+          tr.append(cell(age(item.ts_ms, nowMs)), cell(item.source), cell(item.test_type), cell(bps(item.download_bps), "down"), cell(bps(item.upload_bps), "up"), cell(item.latency_ms == null ? "–" : item.latency_ms + " ms"), cell(item.server), cell(item.summary));
+          tests.append(tr);
+        }
+        const body = document.querySelector("#flows");
+        body.replaceChildren();
+        for (const flow of data.flows) {
+          const tr = document.createElement("tr");
+          tr.append(cell(age(flow.last_seen_ms, nowMs)), cell(flow.source_ip), cell(flow.proto), cell(flow.remote_ip + ":" + flow.remote_port), cell(size(flow.tx_bytes), "up"), cell(size(flow.rx_bytes), "down"), cell(flow.state, flow.state === "open" ? "open" : ""));
+          body.append(tr);
+        }
+        const debug = document.querySelector("#debug");
+        debug.replaceChildren();
+        for (const event of data.debug) {
+          const line = document.createElement("div");
+          line.textContent = event.source_ip + " · " + event.code + " · " + event.message;
+          debug.append(line);
+        }
+      } catch (error) {
+        status.textContent = "Collector unavailable";
+      }
+    }
+    document.querySelector("#sdk-filter").addEventListener("input", (event) => {
+      sdkFilter = event.target.value;
+      detailSignature = "";
+      showSelectedSdk();
+    });
+    document.querySelector("#sdk-copy").addEventListener("click", () => {
+      if (selectedPayload) navigator.clipboard.writeText(selectedPayload);
+    });
+    document.querySelector("#search").addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const query = document.querySelector("#query").value.trim();
+      const found = document.querySelector("#found");
+      const response = await fetch("/api/measurements?q=" + encodeURIComponent(query), { cache: "no-store" });
+      const data = await response.json();
+      found.replaceChildren();
+      const line = document.createElement("div");
+      line.textContent = response.ok ? data.events.length + " matching records" : "Search rejected";
+      found.append(line);
+    });
+    async function radio() {
+      const status = document.querySelector("#radio-status");
+      const body = document.querySelector("#radio");
+      const minutes = document.querySelector("#radio-window").value;
+      try {
+        const response = await fetch("/api/radio?minutes=" + encodeURIComponent(minutes), { cache: "no-store" });
+        if (response.status === 401) { location.reload(); return; }
+        if (!response.ok) {
+          status.textContent = response.status === 503 ? "ClickHouse not ready" : "Radio view unavailable";
+          return;
+        }
+        const data = await response.json();
+        const rows = data.cells || [];
+        status.textContent = rows.length + " ARFCN groups";
+        body.replaceChildren();
+        for (const row of rows) {
+          const plmn = row.mcc && row.mnc ? row.mcc + "-" + row.mnc : "";
+          const sim = row.sub_id == null && row.sim_slot == null ? "" : "slot " + (row.sim_slot == null ? "?" : row.sim_slot) + " / sub " + (row.sub_id == null ? "?" : row.sub_id);
+          const samples = Number(row.samples) || 0;
+          const serving = Number(row.serving_samples) || 0;
+          const pct = samples ? Math.round((serving * 100) / samples) + "%" : "–";
+          const tr = document.createElement("tr");
+          tr.append(
+            cell(row.source),
+            cell(row.rat),
+            cell(row.arfcn),
+            plmn ? cell(plmn) : cell("carrier unknown", "muted"),
+            sim ? cell(sim) : cell("–"),
+            cell(row.carrier),
+            cell(samples),
+            cell(pct),
+            cell(row.rsrp == null ? "–" : row.rsrp + " dBm"),
+            cell(row.rsrq == null ? "–" : row.rsrq + " dB"),
+            cell(row.sinr == null ? "–" : row.sinr + " dB")
+          );
+          body.append(tr);
+        }
+        if (!rows.length) {
+          const tr = document.createElement("tr");
+          const td = cell("No cell samples in this window.");
+          td.colSpan = 11;
+          tr.append(td);
+          body.append(tr);
+        }
+      } catch (error) {
+        status.textContent = "Radio view unavailable";
+      }
+    }
+    document.querySelector("#radio-window").addEventListener("change", radio);
+    refresh();
+    radio();
+    setInterval(refresh, 2000);
+    setInterval(radio, 30000);
+  </script>
+</body>
+</html>
