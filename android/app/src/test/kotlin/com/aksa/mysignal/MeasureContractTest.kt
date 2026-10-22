@@ -12,8 +12,16 @@ import java.io.File
  * build/contract/ so the build host can run it through the real collector validator.
  */
 class MeasureContractTest {
-    private val snapshotKeys = setOf("event_id", "ts_ms", "reason", "device", "subscriptions", "cells", "network", "location")
+    private val snapshotKeys = setOf("event_id", "ts_ms", "reason", "device", "subscriptions", "cells", "network", "location", "wifi")
     private val deviceKeys = setOf("manufacturer", "model", "sdk_int", "release", "android_id")
+    private val wifiKeys = setOf(
+        "status", "rssi_dbm", "frequency_mhz", "channel", "link_speed_mbps",
+        "ssid", "bssid", "standard", "congestion",
+    )
+    private val congestionKeys = setOf(
+        "scan_age_ms", "neighbors", "same_channel", "adjacent_channel",
+        "strongest_neighbor_rssi_dbm", "score", "neighbors_top",
+    )
     private val subRequired = setOf(
         "slot", "sub_id", "carrier", "mcc", "mnc", "rat", "network_operator", "sim_operator",
         "data_state", "service_state", "imei", "imsi", "msisdn", "iccid",
@@ -62,6 +70,27 @@ class MeasureContractTest {
             ),
             RadioCell(registered = false, rat = "LTE", pci = 394, earfcn = 1475, rsrp = -99, subId = 4, simSlot = 0),
         )
+        val wifi = WifiSignal(
+            status = "associated",
+            rssiDbm = -58,
+            frequencyMhz = 5180,
+            channel = 36,
+            linkSpeedMbps = 866,
+            ssid = "HomeAP",
+            bssid = "aa:bb:cc:dd:ee:ff",
+            standard = "11ac",
+            congestion = WifiCongestion(
+                scanAgeMs = 4_200,
+                neighbors = 3,
+                sameChannel = 1,
+                adjacentChannel = 0,
+                strongestNeighborRssiDbm = -72,
+                score = "low",
+                neighborsTop = listOf(
+                    WifiNeighbor("OtherAP", "11:22:33:44:55:66", -72, 5180, 36, 80),
+                ),
+            ),
+        )
         return RadioSnapshot(
             eventId = "mys0123456789abcdef",
             tsMs = 1_761_000_000_000,
@@ -70,6 +99,7 @@ class MeasureContractTest {
             cells = cells,
             network = NetworkInfo("cellular", true, false, 50_000, 10_000),
             location = LocationInfo("available", "fused", -6.2, 106.8, 12.0, null, 0.0, null, 1_761_000_000_000),
+            wifi = wifi,
         )
     }
 
@@ -109,6 +139,15 @@ class MeasureContractTest {
             assertTrue(ci.isEmpty() || ci.all { it.isDigit() })
         }
         assertEquals(531_870, cells.getJSONObject(1).getInt("channel"))
+
+        val wifi = json.getJSONObject("wifi")
+        assertEquals(wifiKeys, keys(wifi))
+        assertEquals("associated", wifi.getString("status"))
+        assertEquals(-58, wifi.getInt("rssi_dbm"))
+        val congestion = wifi.getJSONObject("congestion")
+        assertEquals(congestionKeys, keys(congestion))
+        assertEquals("low", congestion.getString("score"))
+        assertEquals(1, congestion.getJSONArray("neighbors_top").length())
     }
 
     @Test

@@ -259,6 +259,77 @@ data class NetworkInfo(
     }
 }
 
+data class WifiNeighbor(
+    val ssid: String = "",
+    val bssid: String = "",
+    val rssiDbm: Int? = null,
+    val frequencyMhz: Int? = null,
+    val channel: Int? = null,
+    val channelWidthMhz: Int? = null,
+) {
+    fun toJson(): JSONObject = JSONObject()
+        .put("ssid", ssid)
+        .put("bssid", bssid)
+        .put("rssi_dbm", rssiDbm.orNull())
+        .put("frequency_mhz", frequencyMhz.orNull())
+        .put("channel", channel.orNull())
+        .put("channel_width_mhz", channelWidthMhz.orNull())
+}
+
+data class WifiCongestion(
+    val scanAgeMs: Long? = null,
+    val neighbors: Int = 0,
+    val sameChannel: Int = 0,
+    val adjacentChannel: Int = 0,
+    val strongestNeighborRssiDbm: Int? = null,
+    val score: String = "unknown",
+    val neighborsTop: List<WifiNeighbor> = emptyList(),
+) {
+    fun toJson(): JSONObject = JSONObject()
+        .put("scan_age_ms", scanAgeMs ?: JSONObject.NULL)
+        .put("neighbors", neighbors)
+        .put("same_channel", sameChannel)
+        .put("adjacent_channel", adjacentChannel)
+        .put("strongest_neighbor_rssi_dbm", strongestNeighborRssiDbm.orNull())
+        .put("score", score)
+        .put(
+            "neighbors_top",
+            JSONArray().also { arr -> neighborsTop.take(MAX_NEIGHBORS).forEach { arr.put(it.toJson()) } },
+        )
+
+    companion object {
+        const val MAX_NEIGHBORS = 8
+    }
+}
+
+data class WifiSignal(
+    val status: String,
+    val rssiDbm: Int? = null,
+    val frequencyMhz: Int? = null,
+    val channel: Int? = null,
+    val linkSpeedMbps: Int? = null,
+    val ssid: String = "",
+    val bssid: String = "",
+    val standard: String = "",
+    val congestion: WifiCongestion? = null,
+) {
+    fun toJson(): JSONObject = JSONObject()
+        .put("status", status)
+        .put("rssi_dbm", rssiDbm.orNull())
+        .put("frequency_mhz", frequencyMhz.orNull())
+        .put("channel", channel.orNull())
+        .put("link_speed_mbps", linkSpeedMbps.orNull())
+        .put("ssid", ssid)
+        .put("bssid", bssid)
+        .put("standard", standard)
+        .put("congestion", congestion?.toJson() ?: JSONObject.NULL)
+
+    companion object {
+        val DISABLED = WifiSignal("disabled")
+        val NOT_ASSOCIATED = WifiSignal("not_associated")
+    }
+}
+
 data class LocationInfo(
     val status: String,
     val provider: String = "",
@@ -293,6 +364,7 @@ data class RadioSnapshot(
     val cells: List<RadioCell>,
     val network: NetworkInfo,
     val location: LocationInfo,
+    val wifi: WifiSignal,
     val error: String? = null,
 ) {
     /** Subscription carrying mobile data; the widget and NR verdict follow this SIM. */
@@ -310,6 +382,7 @@ data class RadioSnapshot(
         .put("cells", JSONArray().also { arr -> cells.take(MAX_CELLS).forEach { arr.put(it.toJson()) } })
         .put("network", network.toJson())
         .put("location", location.toJson())
+        .put("wifi", wifi.toJson())
 
     /** Legacy NR-path view used by the widget, notification and `/v1/nr-status`. */
     fun toNrSnapshot(): NrSnapshot {

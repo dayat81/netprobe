@@ -8,9 +8,13 @@ import android.location.Location
 import android.location.LocationManager
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
+import android.net.wifi.ScanResult
+import android.net.wifi.WifiInfo
+import android.net.wifi.WifiManager
 import android.os.Build
 import android.os.Handler
 import android.os.HandlerThread
+import android.os.SystemClock
 import android.provider.Settings
 import android.telephony.AccessNetworkConstants
 import android.telephony.CellIdentityLte
@@ -56,12 +60,15 @@ class RadioSampler(private val context: Context) {
         context.getSystemService(SubscriptionManager::class.java)
     private val connectivity: ConnectivityManager? = context.getSystemService(ConnectivityManager::class.java)
     private val locations: LocationManager? = context.getSystemService(LocationManager::class.java)
+    private val wifiManager: WifiManager? =
+        context.applicationContext.getSystemService(Context.WIFI_SERVICE) as? WifiManager
     private val thread = HandlerThread("mysignal-telephony").apply { start() }
     private val handler = Handler(thread.looper)
     private val executor = Executor { handler.post(it) }
     private val trackers = ConcurrentHashMap<Int, SubTracker>()
     private val random = SecureRandom()
     private val device: DeviceInfo by lazy { readDevice() }
+    @Volatile private var lastWifiScanRequestMs = 0L
 
     fun hasCorePermissions(): Boolean =
         granted(Manifest.permission.ACCESS_FINE_LOCATION) && granted(Manifest.permission.READ_PHONE_STATE)
@@ -79,7 +86,7 @@ class RadioSampler(private val context: Context) {
         val eventId = "mys" + randomHex(16)
         if (!hasCorePermissions()) {
             return RadioSnapshot(
-                eventId, now, device, emptyList(), emptyList(), network(), location(),
+                eventId, now, device, emptyList(), emptyList(), network(), location(), wifi(),
                 error = "Need Location + Phone permission",
             )
         }
@@ -88,7 +95,7 @@ class RadioSampler(private val context: Context) {
         val ordered = trackers.values.sortedWith(compareBy({ it.slot }, { it.subId }))
         val subs = ordered.map { subscription(it, defaultData) }
         val cells = cells(ordered)
-        return RadioSnapshot(eventId, now, device, subs, cells, network(), location())
+        return RadioSnapshot(eventId, now, device, subs, cells, network(), location(), wifi())
     }
 
     private fun granted(permission: String): Boolean =
@@ -621,6 +628,176 @@ class RadioSampler(private val context: Context) {
     }
 
     @SuppressLint("MissingPermission")
+    private fun wifi(): WifiSignal {
+        val wm = wifiManager ?: return WifiSignal.DISABLED
+        if (!wm.isWifiEnabled) return WifiSignal.DISABLED
+        maybeRequestWifiScan(wm)
+        val info = try {
+            wm.connectionInfo
+        } catch (_: SecurityException) {
+            return WifiSignal.NOT_ASSOCIATED
+        } catch (_: Exception) {
+            return WifiSignal.NOT_ASSOCIATED
+        }
+        val associated = info.networkId != -1 && info.ssid != WifiManager.UNKNOWN_SSID
+        if (!associated) {
+            return WifiSignal.NOT_ASSOCIATED.copy(congestion = wifiCongestion(wm, null, ""))
+        }
+        val freq = info.frequency.takeIf { it > 0 }
+        val channel = freq?.let { wifiChannel(it) }?.takeIf { it > 0 }
+        val rssi = info.rssi.takeIf { it != 0 && it != -127 }
+        val link = info.linkSpeed.takeIf { it > 0 }
+        val ssid = cleanWifiSsid(info.ssid)
+        val bssid = info.bssid?.takeIf { it.isNotBlank() && it != "02:00:00:00:00:00" }.orEmpty()
+        return WifiSignal(
+            status = "associated",
+            rssiDbm = rssi,
+            frequencyMhz = freq,
+            channel = channel,
+            linkSpeedMbps = link,
+            ssid = ssid,
+            bssid = bssid,
+            standard = wifiStandardName(info),
+            congestion = wifiCongestion(wm, channel, bssid),
+        )
+    }
+
+    @SuppressLint("MissingPermission")
+    private fun maybeRequestWifiScan(wm: WifiManager) {
+        val now = System.currentTimeMillis()
+        if (now - lastWifiScanRequestMs < WIFI_SCAN_MS) return
+        lastWifiScanRequestMs = now
+        try {
+            @Suppress("DEPRECATION")
+            wm.startScan()
+        } catch (_: SecurityException) {
+        } catch (_: Exception) {
+        }
+    }
+
+    @SuppressLint("MissingPermission")
+    private fun wifiCongestion(wm: WifiManager, associatedChannel: Int?, associatedBssid: String): WifiCongestion? {
+        val scans = try {
+            wm.scanResults.orEmpty()
+        } catch (_: SecurityException) {
+            return null
+        } catch (_: Exception) {
+            return null
+        }
+        if (scans.isEmpty()) return WifiCongestion(score = "unknown")
+        val ageMs = scans.mapNotNull { scanAgeMs(it) }.minOrNull()
+        val neighbors = scans.mapNotNull { parseWifiNeighbor(it) }
+            .filter { it.bssid.isEmpty() || !it.bssid.equals(associatedBssid, ignoreCase = true) }
+        val bandNeighbors = if (associatedChannel != null) {
+            neighbors.filter { it.channel != null && sameWifiBand(associatedChannel, it.channel) }
+        } else {
+            neighbors
+        }
+        val same = if (associatedChannel != null) {
+            bandNeighbors.filter { it.channel == associatedChannel }
+        } else {
+            emptyList()
+        }
+        val adjacent = if (associatedChannel != null && associatedChannel in 1..14) {
+            bandNeighbors.filter {
+                val ch = it.channel ?: return@filter false
+                ch != associatedChannel && kotlin.math.abs(ch - associatedChannel) == 1
+            }
+        } else {
+            emptyList()
+        }
+        val strongest = same.maxOfOrNull { it.rssiDbm ?: Int.MIN_VALUE }?.takeIf { it != Int.MIN_VALUE }
+        val score = when {
+            same.size >= 5 || (strongest != null && strongest > -55) -> "high"
+            same.size in 2..4 || (strongest != null && strongest > -70) -> "medium"
+            else -> "low"
+        }
+        val top = bandNeighbors
+            .sortedByDescending { it.rssiDbm ?: Int.MIN_VALUE }
+            .take(WifiCongestion.MAX_NEIGHBORS)
+        return WifiCongestion(
+            scanAgeMs = ageMs,
+            neighbors = bandNeighbors.size,
+            sameChannel = same.size,
+            adjacentChannel = adjacent.size,
+            strongestNeighborRssiDbm = strongest,
+            score = score,
+            neighborsTop = top,
+        )
+    }
+
+    private fun parseWifiNeighbor(result: ScanResult): WifiNeighbor? {
+        val freq = result.frequency.takeIf { it > 0 } ?: return null
+        val channel = wifiChannel(freq).takeIf { it > 0 }
+        val rssi = result.level.takeIf { it != 0 && it != -127 }
+        return WifiNeighbor(
+            ssid = cleanWifiSsid(result.SSID),
+            bssid = result.BSSID.orEmpty(),
+            rssiDbm = rssi,
+            frequencyMhz = freq,
+            channel = channel,
+            channelWidthMhz = channelWidthMhz(result),
+        )
+    }
+
+    private fun scanAgeMs(result: ScanResult): Long? {
+        return try {
+            val elapsed = SystemClock.elapsedRealtime() - result.timestamp / 1000
+            elapsed.takeIf { it >= 0 }
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    private fun cleanWifiSsid(raw: String?): String {
+        if (raw.isNullOrBlank()) return ""
+        val trimmed = raw.trim().removeSurrounding("\"")
+        return when {
+            trimmed == WifiManager.UNKNOWN_SSID -> ""
+            trimmed.equals("<unknown ssid>", ignoreCase = true) -> ""
+            else -> RadioRules.clean(trimmed, 64)
+        }
+    }
+
+    private fun wifiChannel(freqMhz: Int): Int = when {
+        freqMhz == 2484 -> 14
+        freqMhz in 2412..2484 -> (freqMhz - 2412) / 5 + 1
+        freqMhz in 5170..5825 -> (freqMhz - 5170) / 5 + 34
+        freqMhz in 5955..7115 -> (freqMhz - 5955) / 5 + 1
+        else -> 0
+    }
+
+    private fun sameWifiBand(a: Int, b: Int): Boolean = when {
+        a in 1..14 -> b in 1..14
+        a in 36..177 -> b in 36..177
+        else -> a == b
+    }
+
+    private fun channelWidthMhz(result: ScanResult): Int? = when (result.channelWidth) {
+        ScanResult.CHANNEL_WIDTH_20MHZ -> 20
+        ScanResult.CHANNEL_WIDTH_40MHZ -> 40
+        ScanResult.CHANNEL_WIDTH_80MHZ -> 80
+        ScanResult.CHANNEL_WIDTH_160MHZ -> 160
+        ScanResult.CHANNEL_WIDTH_80MHZ_PLUS_MHZ -> 80
+        else -> {
+            if (Build.VERSION.SDK_INT >= 33 && result.channelWidth == ScanResult.CHANNEL_WIDTH_320MHZ) 320 else null
+        }
+    }
+
+    private fun wifiStandardName(info: WifiInfo): String {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) return ""
+        return when (info.wifiStandard) {
+            ScanResult.WIFI_STANDARD_LEGACY -> "legacy"
+            ScanResult.WIFI_STANDARD_11N -> "11n"
+            ScanResult.WIFI_STANDARD_11AC -> "11ac"
+            ScanResult.WIFI_STANDARD_11AX -> "11ax"
+            ScanResult.WIFI_STANDARD_11AD -> "11ad"
+            ScanResult.WIFI_STANDARD_11BE -> "11be"
+            else -> ""
+        }
+    }
+
+    @SuppressLint("MissingPermission")
     private fun location(): LocationInfo {
         val fine = granted(Manifest.permission.ACCESS_FINE_LOCATION)
         val coarse = granted(Manifest.permission.ACCESS_COARSE_LOCATION)
@@ -836,6 +1013,7 @@ class RadioSampler(private val context: Context) {
         private val exempted = AtomicBoolean(false)
         private val loggedMiss = CopyOnWriteArraySet<String>()
         private const val CELL_REQUEST_MS = 2_500L
+        private const val WIFI_SCAN_MS = 30_000L
         private const val FUSED_PROVIDER = "fused"
         private val ANDROID_ID = Regex("[0-9a-fA-F]{8,32}")
         private val DIGIT_ID = Regex("""\+?[0-9]{6,20}""")

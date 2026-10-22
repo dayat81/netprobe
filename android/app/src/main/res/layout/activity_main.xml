@@ -12,11 +12,26 @@
         android:layout_height="0dp"
         android:layout_weight="1">
 
-        <LinearLayout
+        <androidx.viewpager2.widget.ViewPager2
             android:id="@+id/radioPane"
             android:layout_width="match_parent"
+            android:layout_height="match_parent" />
+
+        <LinearLayout
+            android:id="@+id/radioChart"
+            android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:orientation="vertical">
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:paddingHorizontal="12dp"
+                android:paddingTop="4dp"
+                android:text="@string/radio_wifi_swipe"
+                android:textColor="@color/text_secondary"
+                android:textSize="11sp" />
 
             <HorizontalScrollView
                 android:layout_width="match_parent"
@@ -135,6 +150,21 @@
                     android:visibility="gone" />
             </FrameLayout>
         </LinearLayout>
+
+        <ScrollView
+            android:id="@+id/radioWifi"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:fillViewport="true"
+            android:padding="16dp"
+            android:visibility="gone">
+
+            <LinearLayout
+                android:id="@+id/radioWifiList"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical" />
+        </ScrollView>
 
         <LinearLayout
             android:id="@+id/speedPane"
@@ -517,7 +547,7 @@
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/tabRadio"
-            style="@style/Widget.MaterialComponents.Button.TextButton"
+            style="@style/TabLabel"
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="1"
@@ -526,7 +556,7 @@
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/tabSpeed"
-            style="@style/Widget.MaterialComponents.Button.TextButton"
+            style="@style/TabLabel"
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="1"
@@ -535,7 +565,7 @@
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/tabVideo"
-            style="@style/Widget.MaterialComponents.Button.TextButton"
+            style="@style/TabLabel"
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="1"
@@ -544,10 +574,10 @@
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/tabComplaint"
-            style="@style/Widget.MaterialComponents.Button.TextButton"
+            style="@style/TabLabel"
             android:layout_width="0dp"
             android:layout_height="match_parent"
-            android:layout_weight="1"
+            android:layout_weight="1.35"
             android:text="@string/tab_complaint"
             android:textColor="@color/text_secondary" />
     </LinearLayout>

@@ -32,6 +32,13 @@
     <string name="complaint_history">History</string>
     <string name="complaint_history_empty">No history yet. Swipe left for the latest review.</string>
     <string name="complaint_swipe">Swipe right for history</string>
+    <string name="radio_wifi_swipe">Swipe right for Wi-Fi</string>
+    <string name="radio_wifi_title">Wi-Fi</string>
+    <string name="radio_wifi_associated">Associated AP</string>
+    <string name="radio_wifi_congestion">Congestion</string>
+    <string name="radio_wifi_neighbors">Nearby APs</string>
+    <string name="radio_wifi_empty">Wi-Fi details appear when a sample is available.</string>
+    <string name="radio_wifi_back">Swipe left for radio chart</string>
     <string name="video_load">Load</string>
     <string name="video_resolution">Resolution</string>
     <string name="video_buffering">Buffering</string>

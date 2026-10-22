@@ -58,6 +58,10 @@ MAX_SDK_PAYLOAD = 32768  # keep in sync with SDK_PAYLOAD_LIMIT in OsmReporter.ja
 MAX_CELLS = 32
 MAX_SUBS = 8
 MAX_BANDS = 8
+MAX_WIFI_NEIGHBORS = 8
+WIFI_STATUSES = {"associated", "not_associated", "disabled"}
+WIFI_SCORES = {"low", "medium", "high", "unknown"}
+WIFI_STANDARDS = {"", "legacy", "11n", "11ac", "11ax", "11ad", "11be"}
 _DIGIT_ID = re.compile(r"\+?[0-9]{6,20}")
 _ANDROID_ID = re.compile(r"[0-9a-fA-F]{8,32}")
 
@@ -332,10 +336,98 @@ def _subscription(value: object) -> dict:
     }
 
 
-def _snapshot(value: object) -> dict:
+def _wifi_neighbor(value: object) -> dict:
     item = _exact(
         value,
+        {"ssid", "bssid", "rssi_dbm", "frequency_mhz", "channel", "channel_width_mhz"},
+        "wifi_neighbor",
+    )
+    return {
+        "ssid": _plain(item["ssid"], 64),
+        "bssid": _plain(item["bssid"], 32),
+        "rssi_dbm": _opt_int(item["rssi_dbm"], -127, 0),
+        "frequency_mhz": _opt_int(item["frequency_mhz"], 2400, 7200),
+        "channel": _opt_int(item["channel"], 1, 300),
+        "channel_width_mhz": _opt_int(item["channel_width_mhz"], 20, 320),
+    }
+
+
+def _wifi_congestion(value: object) -> dict | None:
+    if value is None:
+        return None
+    item = _exact(
+        value,
+        {
+            "scan_age_ms",
+            "neighbors",
+            "same_channel",
+            "adjacent_channel",
+            "strongest_neighbor_rssi_dbm",
+            "score",
+            "neighbors_top",
+        },
+        "wifi_congestion",
+    )
+    if item["score"] not in WIFI_SCORES:
+        raise ValueError("invalid wifi score")
+    top = item["neighbors_top"]
+    if not isinstance(top, list) or len(top) > MAX_WIFI_NEIGHBORS:
+        raise ValueError("invalid wifi neighbors")
+    neighbors = _opt_int(item["neighbors"], 0, 512)
+    same = _opt_int(item["same_channel"], 0, 512)
+    adjacent = _opt_int(item["adjacent_channel"], 0, 512)
+    if neighbors is None or same is None or adjacent is None:
+        raise ValueError("invalid wifi congestion counts")
+    return {
+        "scan_age_ms": _opt_int(item["scan_age_ms"], 0, 2**53),
+        "neighbors": neighbors,
+        "same_channel": same,
+        "adjacent_channel": adjacent,
+        "strongest_neighbor_rssi_dbm": _opt_int(item["strongest_neighbor_rssi_dbm"], -127, 0),
+        "score": item["score"],
+        "neighbors_top": [_wifi_neighbor(entry) for entry in top],
+    }
+
+
+def _wifi(value: object) -> dict:
+    item = _exact(
+        value,
+        {
+            "status",
+            "rssi_dbm",
+            "frequency_mhz",
+            "channel",
+            "link_speed_mbps",
+            "ssid",
+            "bssid",
+            "standard",
+            "congestion",
+        },
+        "wifi",
+    )
+    if item["status"] not in WIFI_STATUSES:
+        raise ValueError("invalid wifi status")
+    standard = item["standard"]
+    if not isinstance(standard, str) or standard not in WIFI_STANDARDS:
+        raise ValueError("invalid wifi standard")
+    return {
+        "status": item["status"],
+        "rssi_dbm": _opt_int(item["rssi_dbm"], -127, 0),
+        "frequency_mhz": _opt_int(item["frequency_mhz"], 2400, 7200),
+        "channel": _opt_int(item["channel"], 1, 300),
+        "link_speed_mbps": _opt_int(item["link_speed_mbps"], 1, 100000),
+        "ssid": _plain(item["ssid"], 64),
+        "bssid": _plain(item["bssid"], 32),
+        "standard": standard,
+        "congestion": _wifi_congestion(item["congestion"]),
+    }
+
+
+def _snapshot(value: object) -> dict:
+    item = _shape(
+        value,
         {"event_id", "ts_ms", "reason", "device", "subscriptions", "cells", "network", "location"},
+        {"wifi"},
         "snapshot",
     )
     if item["reason"] not in REASONS:
@@ -387,7 +479,7 @@ def _snapshot(value: object) -> dict:
         raise ValueError("location withheld")
     if location["status"] == "available" and (latitude is None or longitude is None):
         raise ValueError("location missing")
-    return {
+    out = {
         "event_id": _ident(item["event_id"], ID_MIN, ID_MAX),
         "ts_ms": item["ts_ms"],
         "reason": item["reason"],
@@ -419,6 +511,9 @@ def _snapshot(value: object) -> dict:
             "ts_ms": _opt_int(location["ts_ms"], 0, 2**53),
         },
     }
+    if "wifi" in item:
+        out["wifi"] = _wifi(item["wifi"])
+    return out
 
 
 def _test_result(value: object) -> dict:

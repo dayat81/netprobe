@@ -51,6 +51,7 @@ class MainActivity : AppCompatActivity() {
     private val onSnapshot: (RadioSnapshot) -> Unit = {
         runOnUiThread {
             showChart()
+            showWifiDetail(it.wifi)
         }
     }
 
@@ -91,6 +92,7 @@ class MainActivity : AppCompatActivity() {
             R.string.speed_server,
             "${BuildConfig.COLLECTOR_HOST}/video",
         )
+        wireRadioPager()
         wireComplaintPager()
         updatePermissionUi()
         requestPermissions()
@@ -102,6 +104,7 @@ class MainActivity : AppCompatActivity() {
         RadioState.addListener(onSnapshot)
         if (hasCorePermissions()) RadioService.start(this)
         showChart()
+        showWifiDetail(RadioState.latest?.wifi)
     }
 
     override fun onStop() {
@@ -120,11 +123,119 @@ class MainActivity : AppCompatActivity() {
         binding.tabVideo.setTextColor(tabColor(tab == Tab.VIDEO))
         binding.tabComplaint.setTextColor(tabColor(tab == Tab.COMPLAINT))
         if (tab != Tab.VIDEO && videoRunning) stopVideo()
+        if (tab == Tab.RADIO) {
+            binding.radioPane.setCurrentItem(1, false)
+        }
         if (tab == Tab.COMPLAINT) {
             binding.complaintPane.setCurrentItem(1, false)
             showComplaint()
         }
     }
+
+    private fun wireRadioPager() {
+        val wifi = binding.radioWifi
+        val chart = binding.radioChart
+        wifi.visibility = View.VISIBLE
+        chart.visibility = View.VISIBLE
+        (wifi.parent as ViewGroup).removeView(wifi)
+        (chart.parent as ViewGroup).removeView(chart)
+        binding.radioPane.adapter = object : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
+            override fun getItemCount(): Int = 2
+
+            override fun getItemViewType(position: Int): Int = position
+
+            override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
+                val page = if (viewType == 0) wifi else chart
+                (page.parent as? ViewGroup)?.removeView(page)
+                page.layoutParams = RecyclerView.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                )
+                return object : RecyclerView.ViewHolder(page) {}
+            }
+
+            override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) = Unit
+        }
+        binding.radioPane.setCurrentItem(1, false)
+        showWifiDetail(RadioState.latest?.wifi)
+    }
+
+    private fun showWifiDetail(wifi: WifiSignal?) {
+        val list = binding.radioWifiList
+        list.removeAllViews()
+        list.addView(wifiText(getString(R.string.radio_wifi_title), 18f, true))
+        list.addView(wifiText(getString(R.string.radio_wifi_back), 11f, false, secondary = true))
+        if (wifi == null) {
+            list.addView(wifiText(getString(R.string.radio_wifi_empty), 14f, false))
+            return
+        }
+        list.addView(wifiText(getString(R.string.radio_wifi_associated), 13f, true, secondary = true))
+        list.addView(
+            wifiText(
+                buildString {
+                    appendLine("status  ${wifi.status}")
+                    appendLine("ssid    ${wifi.ssid.ifBlank { "—" }}")
+                    appendLine("bssid   ${wifi.bssid.ifBlank { "—" }}")
+                    appendLine("rssi    ${wifi.rssiDbm?.let { "$it dBm" } ?: "—"}")
+                    appendLine("freq    ${wifi.frequencyMhz?.let { "$it MHz" } ?: "—"}")
+                    appendLine("channel ${wifi.channel ?: "—"}")
+                    appendLine("link    ${wifi.linkSpeedMbps?.let { "$it Mbps" } ?: "—"}")
+                    append("std     ${wifi.standard.ifBlank { "—" }}")
+                },
+                14f,
+                false,
+            ),
+        )
+        val congestion = wifi.congestion
+        list.addView(wifiText(getString(R.string.radio_wifi_congestion), 13f, true, secondary = true))
+        if (congestion == null) {
+            list.addView(wifiText("score   —", 14f, false))
+        } else {
+            list.addView(
+                wifiText(
+                    buildString {
+                        appendLine("score      ${congestion.score}")
+                        appendLine("same ch    ${congestion.sameChannel}")
+                        appendLine("adjacent   ${congestion.adjacentChannel}")
+                        appendLine("band APs   ${congestion.neighbors}")
+                        appendLine("strongest  ${congestion.strongestNeighborRssiDbm?.let { "$it dBm" } ?: "—"}")
+                        append("scan age   ${congestion.scanAgeMs?.let { "${it} ms" } ?: "—"}")
+                    },
+                    14f,
+                    false,
+                ),
+            )
+            list.addView(wifiText(getString(R.string.radio_wifi_neighbors), 13f, true, secondary = true))
+            if (congestion.neighborsTop.isEmpty()) {
+                list.addView(wifiText("No nearby APs in the last scan.", 14f, false))
+            } else {
+                congestion.neighborsTop.forEach { neighbor ->
+                    val label = neighbor.ssid.ifBlank { neighbor.bssid.ifBlank { "AP" } }
+                    val detail = listOfNotNull(
+                        neighbor.rssiDbm?.let { "$it dBm" },
+                        neighbor.channel?.let { "ch $it" },
+                        neighbor.frequencyMhz?.let { "$it MHz" },
+                        neighbor.channelWidthMhz?.let { "${it} MHz wide" },
+                    ).joinToString(" · ")
+                    list.addView(wifiText("$label\n$detail", 14f, false))
+                }
+            }
+        }
+    }
+
+    private fun wifiText(value: String, size: Float, bold: Boolean, secondary: Boolean = false): TextView =
+        TextView(this).apply {
+            text = value
+            textSize = size
+            setTextColor(
+                ContextCompat.getColor(
+                    this@MainActivity,
+                    if (secondary) R.color.text_secondary else R.color.text_primary,
+                ),
+            )
+            if (bold) setTypeface(typeface, android.graphics.Typeface.BOLD)
+            setPadding(0, 0, 0, (10 * resources.displayMetrics.density).toInt())
+        }
 
     private fun wireComplaintPager() {
         val history = binding.complaintHistory
@@ -181,7 +292,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun showComplaint() {
         complaintJob?.cancel()
-        binding.complaintVerdict.text = "Menilai kelayakan…"
+        binding.complaintVerdict.text = "Reviewing eligibility…"
         binding.complaintPreview.text = ""
         binding.complaintShare.isEnabled = false
         complaintJob = lifecycleScope.launch(Dispatchers.IO) {
@@ -326,7 +437,7 @@ class MainActivity : AppCompatActivity() {
         }
         plmnChoices = plmns
         binding.plmnFilters.removeAllViews()
-        binding.plmnFilters.addView(plmnButton("Semua", null))
+        binding.plmnFilters.addView(plmnButton("All", null))
         plmns.forEach { binding.plmnFilters.addView(plmnButton(RadioChartLabels.slotLabel(it), it)) }
     }
 

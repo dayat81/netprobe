@@ -533,6 +533,73 @@ def test_measure_document_keeps_component_carriers():
     assert document["MEASURE"]["carriers"] == 2
 
 
+def wifi_payload():
+    return {
+        "status": "associated",
+        "rssi_dbm": -58,
+        "frequency_mhz": 5180,
+        "channel": 36,
+        "link_speed_mbps": 866,
+        "ssid": "HomeAP",
+        "bssid": "aa:bb:cc:dd:ee:ff",
+        "standard": "11ac",
+        "congestion": {
+            "scan_age_ms": 4200,
+            "neighbors": 3,
+            "same_channel": 1,
+            "adjacent_channel": 0,
+            "strongest_neighbor_rssi_dbm": -72,
+            "score": "low",
+            "neighbors_top": [
+                {
+                    "ssid": "OtherAP",
+                    "bssid": "11:22:33:44:55:66",
+                    "rssi_dbm": -72,
+                    "frequency_mhz": 5180,
+                    "channel": 36,
+                    "channel_width_mhz": 80,
+                }
+            ],
+        },
+    }
+
+
+def test_snapshot_accepts_optional_wifi_and_keeps_legacy():
+    legacy = schema.validate_measurement_plain(measurement_plain())
+    assert "wifi" not in legacy["snapshots"][0]
+    plain = measurement_plain()
+    plain["snapshots"][0]["wifi"] = wifi_payload()
+    parsed = schema.validate_measurement_plain(plain)
+    wifi = parsed["snapshots"][0]["wifi"]
+    assert wifi["status"] == "associated"
+    assert wifi["congestion"]["score"] == "low"
+    assert wifi["congestion"]["neighbors_top"][0]["channel"] == 36
+
+
+def test_snapshot_rejects_invalid_wifi():
+    plain = measurement_plain()
+    plain["snapshots"][0]["wifi"] = dict(wifi_payload(), status="linked")
+    with pytest.raises(ValueError):
+        schema.validate_measurement_plain(plain)
+
+
+def test_measure_document_keeps_wifi():
+    snapshot = measurement_plain()["snapshots"][0]
+    snapshot["wifi"] = wifi_payload()
+    sink = ClickHouseTelemetry("http://127.0.0.1:1")
+    captured = {}
+
+    def fake_write(event_rows, value_rows):
+        captured["events"] = event_rows
+        return len(event_rows)
+
+    sink._write = fake_write
+    sink.store_measurements("device1234", "127.0.0.1", [snapshot])
+    document = json.loads(captured["events"][0]["payload"])
+    assert document["WIFI"]["rssi_dbm"] == -58
+    assert document["WIFI"]["congestion"]["same_channel"] == 1
+
+
 def test_measure_document_service_state_follows_connected_subscription():
     snapshot = measurement_plain()["snapshots"][0]
     primary = snapshot["subscriptions"][0]

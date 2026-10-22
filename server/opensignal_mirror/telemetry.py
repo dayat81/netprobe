@@ -654,6 +654,7 @@ class ClickHouseTelemetry:
                 },
                 "LOCATION_DATA": snapshot.get("location"),
                 "NETWORK": snapshot.get("network"),
+                "WIFI": snapshot.get("wifi"),
                 "DEVICE": _public_device(snapshot.get("device")),
                 "MEASURE": {
                     "cells": len(cells),
