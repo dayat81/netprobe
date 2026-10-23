@@ -12,6 +12,10 @@
     <color name="ping">#FBBF24</color>
     <color name="download">#38BDF8</color>
     <color name="upload">#A78BFA</color>
+    <!-- Speed panel: IPv4 amber, IPv6 local + GW6 + GW6 RTT violet -->
+    <color name="gateway_v4">#FBBF24</color>
+    <color name="ipv6_local">#A78BFA</color>
+    <color name="gateway_v6">#A78BFA</color>
     <color name="video_green">#00C174</color>
     <color name="video_stage">#0B0C1B</color>
     <color name="ookla_grey">#9193A8</color>

@@ -4,6 +4,9 @@ import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
+import android.text.SpannableStringBuilder
+import android.text.Spanned
+import android.text.style.ForegroundColorSpan
 import android.view.View
 import android.view.ViewGroup
 import android.widget.LinearLayout
@@ -43,7 +46,7 @@ class MainActivity : AppCompatActivity() {
     private var running = false
     private var videoRunning = false
     private var currentTab = Tab.RADIO
-    private val gatewayRttSamples = ArrayDeque<GatewayPinger.Sample>(GATEWAY_RTT_CAPACITY)
+    private val gatewayRttSamples = ArrayDeque<GatewayRttChartView.Point>(GATEWAY_RTT_CAPACITY)
 
     private val permissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions(),
@@ -93,7 +96,7 @@ class MainActivity : AppCompatActivity() {
             BuildConfig.COLLECTOR_HOST,
         )
         binding.speedClientIps.text = getString(R.string.speed_ips_loading)
-        binding.speedGateway.text = getString(R.string.speed_gateway_loading)
+        binding.speedGateway.text = coloredGatewayLabel("—", "—", "—", "—")
         binding.videoServer.text = getString(
             R.string.speed_server,
             "${BuildConfig.COLLECTOR_HOST}/video",
@@ -151,21 +154,21 @@ class MainActivity : AppCompatActivity() {
         gatewayPingJob = lifecycleScope.launch {
             while (currentTab == Tab.SPEED) {
                 val gw = withContext(Dispatchers.IO) {
-                    ClientNetworkInfo.gatewayIp(this@MainActivity)
-                }
-                val rtt = if (gw != "—") {
-                    withContext(Dispatchers.IO) { GatewayPinger.pingOnce(gw) }
-                } else {
-                    null
+                    GatewayMonitor.sample(this@MainActivity)
                 }
                 if (currentTab != Tab.SPEED) break
-                val sample = GatewayPinger.Sample(System.currentTimeMillis(), rtt)
+                val sample = GatewayRttChartView.Point(
+                    System.currentTimeMillis(),
+                    gw.ipv4RttMs,
+                    gw.ipv6RttMs,
+                )
                 if (gatewayRttSamples.size >= GATEWAY_RTT_CAPACITY) gatewayRttSamples.removeFirst()
                 gatewayRttSamples.addLast(sample)
-                binding.speedGateway.text = getString(
-                    R.string.speed_gateway,
-                    gw,
-                    GatewayPinger.formatRtt(rtt),
+                binding.speedGateway.text = coloredGatewayLabel(
+                    gw.ipv4 ?: "—",
+                    GatewayPinger.formatRtt(gw.ipv4RttMs),
+                    gw.ipv6 ?: "—",
+                    GatewayPinger.formatRtt(gw.ipv6RttMs),
                 )
                 binding.gatewayRttChart.setSamples(gatewayRttSamples.toList())
                 delay(GATEWAY_PING_INTERVAL_MS)
@@ -179,12 +182,14 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun refreshSpeedClientIps(family: IpFamily = nextSpeedFamily) {
-        val local = ClientNetworkInfo.localSummary(this)
+        val locals = ClientNetworkInfo.localAddressesPair(this)
         val gateway = ClientNetworkInfo.gatewayIpQuick(this)
-        binding.speedClientIps.text = getString(R.string.speed_ips, local, "…", "…")
-        binding.speedGateway.text = getString(
-            R.string.speed_gateway,
+        val gateway6 = ClientNetworkInfo.gatewayIpv6Quick(this)
+        binding.speedClientIps.text = coloredLocalIps(locals, "…", "…")
+        binding.speedGateway.text = coloredGatewayLabel(
             if (gateway == "—") "…" else gateway,
+            "…",
+            if (gateway6 == "—") "…" else gateway6,
             "…",
         )
         binding.speedServer.text = getString(
@@ -205,7 +210,7 @@ class MainActivity : AppCompatActivity() {
                     family.label,
                     "—",
                 )
-                binding.speedClientIps.text = getString(R.string.speed_ips, local, "—", "—")
+                binding.speedClientIps.text = coloredLocalIps(locals, "—", "—")
                 return@launch
             }
             binding.speedServer.text = getString(
@@ -218,14 +223,66 @@ class MainActivity : AppCompatActivity() {
                 ClientNetworkInfo.publicClientFromHello(target)
             }
             if (currentTab == Tab.SPEED) {
-                binding.speedClientIps.text = getString(
-                    R.string.speed_ips,
-                    local,
-                    public.ip,
-                    public.provider,
-                )
+                binding.speedClientIps.text = coloredLocalIps(locals, public.ip, public.provider)
             }
         }
+    }
+
+    private fun coloredLocalIps(
+        locals: ClientNetworkInfo.LocalAddresses,
+        publicIp: String,
+        provider: String,
+    ): CharSequence {
+        val secondary = ContextCompat.getColor(this, R.color.text_secondary)
+        val v4Color = ContextCompat.getColor(this, R.color.gateway_v4)
+        val v6Color = ContextCompat.getColor(this, R.color.gateway_v6)
+        val sb = SpannableStringBuilder()
+        fun appendColored(text: String, color: Int) {
+            val start = sb.length
+            sb.append(text)
+            sb.setSpan(ForegroundColorSpan(color), start, sb.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+        }
+        appendColored("Local ", secondary)
+        val v4 = locals.ipv4
+        val v6 = locals.ipv6
+        when {
+            v4 != null && v6 != null -> {
+                appendColored(v4, v4Color)
+                appendColored(" / ", secondary)
+                appendColored(v6, v6Color)
+            }
+            v4 != null -> appendColored(v4, v4Color)
+            v6 != null -> appendColored(v6, v6Color)
+            else -> appendColored("—", secondary)
+        }
+        appendColored(getString(R.string.speed_ips_tail, publicIp, provider), secondary)
+        return sb
+    }
+
+    private fun coloredGatewayLabel(
+        gw4: String,
+        rtt4: String,
+        gw6: String,
+        rtt6: String,
+    ): CharSequence {
+        val secondary = ContextCompat.getColor(this, R.color.text_secondary)
+        val v4Color = ContextCompat.getColor(this, R.color.gateway_v4)
+        val v6Color = ContextCompat.getColor(this, R.color.gateway_v6)
+        val sb = SpannableStringBuilder()
+        fun appendColored(text: String, color: Int) {
+            val start = sb.length
+            sb.append(text)
+            sb.setSpan(ForegroundColorSpan(color), start, sb.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+        }
+        appendColored("GW4 ", secondary)
+        appendColored(gw4, v4Color)
+        appendColored(" · ", secondary)
+        appendColored(rtt4, v4Color)
+        appendColored(" · GW6 ", secondary)
+        appendColored(gw6, v6Color)
+        appendColored(" · ", secondary)
+        appendColored(rtt6, v6Color)
+        return sb
     }
 
     private fun showSpeedTarget(target: SpeedtestTarget) {

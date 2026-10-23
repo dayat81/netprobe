@@ -6,33 +6,45 @@ import android.graphics.Paint
 import android.graphics.Path
 import android.util.AttributeSet
 import android.view.View
+import androidx.core.content.ContextCompat
 import kotlin.math.max
-import kotlin.math.min
 
-/** Compact sparkline of gateway ping RTT (ms). */
+/** Compact dual sparkline of gateway ping RTT (ms) for IPv4 + IPv6. */
 class GatewayRttChartView @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null,
 ) : View(context, attrs) {
-    private var samples: List<GatewayPinger.Sample> = emptyList()
+    data class Point(val tMs: Long, val rtt4Ms: Double?, val rtt6Ms: Double?)
+
+    private var samples: List<Point> = emptyList()
+
+    private val colorV4 = ContextCompat.getColor(context, R.color.gateway_v4)
+    private val colorV6 = ContextCompat.getColor(context, R.color.gateway_v6)
 
     private val grid = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = 0xFF1C2A3D.toInt()
         strokeWidth = dp(1f)
     }
-    private val line = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = 0xFFFBBF24.toInt()
-        style = Paint.Style.STROKE
-        strokeWidth = dp(2f)
-        strokeJoin = Paint.Join.ROUND
-        strokeCap = Paint.Cap.ROUND
+    private val lineV4 = strokePaint(colorV4)
+    private val fillV4 = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = (colorV4 and 0x00FFFFFF) or 0x33000000
+        style = Paint.Style.FILL
     }
-    private val fill = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = 0x33FBBF24
+    private val lineV6 = strokePaint(colorV6)
+    private val fillV6 = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = (colorV6 and 0x00FFFFFF) or 0x28000000
         style = Paint.Style.FILL
     }
     private val label = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = 0xFFA8B3C5.toInt()
+        textSize = dp(10f)
+    }
+    private val labelV4 = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = colorV4
+        textSize = dp(10f)
+    }
+    private val labelV6 = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = colorV6
         textSize = dp(10f)
     }
     private val miss = Paint(Paint.ANTI_ALIAS_FLAG).apply {
@@ -40,7 +52,7 @@ class GatewayRttChartView @JvmOverloads constructor(
         strokeWidth = dp(1.2f)
     }
 
-    fun setSamples(values: List<GatewayPinger.Sample>) {
+    fun setSamples(values: List<Point>) {
         samples = values
         invalidate()
     }
@@ -49,7 +61,7 @@ class GatewayRttChartView @JvmOverloads constructor(
         val padL = dp(36f)
         val padR = dp(8f)
         val padT = dp(8f)
-        val padB = dp(14f)
+        val padB = dp(16f)
         val left = padL
         val right = width - padR
         val top = padT
@@ -57,7 +69,7 @@ class GatewayRttChartView @JvmOverloads constructor(
         if (right <= left || bottom <= top) return
 
         canvas.drawColor(0xFF0A1017.toInt())
-        val rtts = samples.mapNotNull { it.rttMs }
+        val rtts = samples.flatMap { listOfNotNull(it.rtt4Ms, it.rtt6Ms) }
         val maxRtt = max(20.0, (rtts.maxOrNull() ?: 20.0) * 1.15)
         val minRtt = 0.0
 
@@ -69,19 +81,49 @@ class GatewayRttChartView @JvmOverloads constructor(
         }
 
         if (samples.isEmpty()) {
-            canvas.drawText("gateway RTT", left + dp(8f), (top + bottom) / 2f, label)
+            canvas.drawText("gw4 / gw6 RTT", left + dp(8f), (top + bottom) / 2f, label)
             return
         }
 
+        drawSeries(canvas, left, right, top, bottom, minRtt, maxRtt, { it.rtt4Ms }, fillV4, lineV4)
+        drawSeries(canvas, left, right, top, bottom, minRtt, maxRtt, { it.rtt6Ms }, fillV6, lineV6)
+
+        val latest4 = samples.lastOrNull()?.rtt4Ms
+        val latest6 = samples.lastOrNull()?.rtt6Ms
+        val yLabel = height - dp(3f)
+        canvas.drawText("gw4 ${GatewayPinger.formatRtt(latest4)}", left + dp(4f), yLabel, labelV4)
+        canvas.drawText(
+            "gw6 ${GatewayPinger.formatRtt(latest6)}",
+            left + dp(90f),
+            yLabel,
+            labelV6,
+        )
+    }
+
+    private fun drawSeries(
+        canvas: Canvas,
+        left: Float,
+        right: Float,
+        top: Float,
+        bottom: Float,
+        minRtt: Double,
+        maxRtt: Double,
+        pick: (Point) -> Double?,
+        fillPaint: Paint,
+        linePaint: Paint,
+    ) {
         val path = Path()
         val fillPath = Path()
         var started = false
         val n = samples.size
         samples.forEachIndexed { index, sample ->
             val x = left + (right - left) * index / max(1, n - 1).toFloat()
-            val rtt = sample.rttMs
+            val rtt = pick(sample)
             if (rtt == null) {
-                canvas.drawLine(x, top + dp(2f), x, bottom - dp(2f), miss)
+                if (started) {
+                    // break the stroke on miss; mark gap lightly
+                    canvas.drawLine(x, top + dp(2f), x, bottom - dp(2f), miss)
+                }
                 started = false
                 return@forEachIndexed
             }
@@ -100,17 +142,17 @@ class GatewayRttChartView @JvmOverloads constructor(
             val lastX = left + (right - left) * (n - 1) / max(1, n - 1).toFloat()
             fillPath.lineTo(lastX, bottom)
             fillPath.close()
-            canvas.drawPath(fillPath, fill)
-            canvas.drawPath(path, line)
+            canvas.drawPath(fillPath, fillPaint)
+            canvas.drawPath(path, linePaint)
         }
+    }
 
-        val latest = samples.lastOrNull()?.rttMs
-        canvas.drawText(
-            "gw rtt ${GatewayPinger.formatRtt(latest)}",
-            left + dp(4f),
-            height - dp(3f),
-            label,
-        )
+    private fun strokePaint(color: Int) = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        this.color = color
+        style = Paint.Style.STROKE
+        strokeWidth = dp(2f)
+        strokeJoin = Paint.Join.ROUND
+        strokeCap = Paint.Cap.ROUND
     }
 
     private fun formatAxis(ms: Double): String =

@@ -728,12 +728,17 @@ class RadioSampler(private val context: Context) {
                 caps.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET) -> "ethernet"
                 else -> "other"
             }
+            val gw = GatewayMonitor.sample(context)
             NetworkInfo(
                 transport = transport,
                 connected = true,
                 roaming = !caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_NOT_ROAMING),
                 downstreamKbps = caps.linkDownstreamBandwidthKbps.coerceIn(0, 100_000_000),
                 upstreamKbps = caps.linkUpstreamBandwidthKbps.coerceIn(0, 100_000_000),
+                gatewayIp = gw.ipv4,
+                gatewayRttMs = gw.ipv4RttMs,
+                gatewayIpv6 = gw.ipv6,
+                gatewayIpv6RttMs = gw.ipv6RttMs,
             )
         } catch (_: SecurityException) {
             NetworkInfo.NONE

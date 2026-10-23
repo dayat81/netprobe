@@ -455,15 +455,34 @@ def _snapshot(value: object) -> dict:
         raise ValueError("invalid subscriptions")
     if not isinstance(cells, list) or len(cells) > MAX_CELLS:
         raise ValueError("invalid cells")
-    network = _exact(
+    network = _shape(
         item["network"],
         {"transport", "connected", "roaming", "downstream_kbps", "upstream_kbps"},
+        {"gateway_ip", "gateway_rtt_ms", "gateway_ipv6", "gateway_ipv6_rtt_ms"},
         "network",
     )
     if network["transport"] not in ("cellular", "wifi", "ethernet", "other", "none"):
         raise ValueError("invalid transport")
     if not isinstance(network["connected"], bool) or not isinstance(network["roaming"], bool):
         raise ValueError("invalid network flags")
+    gateway_ip = network.get("gateway_ip")
+    if gateway_ip is not None and not isinstance(gateway_ip, str):
+        raise ValueError("invalid gateway_ip")
+    if isinstance(gateway_ip, str):
+        if len(gateway_ip) > 64 or any(ord(ch) < 32 or ord(ch) == 127 for ch in gateway_ip):
+            raise ValueError("invalid gateway_ip")
+        if not gateway_ip or gateway_ip == "—":
+            gateway_ip = None
+    gateway_rtt_ms = _opt_float(network.get("gateway_rtt_ms"), 0, 60_000)
+    gateway_ipv6 = network.get("gateway_ipv6")
+    if gateway_ipv6 is not None and not isinstance(gateway_ipv6, str):
+        raise ValueError("invalid gateway_ipv6")
+    if isinstance(gateway_ipv6, str):
+        if len(gateway_ipv6) > 64 or any(ord(ch) < 32 or ord(ch) == 127 for ch in gateway_ipv6):
+            raise ValueError("invalid gateway_ipv6")
+        if not gateway_ipv6 or gateway_ipv6 == "—":
+            gateway_ipv6 = None
+    gateway_ipv6_rtt_ms = _opt_float(network.get("gateway_ipv6_rtt_ms"), 0, 60_000)
     location = _exact(
         item["location"],
         {
@@ -506,6 +525,26 @@ def _snapshot(value: object) -> dict:
             "roaming": network["roaming"],
             "downstream_kbps": _opt_int(network["downstream_kbps"], 0, 100000000) or 0,
             "upstream_kbps": _opt_int(network["upstream_kbps"], 0, 100000000) or 0,
+            **(
+                {"gateway_ip": gateway_ip}
+                if gateway_ip is not None
+                else {}
+            ),
+            **(
+                {"gateway_rtt_ms": gateway_rtt_ms}
+                if gateway_rtt_ms is not None
+                else {}
+            ),
+            **(
+                {"gateway_ipv6": gateway_ipv6}
+                if gateway_ipv6 is not None
+                else {}
+            ),
+            **(
+                {"gateway_ipv6_rtt_ms": gateway_ipv6_rtt_ms}
+                if gateway_ipv6_rtt_ms is not None
+                else {}
+            ),
         },
         "location": {
             "status": location["status"],

@@ -21,12 +21,33 @@ object NativeTraceroute {
     fun firstRespondingHop(
         context: Context,
         target: String = "8.8.8.8",
+        ipv6: Boolean = false,
         maxHops: Int = 8,
         timeoutSec: Long = 12,
     ): String? {
-        val hops = run(context, target, maxHops = maxHops, timeoutSec = timeoutSec)
+        val hops = run(
+            context,
+            target,
+            ipv6 = ipv6,
+            maxHops = maxHops,
+            timeoutSec = timeoutSec,
+        )
         return hops.firstOrNull { !it.host.isNullOrBlank() }?.host
     }
+
+    /** IPv6 traceroute to a public dual-stack target (Google DNS). */
+    fun firstRespondingHopV6(
+        context: Context,
+        target: String = "2001:4860:4860::8888",
+        maxHops: Int = 8,
+        timeoutSec: Long = 12,
+    ): String? = firstRespondingHop(
+        context,
+        target = target,
+        ipv6 = true,
+        maxHops = maxHops,
+        timeoutSec = timeoutSec,
+    )
 
     fun run(
         context: Context,

@@ -264,6 +264,14 @@ data class NetworkInfo(
     val roaming: Boolean,
     val downstreamKbps: Int,
     val upstreamKbps: Int,
+    /** IPv4 default / first-hop gateway (traceroute or route); null if unknown. */
+    val gatewayIp: String? = null,
+    /** ICMP / reachability RTT to [gatewayIp] in ms; null if unknown. */
+    val gatewayRttMs: Double? = null,
+    /** IPv6 default / first-hop gateway (traceroute -6 or RA); null if unknown. */
+    val gatewayIpv6: String? = null,
+    /** ICMP / reachability RTT to [gatewayIpv6] in ms; null if unknown. */
+    val gatewayIpv6RttMs: Double? = null,
 ) {
     fun toJson(): JSONObject = JSONObject()
         .put("transport", transport)
@@ -271,6 +279,19 @@ data class NetworkInfo(
         .put("roaming", roaming)
         .put("downstream_kbps", downstreamKbps)
         .put("upstream_kbps", upstreamKbps)
+        .put("gateway_ip", gatewayIp?.takeIf { it.isNotBlank() && it != "—" } ?: JSONObject.NULL)
+        .put(
+            "gateway_rtt_ms",
+            gatewayRttMs?.takeIf { it.isFinite() && it >= 0.0 } ?: JSONObject.NULL,
+        )
+        .put(
+            "gateway_ipv6",
+            gatewayIpv6?.takeIf { it.isNotBlank() && it != "—" } ?: JSONObject.NULL,
+        )
+        .put(
+            "gateway_ipv6_rtt_ms",
+            gatewayIpv6RttMs?.takeIf { it.isFinite() && it >= 0.0 } ?: JSONObject.NULL,
+        )
 
     companion object {
         val NONE = NetworkInfo("none", false, false, 0, 0)

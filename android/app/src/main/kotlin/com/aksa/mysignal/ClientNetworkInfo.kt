@@ -30,9 +30,14 @@ object ClientNetworkInfo {
     var lastPublic: PublicClientInfo? = null
         private set
 
-    /** Last non-empty gateway resolved on the IO path (for quick UI paint). */
+    /** Last non-empty IPv4 gateway resolved on the IO path (for quick UI paint). */
     @Volatile
     var lastGateway: String? = null
+        private set
+
+    /** Last non-empty IPv6 gateway (global or link-local RA). */
+    @Volatile
+    var lastGatewayV6: String? = null
         private set
 
     /** Last resolved ISP/provider name from public IP (empty if unknown). */
@@ -59,11 +64,20 @@ object ClientNetworkInfo {
         "64315" to "ASIA",
     )
 
-    fun localSummary(context: Context): String {
+    data class LocalAddresses(val ipv4: String?, val ipv6: String?) {
+        fun summary(): String = when {
+            ipv4 != null && ipv6 != null -> "$ipv4 / $ipv6"
+            ipv4 != null -> ipv4
+            ipv6 != null -> ipv6
+            else -> "—"
+        }
+    }
+
+    fun localAddressesPair(context: Context): LocalAddresses {
         val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager
-            ?: return "—"
-        val network = cm.activeNetwork ?: return "—"
-        val props: LinkProperties = cm.getLinkProperties(network) ?: return "—"
+            ?: return LocalAddresses(null, null)
+        val network = cm.activeNetwork ?: return LocalAddresses(null, null)
+        val props: LinkProperties = cm.getLinkProperties(network) ?: return LocalAddresses(null, null)
         val addrs = props.linkAddresses.map { it.address }.filter { !it.isLoopbackAddress }
 
         val ipv4 = addrs
@@ -78,20 +92,17 @@ object ClientNetworkInfo {
             .distinct()
             .firstOrNull()
 
-        return when {
-            ipv4 != null && ipv6 != null -> "$ipv4 / $ipv6"
-            ipv4 != null -> ipv4
-            ipv6 != null -> ipv6
-            else -> "—"
-        }
+        return LocalAddresses(ipv4, ipv6)
     }
 
+    fun localSummary(context: Context): String = localAddressesPair(context).summary()
+
     /**
-     * Default-route / first-hop gateway for the active network.
+     * Default-route / first-hop **IPv4** gateway.
      *
      * Cellular often advertises `0.0.0.0/0 via <own IP>` (point-to-point). That is
-     * rejected; we then prefer ICMP TTL=1 first hop (PingTools-style), then the
-     * common RA next-hop `fe80::1` when the route table is P2P/`::`.
+     * rejected; we then prefer traceroute `-4` first hop (PingTools-style).
+     * IPv6 is resolved separately via [gatewayIpv6].
      */
     fun gatewayIp(context: Context): String {
         val locals = localAddresses(context)
@@ -102,21 +113,56 @@ object ClientNetworkInfo {
         val iface = props?.interfaceName
         val cellular = caps?.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) == true
         val p2p = isCellularP2P(props?.routes, locals)
-        // LinkProperties often has cell IPv4 via=self and IPv6 via=::; kernel still
-        // knows the RA next-hop (fe80::1). Prefer API routes, then probes.
-        gatewayFromRoutes(props?.routes, locals)?.let { return rememberGateway(it, "routes") }
+        gatewayFromRoutesV4(props?.routes, locals)?.let { return rememberGateway(it, "routes") }
         gatewayFromWifiDhcp(context, locals)?.let { return rememberGateway(it, "dhcp") }
-        gatewayFromIpRouteGet(locals, iface)?.let { return rememberGateway(it, "ip-route") }
-        // PingTools path: bundled traceroute ELF → first responding hop (cell often * then 10.x).
+        gatewayFromIpRouteGetV4(locals, iface)?.let { return rememberGateway(it, "ip-route") }
         NativeTraceroute.firstRespondingHop(context)?.let { hop ->
-            if (isUsableGateway(hop, locals)) return rememberGateway(hop, "traceroute")
+            if (isUsableGateway(hop, locals) && !hop.contains(':')) {
+                return rememberGateway(hop, "traceroute")
+            }
         }
-        CellGatewayProbe.firstHop(network, locals)?.let { return rememberGateway(it, "icmp-ttl1") }
-        firstHopFromTtlProbe(locals)?.let { return rememberGateway(it, "shell-ttl1") }
-        CellGatewayProbe.cellRaLinkLocal(cellular, p2p)?.let { return rememberGateway(it, "cell-ra") }
+        CellGatewayProbe.firstHop(network, locals)?.let { hop ->
+            if (!hop.contains(':')) return rememberGateway(hop, "icmp-ttl1")
+        }
+        firstHopFromTtlProbe(locals)?.let { hop ->
+            if (!hop.contains(':')) return rememberGateway(hop, "shell-ttl1")
+        }
         Log.i(
             TAG,
-            "gateway none locals=$locals iface=$iface cell=$cellular p2p=$p2p routes=${props?.routes?.map { routeSummary(it) }}",
+            "gateway v4 none locals=$locals iface=$iface cell=$cellular p2p=$p2p routes=${props?.routes?.map { routeSummary(it) }}",
+        )
+        return "—"
+    }
+
+    /**
+     * Default-route / first-hop **IPv6** gateway (global or link-local).
+     *
+     * Same PingTools path as IPv4: `traceroute -6` to a public destination when
+     * LinkProperties hides the RA next-hop behind `::/0 -> ::`.
+     */
+    fun gatewayIpv6(context: Context): String {
+        val locals = localAddresses(context)
+        val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager
+        val network = cm?.activeNetwork
+        val props = network?.let { cm.getLinkProperties(it) }
+        val caps = network?.let { cm.getNetworkCapabilities(it) }
+        val iface = props?.interfaceName
+        val cellular = caps?.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) == true
+        val p2p = isCellularP2P(props?.routes, locals)
+        val hasLocalV6 = locals.any { it.contains(':') }
+        gatewayFromRoutesV6(props?.routes, locals)?.let { return rememberGatewayV6(it, "routes") }
+        gatewayFromIpRouteGetV6(locals, iface)?.let { return rememberGatewayV6(it, "ip-route") }
+        if (hasLocalV6) {
+            NativeTraceroute.firstRespondingHopV6(context)?.let { hop ->
+                if (isUsableGateway(hop, locals) && hop.contains(':')) {
+                    return rememberGatewayV6(hop, "traceroute6")
+                }
+            }
+        }
+        CellGatewayProbe.cellRaLinkLocal(cellular, p2p)?.let { return rememberGatewayV6(it, "cell-ra") }
+        Log.i(
+            TAG,
+            "gateway v6 none locals=$locals iface=$iface cell=$cellular p2p=$p2p hasLocalV6=$hasLocalV6",
         )
         return "—"
     }
@@ -128,14 +174,30 @@ object ClientNetworkInfo {
         val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager
         val network = cm?.activeNetwork
         val props = network?.let { cm.getLinkProperties(it) }
-        gatewayFromRoutes(props?.routes, locals)?.let { return it }
+        gatewayFromRoutesV4(props?.routes, locals)?.let { return it }
         gatewayFromWifiDhcp(context, locals)?.let { return it }
+        return "—"
+    }
+
+    fun gatewayIpv6Quick(context: Context): String {
+        lastGatewayV6?.takeIf { it.isNotBlank() && it != "—" }?.let { return it }
+        val locals = localAddresses(context)
+        val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager
+        val network = cm?.activeNetwork
+        val props = network?.let { cm.getLinkProperties(it) }
+        gatewayFromRoutesV6(props?.routes, locals)?.let { return it }
         return "—"
     }
 
     private fun rememberGateway(host: String, source: String): String {
         lastGateway = host
         Log.i(TAG, "gateway=$host via $source")
+        return host
+    }
+
+    private fun rememberGatewayV6(host: String, source: String): String {
+        lastGatewayV6 = host
+        Log.i(TAG, "gateway6=$host via $source")
         return host
     }
 
@@ -156,15 +218,21 @@ object ClientNetworkInfo {
             .toSet()
     }
 
-    private fun gatewayFromRoutes(routes: List<RouteInfo>?, locals: Set<String>): String? {
+    private fun gatewayFromRoutesV4(routes: List<RouteInfo>?, locals: Set<String>): String? {
         if (routes.isNullOrEmpty()) return null
-        val defaults = routes.filter { it.isDefaultRoute && it.gateway != null }
-        // Prefer a next-hop that is not our own address (cell P2P often sets via=self).
-        val candidates = defaults.mapNotNull { formatHost(it.gateway!!) }
-            .filter { it !in locals && it != "0.0.0.0" && it != "::" }
-        // Prefer IPv4, then link-local IPv6 (common cell RA gateway fe80::1).
-        candidates.firstOrNull { !it.contains(':') }?.let { return it }
-        candidates.firstOrNull { it.startsWith("fe80:", ignoreCase = true) }?.let { return it }
+        return routes.filter { it.isDefaultRoute && it.gateway != null }
+            .mapNotNull { formatHost(it.gateway!!) }
+            .filter { !it.contains(':') && it !in locals && it != "0.0.0.0" }
+            .firstOrNull()
+    }
+
+    private fun gatewayFromRoutesV6(routes: List<RouteInfo>?, locals: Set<String>): String? {
+        if (routes.isNullOrEmpty()) return null
+        val candidates = routes.filter { it.isDefaultRoute && it.gateway != null }
+            .mapNotNull { formatHost(it.gateway!!) }
+            .filter { it.contains(':') && it !in locals && it != "::" }
+        // Prefer global over link-local when both appear.
+        candidates.firstOrNull { !it.startsWith("fe80:", ignoreCase = true) }?.let { return it }
         return candidates.firstOrNull()
     }
 
@@ -191,31 +259,39 @@ object ClientNetworkInfo {
      * Kernel next-hop from `ip route get`. LinkProperties hides cellular RA
      * gateways (`fe80::1`) behind `::/0 -> ::`.
      */
-    private fun gatewayFromIpRouteGet(locals: Set<String>, iface: String?): String? {
-        val probes = listOf(
-            arrayOf("ip", "-6", "route", "get", "2001:4860:4860::8888"),
-            arrayOf("ip", "route", "get", "8.8.8.8"),
+    private fun gatewayFromIpRouteGetV4(locals: Set<String>, iface: String?): String? =
+        firstViaFromIp(
+            locals,
+            listOf(
+                arrayOf("ip", "route", "get", "8.8.8.8"),
+                arrayOf("ip", "route", "show", "default"),
+            ),
+            ipv6 = false,
         )
-        for (cmd in probes) {
-            val out = runShell(cmd) ?: continue
-            val via = VIA_RE.find(out)?.groupValues?.getOrNull(1)?.substringBefore('%') ?: continue
-            if (!isUsableGateway(via, locals)) continue
-            // Prefer hops on the active iface when the line reports one.
-            if (iface != null && " dev " in out && " dev $iface" !in out && "dev $iface" !in out) {
-                // Still accept: multi-table routing may omit matching iface text.
-            }
-            return via
-        }
-        // Explicit default lines (all tables).
-        for (cmd in listOf(
-            arrayOf("ip", "-6", "route", "show", "default"),
-            arrayOf("ip", "route", "show", "default"),
-            arrayOf("ip", "-6", "route", "show", "table", "all"),
-        )) {
+
+    private fun gatewayFromIpRouteGetV6(locals: Set<String>, iface: String?): String? =
+        firstViaFromIp(
+            locals,
+            listOf(
+                arrayOf("ip", "-6", "route", "get", "2001:4860:4860::8888"),
+                arrayOf("ip", "-6", "route", "show", "default"),
+                arrayOf("ip", "-6", "route", "show", "table", "all"),
+            ),
+            ipv6 = true,
+        )
+
+    private fun firstViaFromIp(
+        locals: Set<String>,
+        cmds: List<Array<String>>,
+        ipv6: Boolean,
+    ): String? {
+        for (cmd in cmds) {
             val out = runShell(cmd) ?: continue
             for (match in VIA_RE.findAll(out)) {
                 val via = match.groupValues[1].substringBefore('%')
-                if (isUsableGateway(via, locals)) return via
+                if (!isUsableGateway(via, locals)) continue
+                if (ipv6 != via.contains(':')) continue
+                return via
             }
         }
         return null
