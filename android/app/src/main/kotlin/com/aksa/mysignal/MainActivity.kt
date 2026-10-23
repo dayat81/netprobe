@@ -38,6 +38,7 @@ class MainActivity : AppCompatActivity() {
     private var speedJob: Job? = null
     private var videoJob: Job? = null
     private var complaintJob: Job? = null
+    private var nextSpeedFamily: IpFamily = IpFamily.IPV4
     private var running = false
     private var videoRunning = false
     private var currentTab = Tab.RADIO
@@ -89,10 +90,12 @@ class MainActivity : AppCompatActivity() {
             R.string.speed_server,
             BuildConfig.COLLECTOR_HOST,
         )
+        binding.speedClientIps.text = getString(R.string.speed_ips_loading)
         binding.videoServer.text = getString(
             R.string.speed_server,
             "${BuildConfig.COLLECTOR_HOST}/video",
         )
+        nextSpeedFamily = IpFamily.IPV4
         wireRadioPager()
         wireComplaintPager()
         updatePermissionUi()
@@ -127,10 +130,66 @@ class MainActivity : AppCompatActivity() {
         if (tab == Tab.RADIO) {
             binding.radioPane.setCurrentItem(1, false)
         }
+        if (tab == Tab.SPEED) {
+            refreshSpeedClientIps()
+        }
         if (tab == Tab.COMPLAINT) {
             binding.complaintPane.setCurrentItem(1, false)
             showComplaint()
         }
+    }
+
+    private fun refreshSpeedClientIps(family: IpFamily = nextSpeedFamily) {
+        val local = ClientNetworkInfo.localSummary(this)
+        binding.speedClientIps.text = getString(R.string.speed_ips, local, "…", "…")
+        binding.speedServer.text = getString(
+            R.string.speed_server_stack,
+            BuildConfig.COLLECTOR_HOST,
+            family.label,
+            "…",
+        )
+        lifecycleScope.launch {
+            val target = withContext(Dispatchers.IO) {
+                runCatching { SpeedtestTarget.resolve(family = family) }.getOrNull()
+            }
+            if (currentTab != Tab.SPEED) return@launch
+            if (target == null) {
+                binding.speedServer.text = getString(
+                    R.string.speed_server_stack,
+                    BuildConfig.COLLECTOR_HOST,
+                    family.label,
+                    "—",
+                )
+                binding.speedClientIps.text = getString(R.string.speed_ips, local, "—", "—")
+                return@launch
+            }
+            binding.speedServer.text = getString(
+                R.string.speed_server_stack,
+                target.hostname,
+                target.family.label,
+                target.serverIp,
+            )
+            val public = withContext(Dispatchers.IO) {
+                ClientNetworkInfo.publicClientFromHello(target)
+            }
+            if (currentTab == Tab.SPEED) {
+                binding.speedClientIps.text = getString(
+                    R.string.speed_ips,
+                    local,
+                    public.ip,
+                    public.provider,
+                )
+            }
+        }
+    }
+
+    private fun showSpeedTarget(target: SpeedtestTarget) {
+        binding.speedServer.text = getString(
+            R.string.speed_server_stack,
+            target.hostname,
+            target.family.label,
+            target.serverIp,
+        )
     }
 
     private fun wireRadioPager() {
@@ -377,24 +436,45 @@ class MainActivity : AppCompatActivity() {
         binding.speedStatus.text = getString(R.string.speed_running)
         speedJob = lifecycleScope.launch {
             var round = 0
+            var family = nextSpeedFamily
             try {
                 while (running) {
                     round += 1
                     binding.speedStatus.text = getString(R.string.speed_loop, round)
                     binding.speedCenter.text = getString(R.string.speed_stop)
+                    binding.pingValue.text = "—"
+                    binding.downloadValue.text = "—"
+                    binding.uploadValue.text = "—"
+                    binding.jitterValue.text = getString(R.string.speed_jitter_idle)
                     try {
-                        val result = SpeedtestEngine(SpeedtestEngine.defaultBaseUrl()).run { progress ->
+                        val target = withContext(Dispatchers.IO) {
+                            SpeedtestTarget.resolve(family = family)
+                        }
+                        nextSpeedFamily = family
+                        showSpeedTarget(target)
+                        refreshSpeedClientIps(family)
+                        val result = SpeedtestEngine(target).run { progress ->
                             runOnUiThread { renderProgress(progress) }
                         }
                         SpeedtestReport.upload(applicationContext, result)
+                        family = family.next()
+                        nextSpeedFamily = family
                     } catch (cancelled: CancellationException) {
                         throw cancelled
                     } catch (error: Exception) {
                         if (!running) break
-                        binding.speedStatus.text = getString(
-                            R.string.speed_retry,
-                            error.message?.take(60) ?: error.javaClass.simpleName,
+                        android.util.Log.w(
+                            "MySignalSpeed",
+                            "${family.label} round failed: ${error.message}",
+                            error,
                         )
+                        binding.speedStatus.text = getString(
+                            R.string.speed_family_unavailable,
+                            family.label,
+                            error.message?.take(48) ?: error.javaClass.simpleName,
+                        )
+                        family = family.next()
+                        nextSpeedFamily = family
                         delay(2_000)
                     }
                 }
@@ -402,7 +482,8 @@ class MainActivity : AppCompatActivity() {
             } finally {
                 running = false
                 binding.speedCenter.text = getString(R.string.speed_go)
-                if (binding.speedStatus.text?.toString()?.startsWith("Retrying") != true) {
+                val status = binding.speedStatus.text?.toString().orEmpty()
+                if (!status.startsWith("Retrying") && !status.contains("unavailable")) {
                     binding.speedStatus.text = ""
                 }
             }
@@ -411,6 +492,12 @@ class MainActivity : AppCompatActivity() {
 
     private fun renderProgress(progress: SpeedtestEngine.Progress) {
         if (!running) return
+        if (progress.serverLabel.isNotEmpty()) {
+            binding.speedServer.text = progress.serverLabel.let { label ->
+                // Progress.serverLabel already formatted as "host · IPvX ip"
+                "Azure · $label"
+            }
+        }
         progress.pingMs?.let { binding.pingValue.text = SpeedtestMath.formatMs(it) }
         progress.jitterMs?.let { binding.jitterValue.text = "jitter ${it} ms" }
         progress.downloadMbps?.let { binding.downloadValue.text = SpeedtestMath.formatMbps(it) }

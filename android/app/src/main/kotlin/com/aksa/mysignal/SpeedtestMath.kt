@@ -38,17 +38,44 @@ object SpeedtestMath {
         if (samples.isEmpty()) return 0.0
         val sorted = samples.sorted()
         if (sorted.size < 10) {
-            val mid = sorted.size / 2
-            return if (sorted.size % 2 == 0) {
-                (sorted[mid - 1] + sorted[mid]) / 2.0
-            } else {
-                sorted[mid]
-            }
+            return medianDouble(sorted)
         }
         val trim = (sorted.size * 0.10).toInt().coerceAtLeast(1)
         val kept = sorted.subList(trim, sorted.size - trim)
         if (kept.isEmpty()) return sorted[sorted.size / 2]
         return kept.sum() / kept.size
+    }
+
+    /**
+     * Stable goodput: drop idle/gap samples below 20% of median, then 20% trimmed mean.
+     * Aimed at plateau scores (Ookla-like) instead of HTTP chunk-gap drag.
+     */
+    fun stableMbps(samples: List<Double>): Double {
+        if (samples.isEmpty()) return 0.0
+        val sorted = samples.sorted()
+        val median = medianDouble(sorted)
+        if (median <= 0.0) return 0.0
+        val floor = median * 0.20
+        val active = sorted.filter { it >= floor }
+        val pool = if (active.isEmpty()) sorted else active
+        if (pool.size < 5) return medianDouble(pool)
+        if (pool.size < 10) return medianDouble(pool)
+        val trim = (pool.size * 0.20).toInt().coerceAtLeast(1)
+        val end = pool.size - trim
+        if (end <= trim) return medianDouble(pool)
+        val kept = pool.subList(trim, end)
+        if (kept.isEmpty()) return medianDouble(pool)
+        return kept.sum() / kept.size
+    }
+
+    fun medianDouble(sorted: List<Double>): Double {
+        if (sorted.isEmpty()) return 0.0
+        val mid = sorted.size / 2
+        return if (sorted.size % 2 == 0) {
+            (sorted[mid - 1] + sorted[mid]) / 2.0
+        } else {
+            sorted[mid]
+        }
     }
 
     fun formatMbps(value: Double): String =

@@ -605,6 +605,8 @@ def _complaint_brief(raw: dict) -> dict:
         "plmn": _clip(raw.get("plmn"), 16),
         "slot": _clip(raw.get("slot"), 24),
         "carrier": _clip(raw.get("carrier"), 64),
+        "provider": _clip(raw.get("provider") or speed.get("provider"), 64),
+        "public_ip": _clip(raw.get("public_ip"), 64),
         "mention": _clip(raw.get("mention"), 32),
         "radio": _clip(raw.get("radio"), 240),
         "location": _clip(raw.get("location"), 48),
@@ -613,7 +615,11 @@ def _complaint_brief(raw: dict) -> dict:
             "download_mbps": _bounded(speed.get("download_mbps"), 0, 10000),
             "upload_mbps": _bounded(speed.get("upload_mbps"), 0, 10000),
             "ping_ms": _bounded(speed.get("ping_ms"), 0, 600000),
+            "jitter_ms": _bounded(speed.get("jitter_ms"), 0, 600000),
             "transport": _clip(speed.get("transport"), 16),
+            "server": _clip(speed.get("server"), 120),
+            "ip_stack": _clip(speed.get("ip_stack"), 24),
+            "provider": _clip(speed.get("provider") or raw.get("provider"), 64),
         },
         "video": {
             "load_ms": _bounded(video.get("load_ms"), 0, 600000),
@@ -625,40 +631,144 @@ def _complaint_brief(raw: dict) -> dict:
 
 
 def _local_block(brief: dict) -> str:
-    speed = brief["speed"]["transport"] == "cellular" and brief["speed"]["download_mbps"] is not None
-    video = brief["video"]["transport"] == "cellular" and brief["video"]["resolution"]
-    if not speed and not video:
-        return "Belum ada tes seluler. Jalankan speed atau video lewat data seluler. Wi-Fi boleh dipakai hanya untuk mengirim."
-    return ""
+    speed_ok = brief["speed"]["download_mbps"] is not None
+    video_ok = bool(brief["video"]["resolution"])
+    if not speed_ok and not video_ok:
+        return "Belum ada hasil tes. Jalankan speed atau video dulu."
+    speed_cell = brief["speed"]["transport"] == "cellular" and speed_ok
+    video_cell = brief["video"]["transport"] == "cellular" and video_ok
+    if speed_cell or video_cell:
+        return ""
+    provider = (
+        brief.get("provider")
+        or brief.get("carrier")
+        or brief.get("mention")
+        or (brief.get("speed") or {}).get("provider")
+        or ""
+    )
+    if str(provider).strip():
+        return ""
+    return (
+        "Tes Wi-Fi perlu nama provider (dari public IP). "
+        "Buka tab Speed sampai provider terdeteksi, lalu coba lagi."
+    )
 
 
-def create_complaint(raw: dict) -> dict:
+def _decline_summary(classification: dict) -> str:
+    intent = classification.get("post_intent") or "skip"
+    topic = classification.get("topic") or classification.get("issue") or "none"
+    quality = classification.get("quality_band") or "unknown"
+    noul = classification.get("eligible_noul")
+    parts = [
+        "Jev classifier: skip post.",
+        "intent=%s" % intent,
+        "topic=%s" % topic,
+        "quality=%s" % quality,
+    ]
+    if noul is not None:
+        parts.append("worthy_noul=%.2f (need >= %.2f)" % (
+            float(noul),
+            float(classification.get("eligible_threshold") or 0.65),
+        ))
+    path = classification.get("path_kind")
+    if path:
+        parts.append("path=%s" % path)
+    return " ".join(parts)
+
+
+def _compose_response(record: dict, classification: dict | None = None) -> dict:
+    classification = classification or record.get("classification") or {}
+    return {
+        "eligible": bool(record.get("eligible")),
+        "sentence": record.get("sentence") or "",
+        "summary": record.get("summary") or "",
+        "url": "%s/crowd/c/%s" % (PUBLIC_BASE, record.get("id") or ""),
+        "classifier": record.get("classifier") or classification.get("model") or "jev",
+        "composer": record.get("composer") or "",
+        "post_intent": classification.get("post_intent") or "skip",
+        "topic": classification.get("topic") or classification.get("issue") or "",
+        "issue": classification.get("issue"),
+        "quality_band": classification.get("quality_band"),
+        "path_kind": classification.get("path_kind"),
+        "eligible_noul": classification.get("eligible_noul"),
+    }
+
+
+def compose_x_post(raw: dict) -> dict:
+    """Jev chooses complaint|praise|skip; OTel composes the X sentence when posting."""
     brief = _complaint_brief(raw)
     blocked = _local_block(brief)
     if blocked:
-        return {"eligible": False, "sentence": "", "summary": blocked, "url": ""}
+        return {
+            "eligible": False,
+            "sentence": "",
+            "summary": blocked,
+            "url": "",
+            "classifier": "local",
+            "composer": "",
+            "post_intent": "skip",
+            "topic": "",
+        }
+    import measure_jev
     import measure_otel
-    judged = measure_otel.judge_complaint(brief)
+
+    classification = measure_jev.classify_complaint(brief)
+    intent = classification.get("post_intent") or "skip"
+    if not classification.get("eligible") or intent == "skip":
+        complaint_id = secrets.token_hex(8)
+        record = {
+            "id": complaint_id,
+            "created": int(time.time()),
+            "brief": brief,
+            "eligible": False,
+            "sentence": "",
+            "summary": _decline_summary(classification),
+            "classification": classification,
+            "model": classification.get("model") or "",
+            "classifier": classification.get("model") or "jev",
+            "composer": "",
+        }
+        COMPLAINT_DIR.mkdir(parents=True, exist_ok=True)
+        (COMPLAINT_DIR / ("%s.json" % complaint_id)).write_text(
+            json.dumps(record, ensure_ascii=False), encoding="utf-8"
+        )
+        return _compose_response(record, classification)
+
+    composed = measure_otel.compose_x_post(brief, classification)
+    sentence = composed.get("sentence") or ""
+    summary = composed.get("summary") or ""
+    composer_model = composed.get("model") or ""
+    if not sentence and intent == "complaint":
+        # Legacy fallback only for complaint drafts.
+        judged = measure_otel.judge_complaint(brief)
+        sentence = judged.get("sentence") or ""
+        summary = judged.get("summary") or summary
+        composer_model = judged.get("model") or composer_model
+    eligible = bool(sentence)
+
     complaint_id = secrets.token_hex(8)
     record = {
         "id": complaint_id,
         "created": int(time.time()),
         "brief": brief,
-        "eligible": bool(judged["eligible"]),
-        "sentence": judged["sentence"],
-        "summary": judged["summary"],
-        "model": judged.get("model") or "",
+        "eligible": eligible,
+        "sentence": sentence if eligible else "",
+        "summary": summary,
+        "classification": classification,
+        "model": composer_model,
+        "classifier": classification.get("model") or "jev",
+        "composer": composer_model,
     }
     COMPLAINT_DIR.mkdir(parents=True, exist_ok=True)
-    path = COMPLAINT_DIR / ("%s.json" % complaint_id)
-    path.write_text(json.dumps(record, ensure_ascii=False), encoding="utf-8")
-    url = "%s/crowd/c/%s" % (PUBLIC_BASE, complaint_id)
-    return {
-        "eligible": record["eligible"],
-        "sentence": record["sentence"],
-        "summary": record["summary"],
-        "url": url,
-    }
+    (COMPLAINT_DIR / ("%s.json" % complaint_id)).write_text(
+        json.dumps(record, ensure_ascii=False), encoding="utf-8"
+    )
+    return _compose_response(record, classification)
+
+
+def create_complaint(raw: dict) -> dict:
+    """Backward-compatible alias used by /crowd/complaint."""
+    return compose_x_post(raw)
 
 
 def complaint_page(complaint_id: str) -> bytes | None:
@@ -703,7 +813,15 @@ th,td{text-align:left;padding:8px;border-top:1px solid #f3f4f6;vertical-align:to
 <p>%s</p>
 <table>%s</table>
 </main></body></html>""" % (
-        html.escape("Memenuhi syarat komplain" if record.get("eligible") else "Tidak memenuhi syarat"),
+        html.escape(
+            {
+                "complaint": "Siap diposting (komplain)",
+                "praise": "Siap diposting (pujian)",
+            }.get(
+                ((record.get("classification") or {}).get("post_intent") or ""),
+                "Siap diposting" if record.get("eligible") else "Tidak diposting",
+            )
+        ),
         html.escape(record.get("summary") or "").replace("\n", "<br>"),
         body,
     )
@@ -751,7 +869,7 @@ class Handler(BaseHTTPRequestHandler):
         parsed = urllib.parse.urlsplit(self.path)
         path = parsed.path.rstrip("/") or "/"
         length = int(self.headers.get("Content-Length", "0") or "0")
-        if path != "/crowd/complaint" or length <= 0 or length > 12000:
+        if path not in ("/crowd/complaint", "/crowd/compose") or length <= 0 or length > 12000:
             self._json({"error": "not_found"}, 404)
             return
         body = self.rfile.read(length)
@@ -760,7 +878,7 @@ class Handler(BaseHTTPRequestHandler):
             raw = json.loads(body.decode("utf-8"))
             if not isinstance(raw, dict):
                 raise ValueError("body")
-            self._json(create_complaint(raw))
+            self._json(compose_x_post(raw))
         except PermissionError as exc:
             self._json({"error": str(exc)}, 401)
         except Exception as exc:  # noqa: BLE001

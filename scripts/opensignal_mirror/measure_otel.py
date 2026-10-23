@@ -289,21 +289,39 @@ def facts(brief: dict) -> list[str]:
 
 
 COMPLAINT_SYSTEM = (
-    "You help an Indonesia mobile user draft a short X/Twitter post about a bad cellular experience. "
+    "You help an Indonesia mobile user draft a short X/Twitter post about a bad mobile/ISP experience. "
     "Reply with JSON only, no markdown: "
     "{\"eligible\": true or false, \"sentence\": \"...\", \"summary\": \"...\"}.\n"
-    "eligible is true only when a submitted speed or video test has transport cellular and the result is poor. "
-    "The top-level transport field is the network used while drafting and may be wifi; ignore it for eligibility. "
+    "eligible is true when a submitted speed or video test is poor. "
+    "Cellular tests always count. Wi-Fi tests also count when provider/ISP is known "
+    "(brief.provider / brief.carrier / brief.mention from public IP). "
     "Poor, as a general guide: download under 5 Mbps, ping over 150 ms, "
-    "360p resolution, video load time over 2000 ms, buffering over 5 percent. "
-    "A test whose transport is not cellular is not eligible.\n"
+    "360p resolution, video load time over 2000 ms, buffering over 5 percent.\n"
     "sentence: the tweet body. Casual everyday social-media English (or natural Indo slang mixed with English if the JSON mention fits), "
     "at most 180 characters, no URL, no hashtags spam, no ARFCN, no PCI, no lab jargon. "
     "Sound like a real person posting on X: punchy, clear, a bit annoyed but not abusive. "
-    "If mention is present (e.g. @myXL / @indosat), put it in the sentence once. "
-    "Name the operator and the everyday symptom only (slow internet, laggy video, long ping).\n"
+    "If mention is present (e.g. @myXL / @indosat / @Telkomsel), put it in the sentence once. "
+    "Name the operator/ISP and the everyday symptom only (slow internet, laggy video, long ping).\n"
     "summary: four to eight plain sentences for the in-app detail page (not the tweet). "
     "Use only numbers present in the JSON. Do not invent any."
+)
+
+COMPOSE_SYSTEM = (
+    "You write the X/Twitter post body for an Indonesia mobile user. "
+    "`classification.post_intent` is ALREADY decided (complaint | praise | skip) — do not overturn it. "
+    "If post_intent is skip, return empty sentence and a short summary why.\n"
+    "Reply with JSON only, no markdown: {\"sentence\": \"...\", \"summary\": \"...\"}.\n"
+    "sentence: tweet body, at most 180 characters, no URL, no hashtag spam, no ARFCN/PCI/lab jargon. "
+    "Casual social-media English (or light Indo slang). "
+    "If post_intent=complaint: punchy, clear, mildly annoyed, not abusive. "
+    "If post_intent=praise: warm, specific thanks/kudos, not fake hype. "
+    "If `brief.mention` is set (@myXL / @indosat / @Telkomsel), include it once; "
+    "otherwise name `brief.provider` / `brief.carrier` if present. "
+    "Wi-Fi tests are valid when provider is known — do not refuse solely because transport is wifi. "
+    "Reflect `classification.topic` / `classification.issue` and numbers from `brief` only.\n"
+    "summary: 4-8 plain sentences for the in-app detail page. Use only numbers present in brief. "
+    "Say whether this draft is praise or complaint. "
+    "Mention path_kind (ipv4 / ipv6 native / nat64) only if present and useful."
 )
 
 
@@ -352,24 +370,43 @@ def interpret(brief: dict, api_key: str | None = None, model: str | None = None,
     }
 
 
-def judge_complaint(brief: dict) -> dict:
-    """Ask OTel whether this one sample is a valid operator complaint."""
-    answer = interpret(brief, timeout=40, max_tokens=500, system=COMPLAINT_SYSTEM)
-    text = answer["text"].strip()
-    if text.startswith("```"):
-        text = text.strip("`")
-        text = text.split("\n", 1)[-1]
-        if text.endswith("```"):
-            text = text[:-3]
+def _parse_json_text(text: str) -> dict:
+    cleaned = text.strip()
+    if cleaned.startswith("```"):
+        cleaned = cleaned.strip("`")
+        cleaned = cleaned.split("\n", 1)[-1]
+        if cleaned.endswith("```"):
+            cleaned = cleaned[:-3]
     try:
-        parsed = json.loads(text)
+        parsed = json.loads(cleaned)
     except json.JSONDecodeError:
         parsed = {}
+    return parsed if isinstance(parsed, dict) else {}
+
+
+def judge_complaint(brief: dict) -> dict:
+    """Legacy one-shot OTel judge+compose (kept for fallback)."""
+    answer = interpret(brief, timeout=40, max_tokens=500, system=COMPLAINT_SYSTEM)
+    parsed = _parse_json_text(answer["text"])
     sentence = str(parsed.get("sentence") or "").replace("\n", " ").strip()[:180]
-    summary = str(parsed.get("summary") or text).strip()[:2000]
+    summary = str(parsed.get("summary") or answer["text"]).strip()[:2000]
     eligible = bool(parsed.get("eligible")) and bool(sentence)
     return {
         "eligible": eligible,
+        "sentence": sentence,
+        "summary": summary,
+        "model": answer.get("model") or "",
+    }
+
+
+def compose_x_post(brief: dict, classification: dict) -> dict:
+    """Compose tweet+summary with OTel after Jev already classified eligibility."""
+    payload = {"brief": brief, "classification": classification}
+    answer = interpret(payload, timeout=50, max_tokens=500, system=COMPOSE_SYSTEM)
+    parsed = _parse_json_text(answer["text"])
+    sentence = str(parsed.get("sentence") or "").replace("\n", " ").strip()[:180]
+    summary = str(parsed.get("summary") or answer["text"]).strip()[:2000]
+    return {
         "sentence": sentence,
         "summary": summary,
         "model": answer.get("model") or "",

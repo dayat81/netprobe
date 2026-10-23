@@ -92,6 +92,24 @@ class SpeedtestMathTest {
     }
 
     @Test
+    fun stableMbpsDropsGapZerosTowardPlateau() {
+        // Plateau ~42 with HTTP gap zeros — must not drag to teens.
+        val samples = listOf(
+            0.0, 0.5, 41.0, 42.0, 43.0, 40.0, 44.0, 42.5, 41.5, 0.0,
+            43.0, 42.0, 1.0, 40.5, 41.8,
+        )
+        val score = SpeedtestMath.stableMbps(samples)
+        assertEquals(42.0, score, 2.5)
+    }
+
+    @Test
+    fun stableMbpsUnchangedWhenSamplesAreSimilar() {
+        val samples = List(12) { 36.0 + (it % 3) * 0.5 }
+        val score = SpeedtestMath.stableMbps(samples)
+        assertEquals(36.5, score, 1.0)
+    }
+
+    @Test
     fun ooklaServerUrls() {
         val base = "http://20.205.188.36:8080/speedtest/"
         assertEquals("http://20.205.188.36:8080/speedtest/hello", SpeedtestEngine.helloUrl(base))

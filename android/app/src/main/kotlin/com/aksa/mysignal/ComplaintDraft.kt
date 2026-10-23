@@ -23,6 +23,10 @@ object ComplaintStore {
         val pingMs: Long,
         val jitterMs: Long,
         val transport: String,
+        val server: String = "",
+        val ipStack: String = "",
+        val provider: String = "",
+        val publicIp: String = "",
     )
     data class Video(
         val tsMs: Long,
@@ -43,6 +47,10 @@ object ComplaintStore {
     fun currentVideo(): Video? = shownVideo
 
     fun saveSpeed(context: Context, result: SpeedtestEngine.Result) {
+        val stack = result.ipFamily.label
+        val public = ClientNetworkInfo.lastPublic
+        val provider = public?.provider?.takeIf { it.isNotBlank() && it != "—" }.orEmpty()
+        val publicIp = public?.ip?.takeIf { it.isNotBlank() && it != "—" }.orEmpty()
         shownSpeed = Speed(
             System.currentTimeMillis(),
             result.downloadMbps,
@@ -50,6 +58,10 @@ object ComplaintStore {
             result.pingMs,
             result.jitterMs,
             transportNow(),
+            result.serverLabel,
+            stack,
+            provider,
+            publicIp,
         )
         context.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
             .putLong("speed_ts", System.currentTimeMillis())
@@ -58,6 +70,10 @@ object ComplaintStore {
             .putLong("speed_ping", result.pingMs)
             .putLong("speed_jitter", result.jitterMs)
             .putString("speed_transport", transportNow())
+            .putString("speed_server", result.serverLabel)
+            .putString("speed_stack", stack)
+            .putString("speed_provider", provider)
+            .putString("speed_public_ip", publicIp)
             .apply()
     }
 
@@ -91,6 +107,10 @@ object ComplaintStore {
             prefs.getLong("speed_ping", 0L),
             prefs.getLong("speed_jitter", 0L),
             prefs.getString("speed_transport", "").orEmpty(),
+            prefs.getString("speed_server", "").orEmpty(),
+            prefs.getString("speed_stack", "").orEmpty(),
+            prefs.getString("speed_provider", "").orEmpty(),
+            prefs.getString("speed_public_ip", "").orEmpty(),
         )
     }
 
@@ -168,49 +188,75 @@ object ComplaintDraft {
                 "",
             )
         }
-        val speed = speedAll?.takeIf { it.transport == "cellular" }
-        val video = videoAll?.takeIf { it.transport == "cellular" }
-        val wifiTabs = listOfNotNull(
-            if (speedAll != null && speed == null) "Speed" else null,
-            if (videoAll != null && video == null) "Video" else null,
-        )
-        if (wifiTabs.isNotEmpty()) {
+        val speed = speedAll
+        val video = videoAll
+        val provider = resolveProvider(speed)
+        val transports = listOfNotNull(speed?.transport, video?.transport)
+        val wifiOnly = transports.isNotEmpty() && transports.all { it != "cellular" }
+        if (wifiOnly && provider.isBlank()) {
             return Review(
                 false,
-                "Not ready to post\nThe ${wifiTabs.joinToString(" and ")} ${if (wifiTabs.size == 1) "result" else "results"} used Wi-Fi. Run ${if (wifiTabs.size == 1) "that test" else "those tests"} again on cellular data.",
+                "Not ready to post\nWi-Fi test needs a known ISP. Open the Speed tab so public IP / provider is detected, then try again.",
                 "",
             )
         }
         return try {
-            val response = postComplaint(brief(snap, speed, video))
+            val response = postComplaint(brief(snap, speed, video, provider))
             val eligible = response.optBoolean("eligible") && response.optString("sentence").isNotBlank()
             val sentence = response.optString("sentence")
             val summary = response.optString("summary")
             val url = response.optString("url")
-            val headline = if (eligible) "Ready to post" else "Not ready to post"
+            val intent = response.optString("post_intent")
+            val headline = when {
+                !eligible -> "Not ready to post"
+                intent == "praise" -> "Ready to post · praise"
+                intent == "complaint" -> "Ready to post · complaint"
+                else -> "Ready to post"
+            }
             val tweet = if (eligible && url.isNotBlank()) "$sentence\n$url" else ""
             Review(eligible && tweet.isNotBlank(), "$headline\n$summary", tweet, reviewed = true)
         } catch (error: Exception) {
-            Review(false, "OTel review failed\n${error.message?.take(160) ?: "network"}", "")
+            Review(false, "Compose failed\n${error.message?.take(160) ?: "network"}", "")
         }
+    }
+
+    private fun resolveProvider(speed: ComplaintStore.Speed?): String {
+        speed?.provider?.takeIf { it.isNotBlank() && it != "—" }?.let { return it }
+        ClientNetworkInfo.lastProvider().takeIf { it.isNotBlank() }?.let { return it }
+        return ""
     }
 
     fun text(context: Context): String = review(context).draft
 
-    private fun brief(snap: RadioSnapshot?, speed: ComplaintStore.Speed?, video: ComplaintStore.Video?): JSONObject {
+    private fun brief(
+        snap: RadioSnapshot?,
+        speed: ComplaintStore.Speed?,
+        video: ComplaintStore.Video?,
+        provider: String,
+    ): JSONObject {
         val sub = snap?.primary
         val plmn = sub?.plmn.orEmpty()
         val mention = when (plmn) {
             "510-01" -> "@indosat"
+            "510-10" -> "@Telkomsel"
             "510-11" -> "@myXL"
-            else -> sub?.carrier?.takeIf { it.isNotBlank() } ?: ""
-        }
+            "510-89" -> "@triindonesia"
+            "510-09" -> "@smartfren"
+            else -> mentionForProvider(provider).ifEmpty {
+                sub?.carrier?.takeIf { it.isNotBlank() }.orEmpty()
+            }
+        }.ifEmpty { mentionForProvider(provider) }
+        val carrier = sub?.carrier?.takeIf { it.isNotBlank() }.orEmpty().ifEmpty { provider }
         val slot = if (sub == null) "" else RadioChartLabels.slotLabel(RadioChartLabels.slotId(plmn, sub.slot))
         return JSONObject()
             .put("transport", snap?.network?.transport ?: "unknown")
             .put("plmn", plmn)
             .put("slot", slot)
-            .put("carrier", sub?.carrier.orEmpty())
+            .put("carrier", carrier)
+            .put("provider", provider)
+            .put("public_ip", speed?.publicIp.orEmpty().ifEmpty {
+                ClientNetworkInfo.lastPublic?.ip?.takeIf { it != "—" }.orEmpty()
+            })
             .put("mention", mention)
             .put("radio", radioLine(snap, sub))
             .put("location", location(snap))
@@ -219,7 +265,11 @@ object ComplaintDraft {
                 .put("download_mbps", speed?.downloadMbps ?: JSONObject.NULL)
                 .put("upload_mbps", speed?.uploadMbps ?: JSONObject.NULL)
                 .put("ping_ms", speed?.pingMs ?: JSONObject.NULL)
-                .put("transport", speed?.transport.orEmpty()))
+                .put("jitter_ms", speed?.jitterMs ?: JSONObject.NULL)
+                .put("transport", speed?.transport.orEmpty())
+                .put("server", speed?.server.orEmpty())
+                .put("ip_stack", speed?.ipStack.orEmpty())
+                .put("provider", speed?.provider.orEmpty().ifEmpty { provider }))
             .put("video", JSONObject()
                 .put("load_ms", video?.loadMs ?: JSONObject.NULL)
                 .put("resolution", video?.resolution.orEmpty())
@@ -227,9 +277,19 @@ object ComplaintDraft {
                 .put("transport", video?.transport.orEmpty()))
     }
 
+    private fun mentionForProvider(provider: String): String = when (provider.trim().lowercase()) {
+        "telkomsel" -> "@Telkomsel"
+        "indosat" -> "@indosat"
+        "xl" -> "@myXL"
+        "tri" -> "@triindonesia"
+        "smartfren" -> "@smartfren"
+        "telkom" -> "@TelkomIndonesia"
+        else -> ""
+    }
+
     private fun postComplaint(body: JSONObject): JSONObject {
         val bytes = body.toString().toByteArray(Charsets.UTF_8)
-        val path = "/crowd/complaint"
+        val path = "/crowd/compose"
         val now = System.currentTimeMillis()
         val timestamp = (now / 1000L).toString()
         val nonce = "n" + CollectorClient.randomHex(16)

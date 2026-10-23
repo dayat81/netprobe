@@ -66,18 +66,29 @@ class SpeedtestHandler(BaseHTTPRequestHandler):
             return
         self.send_error(404)
 
+    def _client_ip(self) -> str:
+        forwarded = (self.headers.get("X-Forwarded-For") or "").split(",")[0].strip()
+        if forwarded:
+            return forwarded
+        real = (self.headers.get("X-Real-IP") or "").strip()
+        if real:
+            return real
+        return self.client_address[0] if self.client_address else ""
+
     def _hello(self) -> None:
         payload = {
             "hello": True,
             "server": SERVER_NAME,
             "region": REGION,
             "version": VERSION,
+            "client_ip": self._client_ip(),
         }
         body = b"hello\n" + json.dumps(payload, separators=(",", ":")).encode("utf-8")
         self.send_response(200)
         self.send_header("Content-Type", "text/plain; charset=utf-8")
         self.send_header("Content-Length", str(len(body)))
         self.send_header("X-Server", SERVER_NAME)
+        self.send_header("X-Client-IP", payload["client_ip"])
         self._cors()
         self.end_headers()
         self.wfile.write(body)

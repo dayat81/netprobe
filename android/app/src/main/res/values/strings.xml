@@ -50,6 +50,10 @@
     <string name="speed_mbps">Mbps</string>
     <string name="speed_jitter_idle">jitter —</string>
     <string name="speed_server">Azure · %1$s</string>
+    <string name="speed_server_stack">Azure · %1$s · %2$s %3$s</string>
+    <string name="speed_ips_loading">Local — · Public — · Provider —</string>
+    <string name="speed_ips">Local %1$s · Public %2$s · %3$s</string>
+    <string name="speed_family_unavailable">%1$s unavailable: %2$s</string>
     <string name="speed_running">Testing…</string>
     <string name="speed_loop">Loop %1$d · tap STOP to end</string>
     <string name="speed_done">Done</string>

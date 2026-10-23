@@ -18,6 +18,7 @@ install -d -m 0755 "$DST" /etc/nginx/snippets /etc/systemd/system
 install -m 0644 "${ROOT}/scripts/opensignal_mirror/crowd_dashboard.py" "${DST}/crowd_dashboard.py"
 install -m 0644 "${ROOT}/scripts/opensignal_mirror/crowd_dashboard.html" "${DST}/crowd_dashboard.html"
 install -m 0644 "${ROOT}/scripts/opensignal_mirror/measure_otel.py" "${DST}/measure_otel.py"
+install -m 0644 "${ROOT}/scripts/opensignal_mirror/measure_jev.py" "${DST}/measure_jev.py"
 install -d -m 0755 /var/lib/opensignal-mirror/complaints
 chown azureuser:azureuser /var/lib/opensignal-mirror/complaints
 if [[ -f /etc/opensignal-mirror/hmac.key ]]; then
@@ -43,6 +44,7 @@ Environment=CLICKHOUSE_URL=http://127.0.0.1:8123
 Environment=OSM_DB=/var/lib/opensignal-mirror/collector.sqlite
 Environment=CROWD_PORT=8773
 Environment=PUBLIC_BASE=https://netprobe.xyz
+EnvironmentFile=-/data/opensignal/.env
 ExecStart=/usr/bin/python3 /data/opensignal/scripts/crowd_dashboard.py
 Restart=on-failure
 RestartSec=2
