@@ -41,3 +41,14 @@ Other arrays exist for 100/500 Mbps and byte-based scales.
 ## MySignal mapping
 
 `SpeedtestGaugeView` (2.5.40+) adopts 270° geometry, the 1000 Mbps interval array, and DL/UL gradients — not a pixel clone of Ookla assets/fonts.
+
+## Video test UI (static)
+
+| Piece | Class / resource |
+|-------|------------------|
+| Stage | `fragment_video_test.xml` + `VideoTestView` |
+| HUD bar | `view_video_test_hud.xml` (`VideoTestHUD`, green 3dp progress) |
+| End of test | `fragment_video_end_of_test.xml` — hero Max Resolution + `p`, Load Time / Buffering |
+| Accent | `ookla_video_green` `#00C174`, stage navy `#0B0C1B` |
+
+MySignal video tab (2.5.42+) mirrors that composition: full-bleed player, centered GO/STOP, bottom EOT-style metrics, green HUD strip while running.

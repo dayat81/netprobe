@@ -381,32 +381,62 @@ class MainActivity : AppCompatActivity() {
             return
         }
         videoRunning = true
-        binding.videoLoad.text = "—"
-        binding.videoResolution.text = "—"
-        binding.videoBuffering.text = "—"
-        binding.videoGo.text = "…"
+        clearVideoMetrics()
+        binding.videoGo.text = getString(R.string.speed_stop)
+        binding.videoGo.alpha = 0.55f
+        binding.videoHudProgress.visibility = View.VISIBLE
         binding.videoStatus.text = getString(R.string.speed_running)
         val engine = VideoTestEngine(this, binding.videoPlayer)
         videoJob = lifecycleScope.launch {
+            var round = 0
             try {
-                val result = engine.run(VideoTestEngine.defaultBaseUrl()) { phase ->
-                    runOnUiThread { binding.videoStatus.text = phase }
+                while (videoRunning) {
+                    round += 1
+                    binding.videoGo.text = getString(R.string.speed_stop)
+                    binding.videoGo.alpha = 0.55f
+                    binding.videoHudProgress.visibility = View.VISIBLE
+                    binding.videoStatus.text = getString(R.string.speed_loop, round)
+                    clearVideoMetrics()
+                    try {
+                        val result = engine.run(VideoTestEngine.defaultBaseUrl()) { phase ->
+                            if (!videoRunning) return@run
+                            runOnUiThread {
+                                if (videoRunning) {
+                                    binding.videoStatus.text = "Loop $round · $phase"
+                                    showVideoResolution(phase)
+                                }
+                            }
+                        }
+                        if (!videoRunning) break
+                        renderVideoResult(result)
+                        SpeedtestReport.uploadVideo(applicationContext, result)
+                        binding.videoGo.alpha = 1f
+                        for (left in 10 downTo 1) {
+                            if (!videoRunning) break
+                            binding.videoStatus.text = getString(R.string.speed_loop_pause, round, left)
+                            delay(1_000)
+                        }
+                    } catch (cancelled: CancellationException) {
+                        throw cancelled
+                    } catch (error: Exception) {
+                        if (!videoRunning) break
+                        binding.videoStatus.text = getString(
+                            R.string.speed_failed,
+                            error.message?.take(80) ?: error.javaClass.simpleName,
+                        )
+                        delay(2_000)
+                    }
                 }
-                binding.videoLoad.text = "${result.loadTimeMs} ms"
-                binding.videoResolution.text = result.maxResolution
-                binding.videoBuffering.text = "${"%.1f".format(result.bufferingPct)}%"
-                binding.videoStatus.text = getString(R.string.speed_done)
-                SpeedtestReport.uploadVideo(applicationContext, result)
-            } catch (cancelled: CancellationException) {
-                throw cancelled
-            } catch (error: Exception) {
-                binding.videoStatus.text = getString(
-                    R.string.speed_failed,
-                    error.message?.take(80) ?: error.javaClass.simpleName,
-                )
+            } catch (_: CancellationException) {
             } finally {
                 videoRunning = false
                 binding.videoGo.text = getString(R.string.speed_go)
+                binding.videoGo.alpha = 1f
+                binding.videoHudProgress.visibility = View.INVISIBLE
+                val status = binding.videoStatus.text?.toString().orEmpty()
+                if (!status.startsWith("Failed")) {
+                    binding.videoStatus.text = ""
+                }
             }
         }
     }
@@ -415,7 +445,33 @@ class MainActivity : AppCompatActivity() {
         videoJob?.cancel()
         videoRunning = false
         binding.videoGo.text = getString(R.string.speed_go)
-        binding.videoStatus.text = ""
+        binding.videoGo.alpha = 1f
+        binding.videoHudProgress.visibility = View.INVISIBLE
+    }
+
+    private fun clearVideoMetrics() {
+        binding.videoLoad.text = "—"
+        binding.videoResolution.text = "—"
+        binding.videoResolutionUnit.visibility = View.GONE
+        binding.videoBuffering.text = "—"
+    }
+
+    private fun renderVideoResult(result: VideoTestEngine.Result) {
+        binding.videoLoad.text = "${result.loadTimeMs} ms"
+        showVideoResolution(result.maxResolution)
+        binding.videoBuffering.text = "${"%.1f".format(result.bufferingPct)}%"
+    }
+
+    private fun showVideoResolution(raw: String) {
+        val cleaned = raw.trim()
+        val match = Regex("""^(\d+)\s*p?$""", RegexOption.IGNORE_CASE).matchEntire(cleaned)
+        if (match != null) {
+            binding.videoResolution.text = match.groupValues[1]
+            binding.videoResolutionUnit.visibility = View.VISIBLE
+        } else {
+            binding.videoResolution.text = cleaned.ifEmpty { "—" }
+            binding.videoResolutionUnit.visibility = View.GONE
+        }
     }
 
     private fun toggleSpeedtest() {

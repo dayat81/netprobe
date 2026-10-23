@@ -600,14 +600,19 @@ def _bounded(value, low: float, high: float):
 def _complaint_brief(raw: dict) -> dict:
     speed = raw.get("speed") if isinstance(raw.get("speed"), dict) else {}
     video = raw.get("video") if isinstance(raw.get("video"), dict) else {}
+    transport = _clip(
+        raw.get("transport") or speed.get("transport") or video.get("transport"),
+        16,
+    )
     return {
-        "transport": _clip(raw.get("transport"), 16),
+        "transport": transport,
         "plmn": _clip(raw.get("plmn"), 16),
         "slot": _clip(raw.get("slot"), 24),
         "carrier": _clip(raw.get("carrier"), 64),
         "provider": _clip(raw.get("provider") or speed.get("provider"), 64),
         "public_ip": _clip(raw.get("public_ip"), 64),
         "mention": _clip(raw.get("mention"), 32),
+        "signal": _clip(raw.get("signal"), 160),
         "radio": _clip(raw.get("radio"), 240),
         "location": _clip(raw.get("location"), 48),
         "when": _clip(raw.get("when"), 32),
@@ -616,7 +621,7 @@ def _complaint_brief(raw: dict) -> dict:
             "upload_mbps": _bounded(speed.get("upload_mbps"), 0, 10000),
             "ping_ms": _bounded(speed.get("ping_ms"), 0, 600000),
             "jitter_ms": _bounded(speed.get("jitter_ms"), 0, 600000),
-            "transport": _clip(speed.get("transport"), 16),
+            "transport": _clip(speed.get("transport") or transport, 16),
             "server": _clip(speed.get("server"), 120),
             "ip_stack": _clip(speed.get("ip_stack"), 24),
             "provider": _clip(speed.get("provider") or raw.get("provider"), 64),
@@ -625,7 +630,7 @@ def _complaint_brief(raw: dict) -> dict:
             "load_ms": _bounded(video.get("load_ms"), 0, 600000),
             "resolution": _clip(video.get("resolution"), 16),
             "buffering_pct": _bounded(video.get("buffering_pct"), 0, 100),
-            "transport": _clip(video.get("transport"), 16),
+            "transport": _clip(video.get("transport") or transport, 16),
         },
     }
 
@@ -635,45 +640,7 @@ def _local_block(brief: dict) -> str:
     video_ok = bool(brief["video"]["resolution"])
     if not speed_ok and not video_ok:
         return "Belum ada hasil tes. Jalankan speed atau video dulu."
-    speed_cell = brief["speed"]["transport"] == "cellular" and speed_ok
-    video_cell = brief["video"]["transport"] == "cellular" and video_ok
-    if speed_cell or video_cell:
-        return ""
-    provider = (
-        brief.get("provider")
-        or brief.get("carrier")
-        or brief.get("mention")
-        or (brief.get("speed") or {}).get("provider")
-        or ""
-    )
-    if str(provider).strip():
-        return ""
-    return (
-        "Tes Wi-Fi perlu nama provider (dari public IP). "
-        "Buka tab Speed sampai provider terdeteksi, lalu coba lagi."
-    )
-
-
-def _decline_summary(classification: dict) -> str:
-    intent = classification.get("post_intent") or "skip"
-    topic = classification.get("topic") or classification.get("issue") or "none"
-    quality = classification.get("quality_band") or "unknown"
-    noul = classification.get("eligible_noul")
-    parts = [
-        "Jev classifier: skip post.",
-        "intent=%s" % intent,
-        "topic=%s" % topic,
-        "quality=%s" % quality,
-    ]
-    if noul is not None:
-        parts.append("worthy_noul=%.2f (need >= %.2f)" % (
-            float(noul),
-            float(classification.get("eligible_threshold") or 0.65),
-        ))
-    path = classification.get("path_kind")
-    if path:
-        parts.append("path=%s" % path)
-    return " ".join(parts)
+    return ""
 
 
 def _compose_response(record: dict, classification: dict | None = None) -> dict:
@@ -695,7 +662,7 @@ def _compose_response(record: dict, classification: dict | None = None) -> dict:
 
 
 def compose_x_post(raw: dict) -> dict:
-    """Jev chooses complaint|praise|skip; OTel composes the X sentence when posting."""
+    """Jev classifies quality → praise/complaint; OTel drafts the sentence; user shares."""
     brief = _complaint_brief(raw)
     blocked = _local_block(brief)
     if blocked:
@@ -708,44 +675,67 @@ def compose_x_post(raw: dict) -> dict:
             "composer": "",
             "post_intent": "skip",
             "topic": "",
+            "quality_band": "",
         }
     import measure_jev
     import measure_otel
 
     classification = measure_jev.classify_complaint(brief)
-    intent = classification.get("post_intent") or "skip"
-    if not classification.get("eligible") or intent == "skip":
-        complaint_id = secrets.token_hex(8)
-        record = {
-            "id": complaint_id,
-            "created": int(time.time()),
-            "brief": brief,
-            "eligible": False,
-            "sentence": "",
-            "summary": _decline_summary(classification),
-            "classification": classification,
-            "model": classification.get("model") or "",
-            "classifier": classification.get("model") or "jev",
-            "composer": "",
-        }
-        COMPLAINT_DIR.mkdir(parents=True, exist_ok=True)
-        (COMPLAINT_DIR / ("%s.json" % complaint_id)).write_text(
-            json.dumps(record, ensure_ascii=False), encoding="utf-8"
-        )
-        return _compose_response(record, classification)
+    intent = classification.get("post_intent") or "complaint"
+    if intent not in ("complaint", "praise"):
+        intent = "complaint"
+        classification = dict(classification)
+        classification["post_intent"] = intent
 
     composed = measure_otel.compose_x_post(brief, classification)
     sentence = composed.get("sentence") or ""
     summary = composed.get("summary") or ""
     composer_model = composed.get("model") or ""
-    if not sentence and intent == "complaint":
-        # Legacy fallback only for complaint drafts.
-        judged = measure_otel.judge_complaint(brief)
-        sentence = judged.get("sentence") or ""
-        summary = judged.get("summary") or summary
-        composer_model = judged.get("model") or composer_model
-    eligible = bool(sentence)
+    if not sentence:
+        judged = measure_otel.judge_complaint(brief) if intent == "complaint" else {}
+        if judged:
+            sentence = judged.get("sentence") or ""
+            summary = judged.get("summary") or summary
+            composer_model = judged.get("model") or composer_model
+    if not sentence:
+        # Deterministic fallback so Share is never blocked by model emptiness.
+        mention = brief.get("mention") or brief.get("provider") or brief.get("carrier") or "operator"
+        speed = brief.get("speed") or {}
+        video = brief.get("video") or {}
+        dl = speed.get("download_mbps")
+        res = video.get("resolution") or ""
+        transport = (brief.get("transport") or speed.get("transport") or "unknown").lower()
+        via = "Wi-Fi" if transport in ("wifi", "wi-fi") else "cellular"
+        if intent == "praise":
+            bits = ["Nice ride on %s via %s" % (mention, via)]
+            if dl is not None:
+                bits.append("%.0f Mbps down" % float(dl))
+            if res:
+                bits.append(res)
+            sentence = " — ".join(bits)[:180]
+        else:
+            bits = ["%s feels rough on %s" % (mention, via)]
+            if dl is not None:
+                bits.append("%.1f Mbps down" % float(dl))
+            if res:
+                bits.append("video max %s" % res)
+            sentence = " — ".join(bits)[:180]
+        if not summary:
+            summary = "Jev quality=%s intent=%s. Draft fallback (OTel empty)." % (
+                classification.get("quality_band") or "unknown",
+                intent,
+            )
 
+    quality = classification.get("quality_band") or "unknown"
+    if not summary:
+        summary = "Jev: quality=%s · intent=%s · topic=%s. Share is your choice." % (
+            quality,
+            intent,
+            classification.get("topic") or "none",
+        )
+
+    # Eligible means "draft ready to share" — not "Jev approved posting".
+    eligible = bool(sentence)
     complaint_id = secrets.token_hex(8)
     record = {
         "id": complaint_id,
@@ -783,8 +773,12 @@ def complaint_page(complaint_id: str) -> bytes | None:
     video = brief.get("video") or {}
     rows = [
         ("Transport", brief.get("transport")),
-        ("Operator", "%s %s" % (brief.get("carrier") or "", brief.get("slot") or "")),
+        ("Provider / ISP", brief.get("provider") or brief.get("carrier")),
+        ("Mention", brief.get("mention")),
+        ("Signal", brief.get("signal") or brief.get("radio")),
+        ("Operator/SIM", "%s %s" % (brief.get("carrier") or "", brief.get("slot") or "")),
         ("Radio", brief.get("radio")),
+        ("Public IP", brief.get("public_ip")),
         ("Waktu", brief.get("when")),
         ("Lokasi", brief.get("location")),
         ("Download", speed.get("download_mbps")),

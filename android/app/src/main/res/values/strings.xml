@@ -39,8 +39,10 @@
     <string name="radio_wifi_neighbors">Nearby APs</string>
     <string name="radio_wifi_empty">Wi-Fi details appear when a sample is available.</string>
     <string name="radio_wifi_back">Swipe left for radio chart</string>
-    <string name="video_load">Load</string>
+    <string name="video_load">Load Time</string>
     <string name="video_resolution">Resolution</string>
+    <string name="video_max_resolution">Max Resolution</string>
+    <string name="video_resolution_p">p</string>
     <string name="video_buffering">Buffering</string>
     <string name="speed_go">GO</string>
     <string name="speed_stop">STOP</string>

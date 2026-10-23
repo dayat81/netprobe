@@ -175,49 +175,102 @@ object ComplaintDraft {
 
     fun review(context: Context): Review {
         val snap = RadioState.latest
-        val speedAll = ComplaintStore.currentSpeed()
-        val videoAll = ComplaintStore.currentVideo()
-        val missing = listOfNotNull(
-            if (speedAll == null) "Speed" else null,
-            if (videoAll == null) "Video" else null,
-        )
-        if (missing.isNotEmpty()) {
+        val speed = ComplaintStore.currentSpeed()
+        val video = ComplaintStore.currentVideo()
+        if (speed == null && video == null) {
             return Review(
                 false,
-                "Test on the ${missing.joinToString(" and ")} ${if (missing.size == 1) "tab" else "tabs"} first.\nThe review uses the results currently shown on ${if (missing.size == 1) "that tab" else "those tabs"}.",
+                "Run a Speed or Video test first.\nJev will classify the result; you decide whether to share.",
                 "",
             )
         }
-        val speed = speedAll
-        val video = videoAll
         val provider = resolveProvider(speed)
-        val transports = listOfNotNull(speed?.transport, video?.transport)
-        val wifiOnly = transports.isNotEmpty() && transports.all { it != "cellular" }
-        if (wifiOnly && provider.isBlank()) {
-            return Review(
-                false,
-                "Not ready to post\nWi-Fi test needs a known ISP. Open the Speed tab so public IP / provider is detected, then try again.",
-                "",
-            )
-        }
+        val transport = testTransport(speed, video, snap)
         return try {
-            val response = postComplaint(brief(snap, speed, video, provider))
-            val eligible = response.optBoolean("eligible") && response.optString("sentence").isNotBlank()
-            val sentence = response.optString("sentence")
+            val response = postComplaint(brief(snap, speed, video, provider, transport))
+            val sentence = response.optString("sentence").trim()
             val summary = response.optString("summary")
-            val url = response.optString("url")
+            val url = normalizeCrowdUrl(response.optString("url"))
             val intent = response.optString("post_intent")
+            val quality = response.optString("quality_band").ifBlank { "—" }
+            val draftReady = sentence.isNotBlank()
             val headline = when {
-                !eligible -> "Not ready to post"
-                intent == "praise" -> "Ready to post · praise"
-                intent == "complaint" -> "Ready to post · complaint"
-                else -> "Ready to post"
+                !draftReady -> "Draft unavailable"
+                intent == "praise" -> "Draft · praise · quality $quality"
+                intent == "complaint" -> "Draft · complaint · quality $quality"
+                else -> "Draft · quality $quality"
             }
-            val tweet = if (eligible && url.isNotBlank()) "$sentence\n$url" else ""
-            Review(eligible && tweet.isNotBlank(), "$headline\n$summary", tweet, reviewed = true)
+            val tip = if (draftReady) "\nShare is optional — you choose." else ""
+            val statusLine = postStatusLine(transport, provider, snap)
+            val tweet = when {
+                !draftReady -> ""
+                else -> listOf(sentence, statusLine, url)
+                    .filter { it.isNotBlank() }
+                    .joinToString("\n")
+            }
+            // eligible = share button enabled; user decides whether to actually post.
+            Review(draftReady, "$headline$tip\n$summary", tweet, reviewed = true)
         } catch (error: Exception) {
             Review(false, "Compose failed\n${error.message?.take(160) ?: "network"}", "")
         }
+    }
+
+    private fun testTransport(
+        speed: ComplaintStore.Speed?,
+        video: ComplaintStore.Video?,
+        snap: RadioSnapshot?,
+    ): String = listOf(speed?.transport, video?.transport, snap?.network?.transport)
+        .map { it.orEmpty().trim() }
+        .firstOrNull { it.isNotEmpty() && it != "unknown" }
+        ?: "unknown"
+
+    private fun isWifi(transport: String): Boolean =
+        transport.equals("wifi", ignoreCase = true) || transport.equals("wi-fi", ignoreCase = true)
+
+    private fun normalizeCrowdUrl(raw: String): String {
+        val value = raw.trim()
+        if (value.isEmpty()) return ""
+        return when {
+            value.startsWith("https://") || value.startsWith("http://") -> value
+            value.startsWith("/") -> "https://${BuildConfig.COLLECTOR_HOST}$value"
+            else -> "https://${BuildConfig.COLLECTOR_HOST}/crowd/c/$value"
+        }
+    }
+
+    private fun postStatusLine(transport: String, provider: String, snap: RadioSnapshot?): String {
+        val via = if (isWifi(transport)) "Wi-Fi" else if (transport == "cellular") "cellular" else transport
+        val isp = provider.ifBlank {
+            snap?.primary?.carrier.orEmpty()
+        }.ifBlank { "—" }
+        val signal = signalStatus(transport, snap)
+        return listOf("via $via", isp, signal)
+            .filter { it.isNotBlank() && it != "—" }
+            .distinct()
+            .joinToString(" · ")
+    }
+
+    private fun signalStatus(transport: String, snap: RadioSnapshot?): String {
+        if (isWifi(transport)) {
+            val wifi = snap?.wifi ?: return ""
+            if (wifi.status == WifiSignal.DISABLED.status || wifi.status == WifiSignal.NOT_ASSOCIATED.status) {
+                return "Wi-Fi ${wifi.status}"
+            }
+            return listOfNotNull(
+                wifi.rssiDbm?.let { "$it dBm" },
+                wifi.linkSpeedMbps?.let { "link ${it} Mbps" },
+                wifi.channel?.let { "ch $it" },
+            ).joinToString(" · ")
+        }
+        val sub = snap?.primary ?: return ""
+        val cells = snap?.cells.orEmpty().filter { it.chartServing && (it.subId == null || it.subId == sub.subId) }
+        val lte = cells.filter { it.rat == "LTE" }.maxByOrNull { it.rsrp ?: Int.MIN_VALUE }
+        val nr = cells.filter { it.rat == "NR" }.maxByOrNull { it.rsrp ?: Int.MIN_VALUE }
+        return listOfNotNull(
+            lte?.rsrp?.let { "LTE RSRP $it" },
+            lte?.sinr?.let { "SINR $it" },
+            nr?.rsrp?.let { "NR RSRP $it" },
+            sub.nrState?.let { "nrState $it" },
+        ).joinToString(" · ")
     }
 
     private fun resolveProvider(speed: ComplaintStore.Speed?): String {
@@ -233,32 +286,50 @@ object ComplaintDraft {
         speed: ComplaintStore.Speed?,
         video: ComplaintStore.Video?,
         provider: String,
+        transport: String,
     ): JSONObject {
         val sub = snap?.primary
         val plmn = sub?.plmn.orEmpty()
-        val mention = when (plmn) {
-            "510-01" -> "@indosat"
-            "510-10" -> "@Telkomsel"
-            "510-11" -> "@myXL"
-            "510-89" -> "@triindonesia"
-            "510-09" -> "@smartfren"
-            else -> mentionForProvider(provider).ifEmpty {
-                sub?.carrier?.takeIf { it.isNotBlank() }.orEmpty()
-            }
-        }.ifEmpty { mentionForProvider(provider) }
-        val carrier = sub?.carrier?.takeIf { it.isNotBlank() }.orEmpty().ifEmpty { provider }
-        val slot = if (sub == null) "" else RadioChartLabels.slotLabel(RadioChartLabels.slotId(plmn, sub.slot))
+        val wifi = isWifi(transport)
+        // On Wi-Fi tag the ISP from public IP; on cellular prefer SIM operator mention.
+        val mention = if (wifi) {
+            mentionForProvider(provider).ifEmpty { provider }
+        } else {
+            when (plmn) {
+                "510-01" -> "@indosat"
+                "510-10" -> "@Telkomsel"
+                "510-11" -> "@myXL"
+                "510-89" -> "@triindonesia"
+                "510-09" -> "@smartfren"
+                else -> mentionForProvider(provider).ifEmpty {
+                    sub?.carrier?.takeIf { it.isNotBlank() }.orEmpty()
+                }
+            }.ifEmpty { mentionForProvider(provider) }
+        }
+        val carrier = if (wifi) {
+            provider.ifBlank { sub?.carrier.orEmpty() }
+        } else {
+            sub?.carrier?.takeIf { it.isNotBlank() }.orEmpty().ifEmpty { provider }
+        }
+        val slot = if (wifi || sub == null) "" else RadioChartLabels.slotLabel(RadioChartLabels.slotId(plmn, sub.slot))
+        val signal = signalStatus(transport, snap)
+        val radio = if (wifi) {
+            wifiLine(snap?.wifi)
+        } else {
+            radioLine(snap, sub)
+        }
         return JSONObject()
-            .put("transport", snap?.network?.transport ?: "unknown")
-            .put("plmn", plmn)
+            .put("transport", transport)
+            .put("plmn", if (wifi) "" else plmn)
             .put("slot", slot)
             .put("carrier", carrier)
-            .put("provider", provider)
+            .put("provider", provider.ifBlank { carrier })
             .put("public_ip", speed?.publicIp.orEmpty().ifEmpty {
                 ClientNetworkInfo.lastPublic?.ip?.takeIf { it != "—" }.orEmpty()
             })
             .put("mention", mention)
-            .put("radio", radioLine(snap, sub))
+            .put("signal", signal)
+            .put("radio", radio)
             .put("location", location(snap))
             .put("when", clock.format(Date(snap?.tsMs ?: System.currentTimeMillis())))
             .put("speed", JSONObject()
@@ -266,7 +337,7 @@ object ComplaintDraft {
                 .put("upload_mbps", speed?.uploadMbps ?: JSONObject.NULL)
                 .put("ping_ms", speed?.pingMs ?: JSONObject.NULL)
                 .put("jitter_ms", speed?.jitterMs ?: JSONObject.NULL)
-                .put("transport", speed?.transport.orEmpty())
+                .put("transport", speed?.transport.orEmpty().ifEmpty { transport })
                 .put("server", speed?.server.orEmpty())
                 .put("ip_stack", speed?.ipStack.orEmpty())
                 .put("provider", speed?.provider.orEmpty().ifEmpty { provider }))
@@ -274,7 +345,21 @@ object ComplaintDraft {
                 .put("load_ms", video?.loadMs ?: JSONObject.NULL)
                 .put("resolution", video?.resolution.orEmpty())
                 .put("buffering_pct", video?.bufferingPct ?: JSONObject.NULL)
-                .put("transport", video?.transport.orEmpty()))
+                .put("transport", video?.transport.orEmpty().ifEmpty { transport }))
+    }
+
+    private fun wifiLine(wifi: WifiSignal?): String {
+        if (wifi == null) return "Wi-Fi"
+        if (wifi.status == WifiSignal.DISABLED.status || wifi.status == WifiSignal.NOT_ASSOCIATED.status) {
+            return "Wi-Fi ${wifi.status}"
+        }
+        return listOfNotNull(
+            "Wi-Fi",
+            wifi.ssid.takeIf { it.isNotBlank() },
+            wifi.rssiDbm?.let { "RSSI $it dBm" },
+            wifi.linkSpeedMbps?.let { "link ${it} Mbps" },
+            wifi.channel?.let { "ch $it" },
+        ).joinToString(" · ")
     }
 
     private fun mentionForProvider(provider: String): String = when (provider.trim().lowercase()) {
@@ -332,7 +417,7 @@ object ComplaintDraft {
                 return
             }
         }
-        val web = Intent(Intent.ACTION_VIEW, Uri.parse("https://twitter.com/intent/tweet?text=${Uri.encode(text)}"))
+        val web = Intent(Intent.ACTION_VIEW, Uri.parse("https://x.com/intent/tweet?text=${Uri.encode(text)}"))
         context.startActivity(web)
     }
 
@@ -343,10 +428,12 @@ object ComplaintDraft {
         val nr = cells.filter { it.rat == "NR" }.maxByOrNull { it.rsrp ?: Int.MIN_VALUE }
         val lteCh = sub.channel ?: lte?.earfcn
         val bw = if (sub.cellBandwidthKhz.isEmpty()) "" else " ${RadioRules.mhzLabel(sub.cellBandwidthKhz)}"
-        val lteSnr = lte?.sinr?.let { " SNR $it dB" }.orEmpty()
+        val rsrp = lte?.rsrp?.let { " RSRP $it" }.orEmpty()
+        val lteSnr = lte?.sinr?.let { " SINR $it dB" }.orEmpty()
         val nrCh = nr?.nrarfcn?.let { ", NR $it" }.orEmpty()
+        val nrRsrp = nr?.rsrp?.let { " RSRP $it" }.orEmpty()
         val nrState = sub.nrState?.let { ", nrState $it" }.orEmpty()
-        return "LTE ${lteCh ?: "—"}$lteSnr$nrCh$nrState$bw"
+        return "LTE ${lteCh ?: "—"}$rsrp$lteSnr$nrCh$nrRsrp$nrState$bw"
     }
 
     private fun location(snap: RadioSnapshot?): String {

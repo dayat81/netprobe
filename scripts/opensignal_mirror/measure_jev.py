@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Classify MySignal X-post candidates with TypeSafe Jev (complaint or praise)."""
+"""Classify MySignal speed/video results with TypeSafe Jev (good vs bad → praise/complaint)."""
 
 from __future__ import annotations
 
@@ -17,8 +17,6 @@ ENV_FILES = (
     pathlib.Path.home() / ".hermes" / ".env",
     pathlib.Path(__file__).resolve().parents[2] / ".env",
 )
-# Post when Jev is fairly sure a public post (praise or complaint) is warranted.
-WORTHY_THRESHOLD = float(os.environ.get("JEV_ELIGIBLE_THRESHOLD", "0.65"))
 
 
 def load_api_key() -> str:
@@ -39,56 +37,74 @@ def load_api_key() -> str:
     )
 
 
+def _intent_from_quality(quality: str, fallback: str) -> str:
+    if quality in ("poor", "fair"):
+        return "complaint"
+    if quality in ("good", "excellent"):
+        return "praise"
+    if fallback in ("complaint", "praise"):
+        return fallback
+    return "complaint"
+
+
 def classify_complaint(brief: dict, api_key: str | None = None, timeout: int = 45) -> dict:
-    """Return Jev judgments that choose complaint vs praise vs skip for an X draft."""
+    """Jev only judges quality (bagus/jelek). Share eligibility is left to the user."""
     key = api_key or load_api_key()
     body = {
         "model": MODEL,
         "state": {
             "brief": brief,
             "policy": {
-                "language": "id-ID mobile user drafting an X/Twitter post",
-                "wifi_tests_ok_when_provider_known": True,
-                "requires_cellular_test": False,
+                "language": "id-ID mobile network experience",
+                "role": "classifier only — do not decide whether the user may share",
+                "wifi_ok": True,
                 "provider_fields": ["provider", "carrier", "mention", "public_ip"],
-                "complaint_guide": {
-                    "download_mbps_under": 5,
-                    "ping_ms_over": 150,
+                "poor_guide": {
+                    "download_mbps_under": 10,
+                    "ping_ms_over": 120,
                     "video_resolution_at_most": "360p",
                     "video_load_ms_over": 2000,
                     "buffering_pct_over": 5,
                 },
-                "praise_guide": {
-                    "download_mbps_over": 80,
+                "good_guide": {
+                    "download_mbps_over": 50,
                     "ping_ms_under": 80,
                     "video_resolution_at_least": "720p",
-                    "buffering_pct_under": 2,
+                    "buffering_pct_under": 3,
                 },
-                "skip_when": "mid-tier / ordinary results that are neither notably bad nor notably great",
             },
         },
         "questions": {
+            "quality_band": {
+                "type": "choice",
+                "instructions": (
+                    "Overall quality of the measured speed and/or video experience in `brief`. "
+                    "Use the numbers present. Cellular and Wi-Fi tests both count. "
+                    "This is a quality label only — not a permission to post."
+                ),
+                "criteria": {
+                    "poor": "Clearly bad experience",
+                    "fair": "Usable but modest / annoying",
+                    "good": "Comfortable everyday performance",
+                    "excellent": "Strong high-end throughput",
+                    "unknown": "Not enough evidence in the brief",
+                },
+            },
             "post_intent": {
                 "type": "choice",
                 "instructions": (
-                    "Should this speed/video measurement become a public X post tagging the operator, "
-                    "and with what intent? Cellular tests always count. Wi-Fi tests also count when "
-                    "`brief.provider` / `brief.carrier` / `brief.mention` identifies the ISP "
-                    "(from public IP). Tag that provider. Choose skip for ordinary mid-tier results "
-                    "or when there is no usable test."
+                    "If this experience were described in a short X post, would the natural tone "
+                    "be a complaint or praise? Prefer complaint for poor/fair, praise for "
+                    "good/excellent. Never choose skip."
                 ),
                 "criteria": {
-                    "complaint": "Experience is notably poor; a short public complaint is appropriate",
-                    "praise": "Experience is notably strong; a short public praise/thank-you is appropriate",
-                    "skip": "Not distinctive enough to post (or no usable test/provider)",
+                    "complaint": "Tone should be a mild public complaint",
+                    "praise": "Tone should be public praise / thanks",
                 },
             },
             "topic": {
                 "type": "choice",
-                "instructions": (
-                    "Main everyday theme the post should emphasize, matching post_intent. "
-                    "For skip, prefer none."
-                ),
+                "instructions": "Main everyday theme matching post_intent.",
                 "criteria": {
                     "slow_download": "Slow download is the main story",
                     "high_latency": "High ping/latency is the main story",
@@ -98,7 +114,7 @@ def classify_complaint(brief: dict, api_key: str | None = None, timeout: int = 4
                     "smooth_video": "Smooth/high-res video is the main praise",
                     "snappy_latency": "Low latency is the main praise",
                     "mixed_strong": "Several strong strengths together",
-                    "none": "No clear public-post theme",
+                    "none": "No clear theme",
                 },
             },
             "path_kind": {
@@ -112,27 +128,6 @@ def classify_complaint(brief: dict, api_key: str | None = None, timeout: int = 4
                     "ipv6_nat64": "DNS64/NAT64 synthetic IPv6 (64:ff9b::)",
                     "unknown": "No clear speed path label",
                     "not_applicable": "No speed test in the brief",
-                },
-            },
-            "worthy_to_post": {
-                "type": "noul",
-                "instructions": (
-                    "A speed or video test in the brief is distinctive enough "
-                    "(notably poor OR notably strong) that a short public X post tagging "
-                    "the operator/ISP is warranted. Cellular tests qualify; Wi-Fi tests qualify "
-                    "when provider/ISP is known from brief.provider/carrier/mention. "
-                    "Ordinary mid-tier is not."
-                ),
-            },
-            "quality_band": {
-                "type": "choice",
-                "instructions": "Overall quality band of the measured experience in this brief",
-                "criteria": {
-                    "poor": "Clearly bad experience",
-                    "fair": "Usable but modest / annoying",
-                    "good": "Comfortable everyday performance",
-                    "excellent": "Strong high-end throughput",
-                    "unknown": "Not enough evidence",
                 },
             },
         },
@@ -159,18 +154,15 @@ def classify_complaint(brief: dict, api_key: str | None = None, timeout: int = 4
     intent = answers.get("post_intent") or {}
     topic = answers.get("topic") or {}
     path = answers.get("path_kind") or {}
-    worthy = answers.get("worthy_to_post") or {}
     quality = answers.get("quality_band") or {}
-    noul = float(worthy.get("noul") or 0.0)
-    intent_choice = str(intent.get("choice") or "skip")
+    quality_choice = str(quality.get("choice") or "unknown")
+    intent_raw = str(intent.get("choice") or "")
+    intent_choice = _intent_from_quality(quality_choice, intent_raw)
     topic_choice = str(topic.get("choice") or "none")
-    eligible = noul >= WORTHY_THRESHOLD and intent_choice in ("complaint", "praise")
-    # Keep legacy "issue" alias for older clients/logs.
-    issue_alias = topic_choice if intent_choice == "complaint" else (
-        "not_poor" if intent_choice == "skip" else topic_choice
-    )
+    issue_alias = topic_choice if intent_choice == "complaint" else topic_choice
     return {
-        "eligible": eligible,
+        # Always true after a successful classify: user decides whether to share.
+        "eligible": True,
         "post_intent": intent_choice,
         "post_intent_confidence": float(intent.get("confidence") or 0.0),
         "post_intent_probabilities": intent.get("probabilities") or {},
@@ -179,11 +171,11 @@ def classify_complaint(brief: dict, api_key: str | None = None, timeout: int = 4
         "issue": issue_alias,
         "issue_confidence": float(topic.get("confidence") or 0.0),
         "issue_probabilities": topic.get("probabilities") or {},
-        "eligible_noul": noul,
-        "eligible_threshold": WORTHY_THRESHOLD,
+        "eligible_noul": None,
+        "eligible_threshold": None,
         "path_kind": str(path.get("choice") or "unknown"),
         "path_confidence": float(path.get("confidence") or 0.0),
-        "quality_band": str(quality.get("choice") or "unknown"),
+        "quality_band": quality_choice,
         "quality_confidence": float(quality.get("confidence") or 0.0),
         "model": parsed.get("model") or MODEL,
         "usage": parsed.get("usage") or {},

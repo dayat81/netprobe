@@ -12,4 +12,7 @@
     <color name="ping">#FBBF24</color>
     <color name="download">#38BDF8</color>
     <color name="upload">#A78BFA</color>
+    <color name="video_green">#00C174</color>
+    <color name="video_stage">#0B0C1B</color>
+    <color name="ookla_grey">#9193A8</color>
 </resources>
