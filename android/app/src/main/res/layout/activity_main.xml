@@ -190,11 +190,22 @@
                 android:layout_height="wrap_content"
                 android:gravity="center"
                 android:paddingTop="2dp"
-                android:paddingBottom="4dp"
                 android:text="@string/speed_ips_loading"
                 android:textColor="@color/text_secondary"
                 android:textSize="11sp"
                 android:maxLines="3" />
+
+            <TextView
+                android:id="@+id/speedGateway"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:paddingTop="2dp"
+                android:paddingBottom="4dp"
+                android:text="@string/speed_gateway_loading"
+                android:textColor="@color/ping"
+                android:textSize="11sp"
+                android:maxLines="2" />
 
             <FrameLayout
                 android:layout_width="match_parent"
@@ -222,6 +233,12 @@
                     android:textSize="28sp"
                     android:textStyle="bold" />
             </FrameLayout>
+
+            <com.aksa.mysignal.GatewayRttChartView
+                android:id="@+id/gatewayRttChart"
+                android:layout_width="match_parent"
+                android:layout_height="96dp"
+                android:layout_marginBottom="4dp" />
 
             <LinearLayout
                 android:layout_width="match_parent"

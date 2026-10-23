@@ -36,12 +36,14 @@ class MainActivity : AppCompatActivity() {
     private var ratFilter: String? = null
     private var plmnChoices: List<String> = emptyList()
     private var speedJob: Job? = null
+    private var gatewayPingJob: Job? = null
     private var videoJob: Job? = null
     private var complaintJob: Job? = null
     private var nextSpeedFamily: IpFamily = IpFamily.IPV4
     private var running = false
     private var videoRunning = false
     private var currentTab = Tab.RADIO
+    private val gatewayRttSamples = ArrayDeque<GatewayPinger.Sample>(GATEWAY_RTT_CAPACITY)
 
     private val permissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions(),
@@ -91,6 +93,7 @@ class MainActivity : AppCompatActivity() {
             BuildConfig.COLLECTOR_HOST,
         )
         binding.speedClientIps.text = getString(R.string.speed_ips_loading)
+        binding.speedGateway.text = getString(R.string.speed_gateway_loading)
         binding.videoServer.text = getString(
             R.string.speed_server,
             "${BuildConfig.COLLECTOR_HOST}/video",
@@ -112,6 +115,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onStop() {
+        stopGatewayPing()
         RadioState.removeListener(onSnapshot)
         super.onStop()
     }
@@ -132,6 +136,9 @@ class MainActivity : AppCompatActivity() {
         }
         if (tab == Tab.SPEED) {
             refreshSpeedClientIps()
+            startGatewayPing()
+        } else {
+            stopGatewayPing()
         }
         if (tab == Tab.COMPLAINT) {
             binding.complaintPane.setCurrentItem(1, false)
@@ -139,9 +146,47 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun startGatewayPing() {
+        if (gatewayPingJob?.isActive == true) return
+        gatewayPingJob = lifecycleScope.launch {
+            while (currentTab == Tab.SPEED) {
+                val gw = withContext(Dispatchers.IO) {
+                    ClientNetworkInfo.gatewayIp(this@MainActivity)
+                }
+                val rtt = if (gw != "—") {
+                    withContext(Dispatchers.IO) { GatewayPinger.pingOnce(gw) }
+                } else {
+                    null
+                }
+                if (currentTab != Tab.SPEED) break
+                val sample = GatewayPinger.Sample(System.currentTimeMillis(), rtt)
+                if (gatewayRttSamples.size >= GATEWAY_RTT_CAPACITY) gatewayRttSamples.removeFirst()
+                gatewayRttSamples.addLast(sample)
+                binding.speedGateway.text = getString(
+                    R.string.speed_gateway,
+                    gw,
+                    GatewayPinger.formatRtt(rtt),
+                )
+                binding.gatewayRttChart.setSamples(gatewayRttSamples.toList())
+                delay(GATEWAY_PING_INTERVAL_MS)
+            }
+        }
+    }
+
+    private fun stopGatewayPing() {
+        gatewayPingJob?.cancel()
+        gatewayPingJob = null
+    }
+
     private fun refreshSpeedClientIps(family: IpFamily = nextSpeedFamily) {
         val local = ClientNetworkInfo.localSummary(this)
+        val gateway = ClientNetworkInfo.gatewayIpQuick(this)
         binding.speedClientIps.text = getString(R.string.speed_ips, local, "…", "…")
+        binding.speedGateway.text = getString(
+            R.string.speed_gateway,
+            if (gateway == "—") "…" else gateway,
+            "…",
+        )
         binding.speedServer.text = getString(
             R.string.speed_server_stack,
             BuildConfig.COLLECTOR_HOST,
@@ -672,5 +717,10 @@ class MainActivity : AppCompatActivity() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) wanted += Manifest.permission.POST_NOTIFICATIONS
         val needed = wanted.filterNot { granted(it) }
         if (needed.isNotEmpty()) permissionLauncher.launch(needed.toTypedArray())
+    }
+
+    companion object {
+        private const val GATEWAY_PING_INTERVAL_MS = 1_000L
+        private const val GATEWAY_RTT_CAPACITY = 60
     }
 }

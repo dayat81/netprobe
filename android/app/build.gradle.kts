@@ -11,8 +11,8 @@ android {
         applicationId = "com.aksa.mysignal"
         minSdk = 30
         targetSdk = 35
-        versionCode = 71
-        versionName = "2.5.45"
+        versionCode = 76
+        versionName = "2.5.50"
 
         val collectorHost = (project.findProperty("mysignal.collectorHost") as String?)
             ?.trim()
@@ -70,6 +70,13 @@ android {
     buildFeatures {
         viewBinding = true
         buildConfig = true
+    }
+
+    // Extract libtraceroute.so so ProcessBuilder can exec it (PingTools pattern).
+    packaging {
+        jniLibs {
+            useLegacyPackaging = true
+        }
     }
 
     applicationVariants.configureEach {

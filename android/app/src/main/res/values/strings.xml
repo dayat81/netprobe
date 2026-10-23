@@ -55,6 +55,8 @@
     <string name="speed_server_stack">Azure · %1$s · %2$s %3$s</string>
     <string name="speed_ips_loading">Local — · Public — · Provider —</string>
     <string name="speed_ips">Local %1$s · Public %2$s · %3$s</string>
+    <string name="speed_gateway_loading">Gateway — · RTT —</string>
+    <string name="speed_gateway">Gateway %1$s · RTT %2$s</string>
     <string name="speed_family_unavailable">%1$s unavailable: %2$s</string>
     <string name="speed_running">Testing…</string>
     <string name="speed_loop">Loop %1$d · tap STOP to end</string>
