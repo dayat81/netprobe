@@ -56,6 +56,7 @@
     <string name="speed_family_unavailable">%1$s unavailable: %2$s</string>
     <string name="speed_running">Testing…</string>
     <string name="speed_loop">Loop %1$d · tap STOP to end</string>
+    <string name="speed_loop_pause">Loop %1$d done · next in %2$ds · tap STOP to keep</string>
     <string name="speed_done">Done</string>
     <string name="speed_failed">Failed: %1$s</string>
     <string name="speed_retry">Retrying… %1$s</string>

@@ -457,6 +457,20 @@ class MainActivity : AppCompatActivity() {
                             runOnUiThread { renderProgress(progress) }
                         }
                         SpeedtestReport.upload(applicationContext, result)
+                        if (!running) break
+                        // Hold final DL/UL on screen so the user can stop before the next round.
+                        binding.pingValue.text = SpeedtestMath.formatMs(result.pingMs)
+                        binding.jitterValue.text = "jitter ${result.jitterMs} ms"
+                        binding.downloadValue.text = SpeedtestMath.formatMbps(result.downloadMbps)
+                        binding.uploadValue.text = SpeedtestMath.formatMbps(result.uploadMbps)
+                        binding.speedCenter.text = getString(R.string.speed_stop)
+                        binding.gauge.setReading(result.downloadMbps, "DONE")
+                        for (left in 10 downTo 1) {
+                            if (!running) break
+                            binding.speedStatus.text = getString(R.string.speed_loop_pause, round, left)
+                            delay(1_000)
+                        }
+                        if (!running) break
                         family = family.next()
                         nextSpeedFamily = family
                     } catch (cancelled: CancellationException) {

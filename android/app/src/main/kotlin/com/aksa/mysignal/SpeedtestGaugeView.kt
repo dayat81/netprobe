@@ -11,7 +11,11 @@ import kotlin.math.cos
 import kotlin.math.min
 import kotlin.math.sin
 
-/** Ookla-like semicircle gauge. Center label is drawn by the overlay TextView. */
+/**
+ * Speed gauge patterned after Ookla's `com.ookla.mobile4.views.gauge.Gauge`
+ * (static REA from ookla-speedtest.apk): 270° arc from 135°, SweepGradient fill,
+ * equal-angle interval ticks (Mbps scale 0…1000), separate DL/UL palettes.
+ */
 class SpeedtestGaugeView @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null,
@@ -19,20 +23,29 @@ class SpeedtestGaugeView @JvmOverloads constructor(
     private val track = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE
         strokeCap = Paint.Cap.ROUND
-        color = 0xFF1E2D42.toInt()
+        color = TRACK
     }
     private val fill = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE
         strokeCap = Paint.Cap.ROUND
     }
     private val tick = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = 0xFF7C8FA3.toInt()
+        color = TICK
         textAlign = Paint.Align.CENTER
+    }
+    private val tickMark = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.STROKE
+        strokeCap = Paint.Cap.ROUND
+        color = TICK
     }
     private val needle = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE
         strokeCap = Paint.Cap.ROUND
-        color = 0xFF38BDF8.toInt()
+        color = NEEDLE
+    }
+    private val hub = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.FILL
+        color = NEEDLE
     }
     private val arc = RectF()
     private var mbps = 0f
@@ -46,50 +59,120 @@ class SpeedtestGaugeView @JvmOverloads constructor(
 
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
-        val stroke = dp(18f)
+        val stroke = dp(16f)
         track.strokeWidth = stroke
         fill.strokeWidth = stroke
-        needle.strokeWidth = dp(3f)
+        needle.strokeWidth = dp(3.5f)
+        tickMark.strokeWidth = dp(2f)
         tick.textSize = dp(10f)
-        val pad = stroke / 2f + dp(18f)
-        val size = min(width.toFloat(), height.toFloat() * 1.55f)
+
+        val pad = stroke / 2f + dp(22f)
+        val size = min(width.toFloat(), height.toFloat() * 1.15f)
         val left = (width - size) / 2f + pad
-        val top = height * 0.18f
+        val top = (height - size) / 2f + pad * 0.35f
         arc.set(left, top, left + size - 2 * pad, top + size - 2 * pad)
-        canvas.drawArc(arc, 180f, 180f, false, track)
-        val frac = (mbps / SCALE).coerceIn(0f, 1f)
+
+        val cx = arc.centerX()
+        val cy = arc.centerY()
+        val radius = arc.width() / 2f
+
+        canvas.drawArc(arc, START_ANGLE, SWEEP, false, track)
+
+        val frac = fractionForMbps(mbps)
         if (frac > 0f) {
-            fill.shader = SweepGradient(
-                arc.centerX(),
-                arc.centerY(),
-                intArrayOf(0xFF0EA5E9.toInt(), 0xFF22C55E.toInt(), 0xFFF59E0B.toInt()),
-                floatArrayOf(0.5f, 0.75f, 1f),
-            )
-            canvas.drawArc(arc, 180f, 180f * frac, false, fill)
+            val colors = gradientForPhase(phase)
+            // SweepGradient angles are absolute; rotate so fill tracks the 135° start.
+            fill.shader = SweepGradient(cx, cy, colors, floatArrayOf(0f, 0.55f, 1f)).also {
+                val matrix = android.graphics.Matrix()
+                matrix.setRotate(START_ANGLE, cx, cy)
+                it.setLocalMatrix(matrix)
+            }
+            canvas.drawArc(arc, START_ANGLE, SWEEP * frac, false, fill)
             fill.shader = null
         }
-        listOf(0, 50, 100, 250, 500, 750).forEach { mark ->
-            val t = mark / SCALE
-            val angle = Math.PI - t * Math.PI
-            val r = arc.width() / 2f
-            val x = arc.centerX() + (r + dp(14f)) * cos(angle).toFloat()
-            val y = arc.centerY() - (r + dp(14f)) * sin(angle).toFloat() + dp(4f)
-            canvas.drawText(mark.toString(), x, y, tick)
+
+        TICKS.forEachIndexed { index, mark ->
+            val t = index.toFloat() / (TICKS.lastIndex)
+            val deg = START_ANGLE + SWEEP * t
+            val rad = Math.toRadians(deg.toDouble())
+            val cosA = cos(rad).toFloat()
+            val sinA = sin(rad).toFloat()
+            val outer = radius + stroke * 0.15f
+            val inner = radius - stroke * 0.55f
+            canvas.drawLine(
+                cx + inner * cosA,
+                cy + inner * sinA,
+                cx + outer * cosA,
+                cy + outer * sinA,
+                tickMark,
+            )
+            val labelR = radius + dp(16f)
+            canvas.drawText(
+                formatTick(mark),
+                cx + labelR * cosA,
+                cy + labelR * sinA + dp(3.5f),
+                tick,
+            )
         }
-        val angle = Math.PI - frac * Math.PI
-        val inner = arc.width() / 2f - stroke
-        val nx = arc.centerX() + inner * cos(angle).toFloat()
-        val ny = arc.centerY() - inner * sin(angle).toFloat()
-        canvas.drawLine(arc.centerX(), arc.centerY(), nx, ny, needle)
-        if (phase.isNotEmpty()) {
-            tick.textSize = dp(11f)
-            canvas.drawText(phase, arc.centerX(), arc.centerY() + dp(36f), tick)
+
+        if (frac > 0f || phase.isNotEmpty()) {
+            val deg = START_ANGLE + SWEEP * frac
+            val rad = Math.toRadians(deg.toDouble())
+            val inner = radius - stroke
+            canvas.drawLine(
+                cx,
+                cy,
+                cx + inner * cos(rad).toFloat(),
+                cy + inner * sin(rad).toFloat(),
+                needle,
+            )
+            canvas.drawCircle(cx, cy, dp(5f), hub)
         }
+    }
+
+    private fun formatTick(mark: Int): String = when {
+        mark >= 1000 -> "1k"
+        else -> mark.toString()
+    }
+
+    private fun gradientForPhase(phaseLabel: String): IntArray = when {
+        phaseLabel.contains("UPLOAD", ignoreCase = true) ->
+            intArrayOf(UPLOAD_0, UPLOAD_1, UPLOAD_1)
+        else ->
+            intArrayOf(DOWNLOAD_0, DOWNLOAD_1, DOWNLOAD_1)
     }
 
     private fun dp(value: Float): Float = value * resources.displayMetrics.density
 
     companion object {
-        private const val SCALE = 750f
+        /** Matches Ookla Gauge: start 135°, sweep 270°. */
+        private const val START_ANGLE = 135f
+        private const val SWEEP = 270f
+
+        /** Ookla `gauge_scale_1000_megabits` — equal angular slots, non-linear Mbps. */
+        private val TICKS = intArrayOf(0, 5, 10, 50, 100, 250, 500, 750, 1000)
+
+        private const val TRACK = 0xFF26263B.toInt()
+        private const val TICK = 0xFF9193A8.toInt()
+        private const val NEEDLE = 0xFFE7EEF7.toInt()
+        private const val DOWNLOAD_0 = 0xFF01A3E5.toInt() // ookla_ui_blue
+        private const val DOWNLOAD_1 = 0xFF19BF78.toInt() // ookla_ui_green
+        private const val UPLOAD_0 = 0xFF6B3295.toInt()   // ookla_ui_purple
+        private const val UPLOAD_1 = 0xFFE97BCE.toInt()   // ookla_ui_pink
+
+        fun fractionForMbps(mbps: Float): Float {
+            if (mbps <= 0f) return 0f
+            val last = TICKS.last().toFloat()
+            if (mbps >= last) return 1f
+            for (i in 0 until TICKS.lastIndex) {
+                val a = TICKS[i].toFloat()
+                val b = TICKS[i + 1].toFloat()
+                if (mbps <= b) {
+                    val local = (mbps - a) / (b - a)
+                    return (i + local) / TICKS.lastIndex
+                }
+            }
+            return 1f
+        }
     }
 }

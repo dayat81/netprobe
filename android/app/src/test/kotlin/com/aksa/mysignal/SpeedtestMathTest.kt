@@ -119,4 +119,13 @@ class SpeedtestMathTest {
         )
         assertEquals("http://20.205.188.36:8080/speedtest/upload", SpeedtestEngine.uploadUrl(base))
     }
+
+    @Test
+    fun ooklaStyleGaugeFractionIsPiecewise() {
+        assertEquals(0f, SpeedtestGaugeView.fractionForMbps(0f), 0.001f)
+        // Midpoint between 50 and 100 on the 9-slot Ookla 1000 Mbps scale → slot 3.5 / 8
+        assertEquals(3.5f / 8f, SpeedtestGaugeView.fractionForMbps(75f), 0.001f)
+        assertEquals(1f, SpeedtestGaugeView.fractionForMbps(1000f), 0.001f)
+        assertEquals(1f, SpeedtestGaugeView.fractionForMbps(2000f), 0.001f)
+    }
 }
