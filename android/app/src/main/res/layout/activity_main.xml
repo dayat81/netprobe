@@ -176,36 +176,143 @@
             android:paddingTop="8dp"
             android:visibility="gone">
 
-            <TextView
-                android:id="@+id/speedServer"
+            <LinearLayout
+                android:id="@+id/speedInfo"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:gravity="center"
-                android:textColor="@color/text_secondary"
-                android:textSize="12sp" />
+                android:orientation="vertical"
+                android:paddingBottom="6dp">
 
-            <TextView
-                android:id="@+id/speedClientIps"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:gravity="center"
-                android:paddingTop="2dp"
-                android:text="@string/speed_ips_loading"
-                android:textColor="@color/text_secondary"
-                android:textSize="11sp"
-                android:maxLines="3" />
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:paddingVertical="1dp">
 
-            <TextView
-                android:id="@+id/speedGateway"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:gravity="center"
-                android:paddingTop="2dp"
-                android:paddingBottom="4dp"
-                android:text="@string/speed_gateway_loading"
-                android:textColor="@color/ping"
-                android:textSize="11sp"
-                android:maxLines="2" />
+                    <TextView
+                        android:layout_width="52dp"
+                        android:layout_height="wrap_content"
+                        android:text="@string/speed_label_server"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="11sp" />
+
+                    <TextView
+                        android:id="@+id/speedServer"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:ellipsize="middle"
+                        android:maxLines="1"
+                        android:text="@string/speed_server_loading"
+                        android:textColor="@color/text_primary"
+                        android:textSize="11sp" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="top"
+                    android:orientation="horizontal"
+                    android:paddingVertical="1dp">
+
+                    <TextView
+                        android:layout_width="52dp"
+                        android:layout_height="wrap_content"
+                        android:text="@string/speed_label_local"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="11sp" />
+
+                    <TextView
+                        android:id="@+id/speedLocal"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:ellipsize="middle"
+                        android:maxLines="2"
+                        android:text="—"
+                        android:textColor="@color/text_primary"
+                        android:textSize="11sp" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:paddingVertical="1dp">
+
+                    <TextView
+                        android:layout_width="52dp"
+                        android:layout_height="wrap_content"
+                        android:text="@string/speed_label_public"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="11sp" />
+
+                    <TextView
+                        android:id="@+id/speedPublic"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:ellipsize="middle"
+                        android:maxLines="1"
+                        android:text="—"
+                        android:textColor="@color/text_primary"
+                        android:textSize="11sp" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:paddingVertical="1dp">
+
+                    <TextView
+                        android:layout_width="52dp"
+                        android:layout_height="wrap_content"
+                        android:text="@string/speed_label_gw4"
+                        android:textColor="@color/gateway_v4"
+                        android:textSize="11sp" />
+
+                    <TextView
+                        android:id="@+id/speedGw4"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:ellipsize="middle"
+                        android:maxLines="1"
+                        android:text="—"
+                        android:textColor="@color/gateway_v4"
+                        android:textSize="11sp" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:paddingVertical="1dp">
+
+                    <TextView
+                        android:layout_width="52dp"
+                        android:layout_height="wrap_content"
+                        android:text="@string/speed_label_gw6"
+                        android:textColor="@color/gateway_v6"
+                        android:textSize="11sp" />
+
+                    <TextView
+                        android:id="@+id/speedGw6"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:ellipsize="middle"
+                        android:maxLines="1"
+                        android:text="—"
+                        android:textColor="@color/gateway_v6"
+                        android:textSize="11sp" />
+                </LinearLayout>
+            </LinearLayout>
 
             <FrameLayout
                 android:layout_width="match_parent"
@@ -233,6 +340,14 @@
                     android:textSize="28sp"
                     android:textStyle="bold" />
             </FrameLayout>
+
+            <!-- Packet-loss chart (disabled; keep for later)
+            <com.aksa.mysignal.GatewayLossChartView
+                android:id="@+id/gatewayLossChart"
+                android:layout_width="match_parent"
+                android:layout_height="96dp"
+                android:layout_marginBottom="4dp" />
+            -->
 
             <com.aksa.mysignal.GatewayRttChartView
                 android:id="@+id/gatewayRttChart"

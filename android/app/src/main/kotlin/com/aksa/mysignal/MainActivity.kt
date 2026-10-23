@@ -91,12 +91,11 @@ class MainActivity : AppCompatActivity() {
         }
         binding.speedCenter.setOnClickListener { toggleSpeedtest() }
         binding.videoGo.setOnClickListener { toggleVideo() }
-        binding.speedServer.text = getString(
-            R.string.speed_server,
-            BuildConfig.COLLECTOR_HOST,
-        )
-        binding.speedClientIps.text = getString(R.string.speed_ips_loading)
-        binding.speedGateway.text = coloredGatewayLabel("—", "—", "—", "—")
+        binding.speedServer.text = BuildConfig.COLLECTOR_HOST
+        binding.speedLocal.text = "—"
+        binding.speedPublic.text = "—"
+        binding.speedGw4.text = "—"
+        binding.speedGw6.text = "—"
         binding.videoServer.text = getString(
             R.string.speed_server,
             "${BuildConfig.COLLECTOR_HOST}/video",
@@ -158,19 +157,30 @@ class MainActivity : AppCompatActivity() {
                 }
                 if (currentTab != Tab.SPEED) break
                 val sample = GatewayRttChartView.Point(
-                    System.currentTimeMillis(),
-                    gw.ipv4RttMs,
-                    gw.ipv6RttMs,
+                    tMs = System.currentTimeMillis(),
+                    rtt4Ms = gw.ipv4RttMs,
+                    rtt6Ms = gw.ipv6RttMs,
+                    attempted4 = gw.ipv4 != null,
+                    attempted6 = gw.ipv6 != null,
                 )
                 if (gatewayRttSamples.size >= GATEWAY_RTT_CAPACITY) gatewayRttSamples.removeFirst()
                 gatewayRttSamples.addLast(sample)
-                binding.speedGateway.text = coloredGatewayLabel(
+                val snap = gatewayRttSamples.toList()
+                val (lost4, att4) = gatewayLossCounts(snap, v4 = true)
+                val (lost6, att6) = gatewayLossCounts(snap, v4 = false)
+                binding.speedGw4.text = formatGwDetail(
                     gw.ipv4 ?: "—",
                     GatewayPinger.formatRtt(gw.ipv4RttMs),
+                    GatewayPinger.formatLoss(lost4, att4),
+                )
+                binding.speedGw6.text = formatGwDetail(
                     gw.ipv6 ?: "—",
                     GatewayPinger.formatRtt(gw.ipv6RttMs),
+                    GatewayPinger.formatLoss(lost6, att6),
                 )
-                binding.gatewayRttChart.setSamples(gatewayRttSamples.toList())
+                // Packet-loss chart disabled (layout commented out).
+                // binding.gatewayLossChart.setSamples(snap)
+                binding.gatewayRttChart.setSamples(snap)
                 delay(GATEWAY_PING_INTERVAL_MS)
             }
         }
@@ -185,13 +195,10 @@ class MainActivity : AppCompatActivity() {
         val locals = ClientNetworkInfo.localAddressesPair(this)
         val gateway = ClientNetworkInfo.gatewayIpQuick(this)
         val gateway6 = ClientNetworkInfo.gatewayIpv6Quick(this)
-        binding.speedClientIps.text = coloredLocalIps(locals, "…", "…")
-        binding.speedGateway.text = coloredGatewayLabel(
-            if (gateway == "—") "…" else gateway,
-            "…",
-            if (gateway6 == "—") "…" else gateway6,
-            "…",
-        )
+        binding.speedLocal.text = formatLocalIps(locals)
+        binding.speedPublic.text = "…"
+        binding.speedGw4.text = formatGwDetail(if (gateway == "—") "…" else gateway, "…", "…")
+        binding.speedGw6.text = formatGwDetail(if (gateway6 == "—") "…" else gateway6, "…", "…")
         binding.speedServer.text = getString(
             R.string.speed_server_stack,
             BuildConfig.COLLECTOR_HOST,
@@ -210,29 +217,22 @@ class MainActivity : AppCompatActivity() {
                     family.label,
                     "—",
                 )
-                binding.speedClientIps.text = coloredLocalIps(locals, "—", "—")
+                binding.speedLocal.text = formatLocalIps(locals)
+                binding.speedPublic.text = "—"
                 return@launch
             }
-            binding.speedServer.text = getString(
-                R.string.speed_server_stack,
-                target.hostname,
-                target.family.label,
-                target.serverIp,
-            )
+            showSpeedTarget(target)
             val public = withContext(Dispatchers.IO) {
                 ClientNetworkInfo.publicClientFromHello(target)
             }
             if (currentTab == Tab.SPEED) {
-                binding.speedClientIps.text = coloredLocalIps(locals, public.ip, public.provider)
+                binding.speedLocal.text = formatLocalIps(locals)
+                binding.speedPublic.text = formatPublic(public.ip, public.provider)
             }
         }
     }
 
-    private fun coloredLocalIps(
-        locals: ClientNetworkInfo.LocalAddresses,
-        publicIp: String,
-        provider: String,
-    ): CharSequence {
+    private fun formatLocalIps(locals: ClientNetworkInfo.LocalAddresses): CharSequence {
         val secondary = ContextCompat.getColor(this, R.color.text_secondary)
         val v4Color = ContextCompat.getColor(this, R.color.gateway_v4)
         val v6Color = ContextCompat.getColor(this, R.color.gateway_v6)
@@ -242,47 +242,48 @@ class MainActivity : AppCompatActivity() {
             sb.append(text)
             sb.setSpan(ForegroundColorSpan(color), start, sb.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
         }
-        appendColored("Local ", secondary)
         val v4 = locals.ipv4
         val v6 = locals.ipv6
         when {
             v4 != null && v6 != null -> {
                 appendColored(v4, v4Color)
-                appendColored(" / ", secondary)
+                appendColored("\n", secondary)
                 appendColored(v6, v6Color)
             }
             v4 != null -> appendColored(v4, v4Color)
             v6 != null -> appendColored(v6, v6Color)
             else -> appendColored("—", secondary)
         }
-        appendColored(getString(R.string.speed_ips_tail, publicIp, provider), secondary)
         return sb
     }
 
-    private fun coloredGatewayLabel(
-        gw4: String,
-        rtt4: String,
-        gw6: String,
-        rtt6: String,
-    ): CharSequence {
-        val secondary = ContextCompat.getColor(this, R.color.text_secondary)
-        val v4Color = ContextCompat.getColor(this, R.color.gateway_v4)
-        val v6Color = ContextCompat.getColor(this, R.color.gateway_v6)
-        val sb = SpannableStringBuilder()
-        fun appendColored(text: String, color: Int) {
-            val start = sb.length
-            sb.append(text)
-            sb.setSpan(ForegroundColorSpan(color), start, sb.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+    private fun formatPublic(ip: String, provider: String): String {
+        val cleanIp = ip.ifBlank { "—" }
+        val cleanProvider = provider.trim().takeIf { it.isNotEmpty() && it != "—" }
+        return if (cleanProvider != null) {
+            getString(R.string.speed_public, cleanIp, cleanProvider)
+        } else {
+            cleanIp
         }
-        appendColored("GW4 ", secondary)
-        appendColored(gw4, v4Color)
-        appendColored(" · ", secondary)
-        appendColored(rtt4, v4Color)
-        appendColored(" · GW6 ", secondary)
-        appendColored(gw6, v6Color)
-        appendColored(" · ", secondary)
-        appendColored(rtt6, v6Color)
-        return sb
+    }
+
+    private fun formatGwDetail(ip: String, rtt: String, loss: String): String =
+        getString(R.string.speed_gw_detail, ip, rtt, loss)
+
+    private fun gatewayLossCounts(
+        samples: List<GatewayRttChartView.Point>,
+        v4: Boolean,
+    ): Pair<Int, Int> {
+        var attempted = 0
+        var lost = 0
+        for (p in samples) {
+            val att = if (v4) p.attempted4 else p.attempted6
+            val ok = if (v4) p.rtt4Ms != null else p.rtt6Ms != null
+            if (!att) continue
+            attempted++
+            if (!ok) lost++
+        }
+        return lost to attempted
     }
 
     private fun showSpeedTarget(target: SpeedtestTarget) {
@@ -665,10 +666,8 @@ class MainActivity : AppCompatActivity() {
     private fun renderProgress(progress: SpeedtestEngine.Progress) {
         if (!running) return
         if (progress.serverLabel.isNotEmpty()) {
-            binding.speedServer.text = progress.serverLabel.let { label ->
-                // Progress.serverLabel already formatted as "host · IPvX ip"
-                "Azure · $label"
-            }
+            // Progress.serverLabel already formatted as "host · IPvX · ip"
+            binding.speedServer.text = progress.serverLabel
         }
         progress.pingMs?.let { binding.pingValue.text = SpeedtestMath.formatMs(it) }
         progress.jitterMs?.let { binding.jitterValue.text = "jitter ${it} ms" }

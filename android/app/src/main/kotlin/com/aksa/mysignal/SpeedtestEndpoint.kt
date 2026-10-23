@@ -43,7 +43,7 @@ data class SpeedtestTarget(
     val pathPrefix: String,
 ) {
     val serverLabel: String
-        get() = "$hostname · ${family.label} $serverIp"
+        get() = "$hostname · ${family.label} · $serverIp"
 
     fun root(): String {
         val host = if (family == IpFamily.IPV6) "[$serverIp]" else serverIp

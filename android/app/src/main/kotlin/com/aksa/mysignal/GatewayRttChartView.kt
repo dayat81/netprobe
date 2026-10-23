@@ -14,7 +14,15 @@ class GatewayRttChartView @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null,
 ) : View(context, attrs) {
-    data class Point(val tMs: Long, val rtt4Ms: Double?, val rtt6Ms: Double?)
+    data class Point(
+        val tMs: Long,
+        val rtt4Ms: Double?,
+        val rtt6Ms: Double?,
+        /** True when a GW4 ping was attempted (IP known). */
+        val attempted4: Boolean = false,
+        /** True when a GW6 ping was attempted (IP known). */
+        val attempted6: Boolean = false,
+    )
 
     private var samples: List<Point> = emptyList()
 
