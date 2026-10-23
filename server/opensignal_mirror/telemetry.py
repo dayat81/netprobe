@@ -745,26 +745,99 @@ class ClickHouseTelemetry:
             value_rows.extend(values)
         return self._write(event_rows, value_rows)
 
-    def backfill(self, store) -> int:
+    def _role_rows(self, store, role: str, cutoff: int | None) -> list[tuple]:
         with store.lock, store._connect() as conn:
-            rows = conn.execute(
+            if cutoff is None:
+                return conn.execute(
+                    "SELECT payload, source_ip, received_at, device_id FROM events WHERE role = ?",
+                    (role,),
+                ).fetchall()
+            return conn.execute(
                 """
                 SELECT payload, source_ip, received_at, device_id FROM events
-                WHERE role = 'os_results' AND (payload LIKE '%"stage":"sdk_json"%' OR payload LIKE '%"stage":"drive_mode"%')
-                """
+                WHERE role = ? AND received_at >= ?
+                """,
+                (role, cutoff),
             ).fetchall()
-        return self.backfill_rows(rows)
+
+    def _replay_measurements(self, rows: list[tuple]) -> int:
+        written = 0
+        by_device: dict[tuple[str, str], list[dict]] = {}
+        for payload, source_ip, received_at, device_id in rows:
+            snapshot = json.loads(payload)
+            key = (device_id or "", source_ip or "")
+            by_device.setdefault(key, []).append(snapshot)
+        for (device_id, source_ip), snapshots in by_device.items():
+            written += self.store_measurements(device_id, source_ip, snapshots)
+        return written
+
+    def _replay_ookla(self, rows: list[tuple]) -> int:
+        written = 0
+        for payload, source_ip, received_at, device_id in rows:
+            written += self.store_ookla(
+                device_id or "", source_ip or "", json.loads(payload), int(received_at)
+            )
+        return written
+
+    def _replay_mysignal(self, rows: list[tuple]) -> int:
+        written = 0
+        for payload, source_ip, received_at, device_id in rows:
+            written += self.store_mysignal(
+                device_id or "", source_ip or "", json.loads(payload), int(received_at)
+            )
+        return written
+
+    def _replay_timeline(self, rows: list[tuple]) -> int:
+        written = 0
+        by_device: dict[tuple[str, str, str], list[dict]] = {}
+        received: dict[tuple[str, str, str], int] = {}
+        for payload, source_ip, received_at, device_id in rows:
+            event = json.loads(payload)
+            app = event.get("app") if isinstance(event.get("app"), str) else "opensignal"
+            if app not in ("opensignal", "ookla"):
+                app = "opensignal"
+            key = (device_id or "", source_ip or "", app)
+            by_device.setdefault(key, []).append(event)
+            received[key] = max(received.get(key, 0), int(received_at))
+        for (device_id, source_ip, app), events in by_device.items():
+            written += self.store_timeline(
+                device_id, source_ip, app, events, received[(device_id, source_ip, app)]
+            )
+        return written
+
+    def sync_ingest_roles(self, store, cutoff: int | None = None) -> int:
+        """Replay SQLite ingest roles into ClickHouse (idempotent by event_id)."""
+        self.ensure_schema()
+        with store.lock, store._connect() as conn:
+            if cutoff is None:
+                os_rows = conn.execute(
+                    """
+                    SELECT payload, source_ip, received_at, device_id FROM events
+                    WHERE role = 'os_results'
+                      AND (payload LIKE '%"stage":"sdk_json"%' OR payload LIKE '%"stage":"drive_mode"%')
+                    """
+                ).fetchall()
+            else:
+                os_rows = conn.execute(
+                    """
+                    SELECT payload, source_ip, received_at, device_id FROM events
+                    WHERE role = 'os_results' AND received_at >= ?
+                      AND (payload LIKE '%"stage":"sdk_json"%' OR payload LIKE '%"stage":"drive_mode"%')
+                    """,
+                    (cutoff,),
+                ).fetchall()
+        written = self.backfill_rows(os_rows)
+        written += self._replay_measurements(self._role_rows(store, "measurements", cutoff))
+        written += self._replay_ookla(self._role_rows(store, "ookla", cutoff))
+        written += self._replay_mysignal(self._role_rows(store, "nr_status", cutoff))
+        written += self._replay_timeline(self._role_rows(store, "timeline", cutoff))
+        return written
+
+    def backfill(self, store) -> int:
+        return self.sync_ingest_roles(store, cutoff=None)
 
     def sync_recent(self, store, seconds: int) -> int:
         import time
 
         cutoff = int(time.time()) - seconds
-        with store.lock, store._connect() as conn:
-            rows = conn.execute(
-                """
-                SELECT payload, source_ip, received_at, device_id FROM events
-                WHERE role = 'os_results' AND received_at >= ? AND (payload LIKE '%"stage":"sdk_json"%' OR payload LIKE '%"stage":"drive_mode"%')
-                """,
-                (cutoff,),
-            ).fetchall()
-        return self.backfill_rows(rows)
+        return self.sync_ingest_roles(store, cutoff=cutoff)

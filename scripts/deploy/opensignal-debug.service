@@ -9,8 +9,11 @@ Group=osm
 WorkingDirectory=/opt/opensignal-mirror/app
 Environment=PYTHONPATH=/opt/opensignal-mirror/app
 Environment=OSM_ROLE=debug
+Environment=OSM_BIND=127.0.0.1
 Environment=OSM_PORT=8001
 Environment=OSM_MAX_BODY=65536
+Environment=OSM_RATE_PER_MINUTE=180
+Environment=OSM_TRUSTED_PROXIES=127.0.0.1/32,::1/128
 EnvironmentFile=/etc/opensignal-mirror/collector.env
 ExecStart=/usr/bin/python3 -m opensignal_mirror
 Restart=on-failure

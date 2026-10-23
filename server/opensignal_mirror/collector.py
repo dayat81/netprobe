@@ -777,6 +777,37 @@ def ip_allowed(addr: str, networks: list[ipaddress.IPv4Network | ipaddress.IPv6N
     return any(parsed in network for network in networks)
 
 
+def client_ip(
+    peer: str,
+    headers: Mapping[str, str] | object,
+    trusted_proxies: list[ipaddress.IPv4Network | ipaddress.IPv6Network],
+) -> str:
+    """Resolve the client address, trusting proxy headers only from trusted peers.
+
+    Prefer ``X-Real-IP`` (set by nginx to ``$remote_addr``). Fall back to the
+    leftmost ``X-Forwarded-For`` hop. Untrusted peers never override via headers.
+    """
+    if not ip_allowed(peer, trusted_proxies):
+        return peer
+    getter = getattr(headers, "get", None)
+    if not callable(getter):
+        return peer
+    real = (getter("X-Real-IP") or "").strip()
+    if not real:
+        forwarded = (getter("X-Forwarded-For") or "").strip()
+        if forwarded:
+            real = forwarded.split(",")[0].strip()
+    if not real:
+        return peer
+    try:
+        parsed = ipaddress.ip_address(real)
+    except ValueError:
+        return peer
+    if isinstance(parsed, ipaddress.IPv6Address) and parsed.ipv4_mapped:
+        return str(parsed.ipv4_mapped)
+    return str(parsed)
+
+
 class RateLimitError(ValueError):
     pass
 
@@ -1006,7 +1037,8 @@ class Config:
         self.ttl_seconds = int(env.get("OSM_TTL_SECONDS", str(72 * 3600)))
         self.max_db_bytes = int(env.get("OSM_MAX_DB_BYTES", str(512 * 1024 * 1024)))
         self.max_body = int(env.get("OSM_MAX_BODY", "262144" if self.role == "flows" else "65536"))
-        self.rate_per_minute = int(env.get("OSM_RATE_PER_MINUTE", "120"))
+        # Per real client IP after trusted-proxy resolution; ~3s MEASURE + other posts.
+        self.rate_per_minute = int(env.get("OSM_RATE_PER_MINUTE", "180"))
         self.skew_seconds = int(env.get("OSM_SKEW_SECONDS", "300"))
         self.key_id, self.key = load_key(env["OSM_KEY_FILE"])
         self.measure_key = load_measure_key(env["OSM_KEY_FILE"]) if self.role == "flows" else b""
@@ -1014,6 +1046,9 @@ class Config:
         self.dash_pass_sha256 = env.get("OSM_DASH_PASS_SHA256", "").lower()
         self.allowlist_file = env.get("OSM_ALLOWLIST_FILE", "")
         self.allowlist = parse_allowlist(env.get("OSM_ALLOWLIST", "127.0.0.1/32,::1/128"))
+        self.trusted_proxies = parse_allowlist(
+            env.get("OSM_TRUSTED_PROXIES", "127.0.0.1/32,::1/128")
+        )
         self.path = FLOW_PATH if self.role == "flows" else DEBUG_PATH
         self.store = Store(self.db_path, self.ttl_seconds, self.max_db_bytes)
         self.limiter = RateLimiter(self.rate_per_minute)
@@ -1290,52 +1325,54 @@ def make_handler(config: Config):
                 return
             self._ingest(path, self._accept_role)
 
+        def _client_ip(self) -> str:
+            return client_ip(self.client_address[0], self.headers, config.trusted_proxies)
+
         def _accept_role(self, body: dict) -> tuple[int, int]:
             parsed = validate_flows(body) if config.role == "flows" else validate_debug(body)
             events = parsed["flows"] if config.role == "flows" else parsed["events"]
-            return config.store.insert_events(config.role, parsed["device_id"], self.client_address[0], events)
+            return config.store.insert_events(config.role, parsed["device_id"], self._client_ip(), events)
 
         def _accept_nr_status(self, body: dict) -> tuple[int, int]:
             parsed = validate_nr_status(body)
+            source = self._client_ip()
             accepted, duplicate = config.store.insert_events(
-                "nr_status", parsed["device_id"], self.client_address[0], [parsed]
+                "nr_status", parsed["device_id"], source, [parsed]
             )
             if config.telemetry:
                 try:
                     config.telemetry.ensure_schema()
-                    config.telemetry.store_mysignal(
-                        parsed["device_id"], self.client_address[0], parsed
-                    )
+                    config.telemetry.store_mysignal(parsed["device_id"], source, parsed)
                 except Exception as exc:
                     sys.stderr.write("clickhouse mysignal insert failed: %s\n" % exc)
             return accepted, duplicate
 
         def _accept_ookla(self, body: dict) -> tuple[int, int]:
             parsed = validate_ookla_result(body)
+            source = self._client_ip()
             accepted, duplicate = config.store.insert_events(
-                "ookla", parsed["device_id"], self.client_address[0], [parsed]
+                "ookla", parsed["device_id"], source, [parsed]
             )
             if config.telemetry:
                 try:
                     config.telemetry.ensure_schema()
-                    config.telemetry.store_ookla(
-                        parsed["device_id"], self.client_address[0], parsed
-                    )
+                    config.telemetry.store_ookla(parsed["device_id"], source, parsed)
                 except Exception as exc:
                     sys.stderr.write("clickhouse ookla insert failed: %s\n" % exc)
             return accepted, duplicate
 
         def _accept_timeline(self, body: dict) -> tuple[int, int]:
             parsed = validate_timeline(body)
+            source = self._client_ip()
             accepted, duplicate = config.store.insert_events(
-                "timeline", parsed["device_id"], self.client_address[0], parsed["events"]
+                "timeline", parsed["device_id"], source, parsed["events"]
             )
             if config.telemetry:
                 try:
                     config.telemetry.ensure_schema()
                     config.telemetry.store_timeline(
                         parsed["device_id"],
-                        self.client_address[0],
+                        source,
                         parsed["app"],
                         parsed["events"],
                     )
@@ -1345,20 +1382,22 @@ def make_handler(config: Config):
 
         def _accept_measurements(self, body: dict) -> tuple[int, int]:
             parsed = validate_measurement_envelope(body, config.measure_key)
+            source = self._client_ip()
             accepted, duplicate = config.store.insert_events(
-                "measurements", parsed["device_id"], self.client_address[0], parsed["snapshots"]
+                "measurements", parsed["device_id"], source, parsed["snapshots"]
             )
             test_accepted, test_duplicate = config.store.insert_events(
-                "tests", parsed["device_id"], self.client_address[0], parsed["tests"]
+                "tests", parsed["device_id"], source, parsed["tests"]
             )
             result_accepted, result_duplicate = config.store.insert_events(
-                "os_results", parsed["device_id"], self.client_address[0], parsed["os_results"]
+                "os_results", parsed["device_id"], source, parsed["os_results"]
             )
-            if config.telemetry and config.telemetry.ready:
+            if config.telemetry:
                 try:
-                    config.telemetry.store(parsed["device_id"], self.client_address[0], parsed["os_results"])
+                    config.telemetry.ensure_schema()
+                    config.telemetry.store(parsed["device_id"], source, parsed["os_results"])
                     config.telemetry.store_measurements(
-                        parsed["device_id"], self.client_address[0], parsed["snapshots"]
+                        parsed["device_id"], source, parsed["snapshots"]
                     )
                 except Exception as exc:
                     sys.stderr.write("clickhouse insert failed: %s\n" % exc)
@@ -1408,8 +1447,9 @@ def make_handler(config: Config):
             return config.allowlist
 
         def _read_allowed(self, page: bool) -> bool:
-            if not ip_allowed(self.client_address[0], self._networks()):
-                self._send(403, {"error": "ip_forbidden", "client": self.client_address[0]})
+            source = self._client_ip()
+            if not ip_allowed(source, self._networks()):
+                self._send(403, {"error": "ip_forbidden", "client": source})
                 return False
             if self._session_user() is None:
                 if page:
@@ -1440,8 +1480,9 @@ def make_handler(config: Config):
             return user
 
         def _login(self) -> None:
-            if not ip_allowed(self.client_address[0], self._networks()):
-                self._send(403, {"error": "ip_forbidden", "client": self.client_address[0]})
+            source = self._client_ip()
+            if not ip_allowed(source, self._networks()):
+                self._send(403, {"error": "ip_forbidden", "client": source})
                 return
             try:
                 length = int(self.headers.get("Content-Length", ""))
@@ -1453,7 +1494,7 @@ def make_handler(config: Config):
                 return
             raw = self.rfile.read(length)
             try:
-                if not config.limiter.allow("login:" + self.client_address[0]):
+                if not config.limiter.allow("login:" + source):
                     raise RateLimitError("rate_limited")
                 body = json.loads(raw.decode("utf-8"))
                 username = body.get("username", "")
@@ -1504,7 +1545,7 @@ def make_handler(config: Config):
             expected = sign(config.key, "POST", path, timestamp, nonce, raw)
             if not hmac.compare_digest(expected, signature.lower()):
                 raise PermissionError("bad_signature")
-            source = self.client_address[0]
+            source = self._client_ip()
             if not config.limiter.allow(source + ":" + key_id):
                 raise RateLimitError("rate_limited")
             if config.store.nonce_seen(nonce, int(time.time())):

@@ -5,7 +5,9 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.content.pm.PackageManager
 import android.location.Location
+import android.location.LocationListener
 import android.location.LocationManager
+import android.os.Looper
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.net.Uri
@@ -71,6 +73,13 @@ class RadioSampler(private val context: Context) {
     private val device: DeviceInfo by lazy { readDevice() }
     @Volatile private var lastWifiScanRequestMs = 0L
     @Volatile private var preferApnCache: Pair<Long, List<PreferApn>>? = null
+    @Volatile private var lastFix: Location? = null
+    @Volatile private var locationListening = false
+
+    private val locationListener = LocationListener { location ->
+        val prev = lastFix
+        if (prev == null || location.time >= prev.time) lastFix = location
+    }
 
     fun hasCorePermissions(): Boolean =
         granted(Manifest.permission.ACCESS_FINE_LOCATION) && granted(Manifest.permission.READ_PHONE_STATE)
@@ -78,6 +87,7 @@ class RadioSampler(private val context: Context) {
     fun hasPrecisePermission(): Boolean = granted(Manifest.permission.READ_PRECISE_PHONE_STATE)
 
     fun close() {
+        stopLocationUpdates()
         trackers.values.forEach { it.unregister() }
         trackers.clear()
         thread.quitSafely()
@@ -92,6 +102,7 @@ class RadioSampler(private val context: Context) {
                 error = "Need Location + Phone permission",
             )
         }
+        ensureLocationUpdates()
         syncTrackers()
         val defaultData = SubscriptionManager.getDefaultDataSubscriptionId()
         val ordered = trackers.values.sortedWith(compareBy({ it.slot }, { it.subId }))
@@ -899,6 +910,54 @@ class RadioSampler(private val context: Context) {
         }
     }
 
+    /**
+     * Keep GPS/network fixes warm while the sampler runs. Without this, each tick only
+     * read [LocationManager.getLastKnownLocation], which can stay stale for minutes.
+     */
+    @SuppressLint("MissingPermission")
+    private fun ensureLocationUpdates() {
+        if (locationListening) return
+        val lm = locations ?: return
+        val fine = granted(Manifest.permission.ACCESS_FINE_LOCATION)
+        val coarse = granted(Manifest.permission.ACCESS_COARSE_LOCATION)
+        if (!fine && !coarse) return
+        val looper: Looper = thread.looper
+        try {
+            val providers = buildList {
+                if (fine) add(LocationManager.GPS_PROVIDER)
+                add(LocationManager.NETWORK_PROVIDER)
+                if (lm.allProviders.contains(FUSED_PROVIDER)) add(FUSED_PROVIDER)
+            }.filter { name ->
+                runCatching { lm.isProviderEnabled(name) }.getOrDefault(false)
+            }
+            if (providers.isEmpty()) return
+            for (name in providers) {
+                runCatching {
+                    lm.requestLocationUpdates(name, LOCATION_INTERVAL_MS, 0f, locationListener, looper)
+                }.onFailure { Log.w(TAG, "location updates $name: ${it.message}") }
+            }
+            // Seed immediately so the first ticks are not empty while GPS acquires.
+            val seed = providers
+                .mapNotNull { name -> runCatching { lm.getLastKnownLocation(name) }.getOrNull() }
+                .maxByOrNull { it.time }
+            if (seed != null) {
+                val prev = lastFix
+                if (prev == null || seed.time >= prev.time) lastFix = seed
+            }
+            locationListening = true
+            Log.i(TAG, "location updates every ${LOCATION_INTERVAL_MS}ms on $providers")
+        } catch (_: SecurityException) {
+            // leave listening=false; next tick may retry after grant
+        }
+    }
+
+    private fun stopLocationUpdates() {
+        if (!locationListening) return
+        runCatching { locations?.removeUpdates(locationListener) }
+        locationListening = false
+        lastFix = null
+    }
+
     @SuppressLint("MissingPermission")
     private fun location(): LocationInfo {
         val fine = granted(Manifest.permission.ACCESS_FINE_LOCATION)
@@ -907,8 +966,9 @@ class RadioSampler(private val context: Context) {
         val lm = locations ?: return LocationInfo("not_supported")
         return try {
             val providers = listOf(LocationManager.GPS_PROVIDER, LocationManager.NETWORK_PROVIDER, FUSED_PROVIDER)
-            val best: Location = providers
+            val cached = providers
                 .mapNotNull { provider -> runCatching { lm.getLastKnownLocation(provider) }.getOrNull() }
+            val best: Location = sequenceOf(lastFix).filterNotNull().plus(cached)
                 .maxByOrNull { it.time }
                 ?: return LocationInfo("absent")
             LocationInfo(
@@ -1176,6 +1236,8 @@ class RadioSampler(private val context: Context) {
         private const val CELL_REQUEST_MS = 2_500L
         private const val WIFI_SCAN_MS = 30_000L
         private const val APN_CACHE_MS = 30_000L
+        /** Match [RadioService.INTERVAL_MS] so fixes stay fresh for each measure tick. */
+        private const val LOCATION_INTERVAL_MS = 3_000L
         private const val FUSED_PROVIDER = "fused"
         private val ANDROID_ID = Regex("[0-9a-fA-F]{8,32}")
         private val DIGIT_ID = Regex("""\+?[0-9]{6,20}""")

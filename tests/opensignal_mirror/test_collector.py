@@ -1032,3 +1032,37 @@ def test_accepts_signed_nr_status(server):
     assert recent[0]["event"]["serving_cells"][0]["pci"] == 101
     counts = server.config.store.counts()
     assert counts["nr_status"] == 1
+
+
+def test_client_ip_trusts_x_real_ip_only_from_proxy():
+    trusted = collector.parse_allowlist("127.0.0.1/32,::1/128")
+    headers = {"X-Real-IP": "203.0.113.50", "X-Forwarded-For": "198.51.100.9, 127.0.0.1"}
+    assert collector.client_ip("127.0.0.1", headers, trusted) == "203.0.113.50"
+    # Untrusted peer cannot spoof via headers.
+    assert collector.client_ip("203.0.113.1", headers, trusted) == "203.0.113.1"
+    # Missing X-Real-IP falls back to leftmost X-Forwarded-For.
+    assert collector.client_ip("127.0.0.1", {"X-Forwarded-For": "198.51.100.7, 10.0.0.1"}, trusted) == "198.51.100.7"
+    # Garbage header falls back to peer.
+    assert collector.client_ip("127.0.0.1", {"X-Real-IP": "not-an-ip"}, trusted) == "127.0.0.1"
+    # IPv4-mapped IPv6 is normalized.
+    assert collector.client_ip("127.0.0.1", {"X-Real-IP": "::ffff:203.0.113.77"}, trusted) == "203.0.113.77"
+
+
+def test_sync_ingest_roles_replays_measurements(tmp_path):
+    store = collector.Store(str(tmp_path / "sync.sqlite"), ttl_seconds=3600, max_bytes=1_048_576)
+    snapshot = measurement_plain()["snapshots"][0]
+    store.insert_events("measurements", "device1234", "203.0.113.50", [snapshot])
+    sink = ClickHouseTelemetry("http://127.0.0.1:1")
+    captured = {"writes": []}
+
+    def fake_write(event_rows, value_rows):
+        captured["writes"].append(event_rows)
+        return len(event_rows)
+
+    sink._write = fake_write
+    sink.ready = True
+    written = sink.sync_ingest_roles(store, cutoff=None)
+    assert written >= 1
+    assert any(row["job_type"] == "MEASURE" for batch in captured["writes"] for row in batch)
+    assert any(row["source_ip"] == "203.0.113.50" for batch in captured["writes"] for row in batch)
+    assert any(row["device_id"] == "device1234" for batch in captured["writes"] for row in batch)
