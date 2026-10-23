@@ -4,8 +4,25 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>XL Outlier Kecamatan — Hourly Pattern & Location Analysis</title>
-<!-- Google Maps loaded via JS -->
-<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyD4l86M6DA-6XWQ0ESoeLhapwcDVf-BR3s&callback=initMap" async defer></script>
+<!-- Google Maps: key from maps-config.js (generated from GOOGLE_MAPS_API_KEY in .env) -->
+<script src="maps-config.js"></script>
+<script>
+(function loadGoogleMaps() {
+  var key = (window.GOOGLE_MAPS_API_KEY || "").trim();
+  if (!key) {
+    document.addEventListener("DOMContentLoaded", function () {
+      var m = document.getElementById("map");
+      if (m) m.innerHTML = '<p style="padding:16px;color:#f85149">Missing GOOGLE_MAPS_API_KEY. Copy .env.example → .env, set the key, then run: python web/gen_maps_config.py</p>';
+    });
+    return;
+  }
+  var s = document.createElement("script");
+  s.src = "https://maps.googleapis.com/maps/api/js?key=" + encodeURIComponent(key) + "&callback=initMap";
+  s.async = true;
+  s.defer = true;
+  document.head.appendChild(s);
+})();
+</script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
 <style>
 * { margin:0; padding:0; box-sizing:border-box; }

@@ -29,3 +29,4 @@ venv/
 
 # Web
 node_modules/
+web/maps-config.js

@@ -61,11 +61,12 @@ uvicorn app:app --host 0.0.0.0 --port 8000
 
 Static HTML dashboards for network quality monitoring (video, gaming, packet loss, etc).
 
-Serve with any static file server:
+Secrets (Maps, TypeSafe, Featherless) live in `.env` — see `.env.example`. For the hourly outlier map:
 
 ```bash
-cd web
-python3 -m http.server 3000
+cp .env.example .env   # set GOOGLE_MAPS_API_KEY
+python3 web/gen_maps_config.py
+cd web && python3 -m http.server 3000
 ```
 
 ## License
