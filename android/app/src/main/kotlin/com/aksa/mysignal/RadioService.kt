@@ -14,7 +14,6 @@ import android.os.HandlerThread
 import android.os.IBinder
 import android.os.PowerManager
 import android.os.SystemClock
-import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
 
@@ -44,7 +43,7 @@ class RadioService : Service() {
                 refreshSurfaces(snapshot, nr)
             } catch (t: Throwable) {
                 RadioState.fail("${t.javaClass.simpleName}: ${t.message}")
-                Log.w(TAG, "tick failed", t)
+                AppLog.w(TAG, "tick failed", t)
             }
             holdWakeLock()
             val now = SystemClock.uptimeMillis()
@@ -68,7 +67,7 @@ class RadioService : Service() {
             nextTickAt = SystemClock.uptimeMillis() + 500L
             it.postAtTime(tick, nextTickAt)
         }
-        Log.i(TAG, "sampling every ${INTERVAL_MS}ms")
+        AppLog.i(TAG, "sampling every ${INTERVAL_MS}ms")
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -90,7 +89,7 @@ class RadioService : Service() {
         nrReporter.close()
         GatewayMonitor.stop()
         wakeLock?.let { if (it.isHeld) runCatching { it.release() } }
-        Log.i(TAG, "sampling stopped after ${RadioState.samples} samples")
+        AppLog.i(TAG, "sampling stopped after ${RadioState.samples} samples")
         super.onDestroy()
     }
 
@@ -110,7 +109,7 @@ class RadioService : Service() {
             ?.filter { it.rsrp != null || it.sinr != null }
             ?.joinToString(" ") { "${it.rat}:${it.earfcn}:r${it.rsrp ?: "-"}:s${it.sinr ?: "-"}" }
             .orEmpty()
-        Log.i(
+        AppLog.i(
             TAG,
             "tick plmn=${primary?.plmn} ch=${primary?.channel ?: "-"} nr=${primary?.nrState} ca=${primary?.ca} bw=${if (bw.isEmpty()) "-" else RadioRules.mhzLabel(bw)} subs=$subs plot=$plot signal=$signal",
         )
@@ -138,7 +137,7 @@ class RadioService : Service() {
                 )
                 return
             } catch (e: Exception) {
-                Log.w(TAG, "location FGS refused, using specialUse: ${e.message}")
+                AppLog.w(TAG, "location FGS refused, using specialUse: ${e.message}")
             }
             startForeground(NOTIFICATION_ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE)
         } else {
@@ -220,7 +219,7 @@ class RadioService : Service() {
             if (!RadioState.samplingEnabled(context)) return
             runCatching {
                 ContextCompat.startForegroundService(context, Intent(context, RadioService::class.java))
-            }.onFailure { Log.w(TAG, "start refused: ${it.message}") }
+            }.onFailure { AppLog.w(TAG, "start refused: ${it.message}") }
         }
 
         fun enable(context: Context) {

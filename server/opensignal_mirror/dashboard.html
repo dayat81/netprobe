@@ -121,6 +121,11 @@
       <thead><tr><th>Last seen</th><th>Phone</th><th>Proto</th><th>Destination</th><th>Upload</th><th>Download</th><th>State</th></tr></thead>
       <tbody id="flows"></tbody>
     </table></section>
+    <h2>App health</h2>
+    <section class="panel"><table>
+      <thead><tr><th>When</th><th>Device</th><th>Version</th><th>Kind</th><th>Message</th></tr></thead>
+      <tbody id="rum"></tbody>
+    </table></section>
     <section class="debug panel" id="debug"></section>
     <section class="panel debug" id="found"></section>
   </main>
@@ -419,6 +424,28 @@
           const tr = document.createElement("tr");
           tr.append(cell(age(flow.last_seen_ms, nowMs)), cell(flow.source_ip), cell(flow.proto), cell(flow.remote_ip + ":" + flow.remote_port), cell(size(flow.tx_bytes), "up"), cell(size(flow.rx_bytes), "down"), cell(flow.state, flow.state === "open" ? "open" : ""));
           body.append(tr);
+        }
+        const rum = document.querySelector("#rum");
+        rum.replaceChildren();
+        for (const row of data.rum || []) {
+          const item = row.event || {};
+          const tr = document.createElement("tr");
+          const version = (item.app_version || "–") + (item.version_code != null ? " (" + item.version_code + ")" : "");
+          const bad = item.kind === "crash" || item.kind === "nonfatal" || item.kind === "exit" ? "bad" : "";
+          tr.append(cell(age(item.ts_ms, nowMs)), cell(item.device_id || row.device_id), cell(version), cell(item.kind, bad), cell(item.message));
+          rum.append(tr);
+          const logs = Array.isArray(item.logs) ? item.logs.map((line) => line.level + " " + line.tag + " " + line.message).join("\n") : "";
+          if (item.stack || logs) {
+            const extra = document.createElement("tr");
+            const td = document.createElement("td");
+            td.colSpan = 5;
+            const pre = document.createElement("pre");
+            pre.className = "json-str";
+            pre.textContent = (item.stack || "") + (logs ? "\n" + logs : "");
+            td.append(pre);
+            extra.append(td);
+            rum.append(extra);
+          }
         }
         const debug = document.querySelector("#debug");
         debug.replaceChildren();

@@ -1,7 +1,6 @@
 package com.aksa.mysignal
 
 import android.content.Context
-import android.util.Log
 import java.io.File
 import java.util.concurrent.TimeUnit
 
@@ -59,7 +58,7 @@ object NativeTraceroute {
         timeoutSec: Long = 20,
     ): List<Hop> {
         val bin = resolveBinary(context) ?: run {
-            Log.w(TAG, "traceroute binary missing")
+            AppLog.w(TAG, "traceroute binary missing")
             return emptyList()
         }
         val argv = mutableListOf(
@@ -72,7 +71,7 @@ object NativeTraceroute {
             "-q", probes.toString(),
             target,
         )
-        Log.i(TAG, "traceroute cmd=${argv.joinToString(" ")}")
+        AppLog.i(TAG, "traceroute cmd=${argv.joinToString(" ")}")
         return try {
             val proc = ProcessBuilder(argv)
                 .redirectErrorStream(true)
@@ -81,13 +80,13 @@ object NativeTraceroute {
             val out = proc.inputStream.bufferedReader().use { it.readText() }
             if (!proc.waitFor(timeoutSec, TimeUnit.SECONDS)) {
                 proc.destroyForcibly()
-                Log.w(TAG, "traceroute timeout")
+                AppLog.w(TAG, "traceroute timeout")
                 return emptyList()
             }
-            Log.i(TAG, "traceroute out:\n${out.take(2000)}")
+            AppLog.i(TAG, "traceroute out:\n${out.take(2000)}")
             parseHops(out)
         } catch (e: Exception) {
-            Log.w(TAG, "traceroute failed: ${e.message}")
+            AppLog.w(TAG, "traceroute failed: ${e.message}")
             emptyList()
         }
     }

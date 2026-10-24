@@ -1,7 +1,6 @@
 package com.aksa.mysignal
 
 import android.content.Context
-import android.util.Log
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
@@ -110,9 +109,11 @@ object MeasureUploader {
                 .put("snapshots", snapshots)
                 .put("tests", JSONArray())
                 .put("os_results", JSONArray())
+            var failure: Throwable? = null
             val code = try {
                 CollectorClient.postMeasurement(context, plain)
             } catch (e: Exception) {
+                failure = e
                 lastMessage = "error ${e.javaClass.simpleName}"
                 -1
             }
@@ -135,14 +136,16 @@ object MeasureUploader {
                         queue.remove(readable)
                         dropped += 1
                         lastMessage = "dropped HTTP $code"
-                        Log.w(TAG, "snapshot rejected code=$code")
+                        AppLog.w(TAG, "snapshot rejected code=$code")
+                        RumReporter.nonfatal("upload", lastMessage, failure)
                     }
                 }
                 else -> {
                     failed += 1
                     if (code > 0) lastMessage = "retry HTTP $code"
                     backoff = if (backoff <= 0L) BACKOFF_MIN_MS else minOf(backoff * 2, BACKOFF_MAX_MS)
-                    Log.w(TAG, "upload $lastMessage wait=$backoff")
+                    AppLog.w(TAG, "upload $lastMessage wait=$backoff")
+                    RumReporter.nonfatal("upload", lastMessage, failure)
                     Thread.sleep(backoff)
                 }
             }

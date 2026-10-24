@@ -5,7 +5,6 @@ import android.system.ErrnoException
 import android.system.Os
 import android.system.OsConstants
 import android.system.StructTimeval
-import android.util.Log
 import java.io.FileDescriptor
 import java.net.Inet4Address
 import java.net.Inet6Address
@@ -71,7 +70,7 @@ object CellGatewayProbe {
             }
             samples
         } catch (e: Exception) {
-            Log.d(TAG, "icmp rtt $host: ${e.message}")
+            AppLog.d(TAG, "icmp rtt $host: ${e.message}")
             emptyList()
         } finally {
             closeQuietly(fd)
@@ -103,7 +102,7 @@ object CellGatewayProbe {
         for (target in listOf("8.8.8.8", "1.1.1.1", "9.9.9.9")) {
             probeIcmp4(network, target)?.let { hop ->
                 if (isUsable(hop, locals)) {
-                    Log.i(TAG, "ttl1 icmp4 hop=$hop via $target")
+                    AppLog.i(TAG, "ttl1 icmp4 hop=$hop via $target")
                     return hop
                 }
             }
@@ -111,7 +110,7 @@ object CellGatewayProbe {
         for (target in listOf("2001:4860:4860::8888", "2606:4700:4700::1111")) {
             probeIcmp6(network, target)?.let { hop ->
                 if (isUsable(hop, locals)) {
-                    Log.i(TAG, "ttl1 icmp6 hop=$hop via $target")
+                    AppLog.i(TAG, "ttl1 icmp6 hop=$hop via $target")
                     return hop
                 }
             }
@@ -148,10 +147,10 @@ object CellGatewayProbe {
             Os.sendto(fd, packet, 0, packet.size, 0, dest, 0)
             recvHopAddress(fd)
         } catch (e: ErrnoException) {
-            Log.d(TAG, "icmp4 $targetHost: ${e.message}")
+            AppLog.d(TAG, "icmp4 $targetHost: ${e.message}")
             null
         } catch (e: Exception) {
-            Log.d(TAG, "icmp4 $targetHost: ${e.message}")
+            AppLog.d(TAG, "icmp4 $targetHost: ${e.message}")
             null
         } finally {
             closeQuietly(fd)
@@ -177,10 +176,10 @@ object CellGatewayProbe {
             Os.sendto(fd, packet, 0, packet.size, 0, dest, 0)
             recvHopAddress(fd)
         } catch (e: ErrnoException) {
-            Log.d(TAG, "icmp6 $targetHost: ${e.message}")
+            AppLog.d(TAG, "icmp6 $targetHost: ${e.message}")
             null
         } catch (e: Exception) {
-            Log.d(TAG, "icmp6 $targetHost: ${e.message}")
+            AppLog.d(TAG, "icmp6 $targetHost: ${e.message}")
             null
         } finally {
             closeQuietly(fd)

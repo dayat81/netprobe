@@ -9,7 +9,6 @@ import android.net.NetworkRequest
 import android.os.Handler
 import android.os.Looper
 import android.telephony.SubscriptionManager
-import android.util.Log
 import java.util.concurrent.Callable
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicBoolean
@@ -124,7 +123,7 @@ object GatewayMonitor {
                         .build(),
                     cb,
                 )
-            }.onFailure { Log.w(TAG, "registerNetworkCallback failed", it) }
+            }.onFailure { AppLog.w(TAG, "registerNetworkCallback failed", it) }
         }
         val sm = app.getSystemService(SubscriptionManager::class.java)
         if (sm != null) {
@@ -133,10 +132,10 @@ object GatewayMonitor {
             }
             subscriptionsListener = listener
             runCatching { sm.addOnSubscriptionsChangedListener(listener) }
-                .onFailure { Log.w(TAG, "subscriptions listener failed", it) }
+                .onFailure { AppLog.w(TAG, "subscriptions listener failed", it) }
         }
         Thread { resolveNow(app, reason = "start") }.start()
-        Log.i(TAG, "watch started")
+        AppLog.i(TAG, "watch started")
     }
 
     fun stop() {
@@ -150,7 +149,7 @@ object GatewayMonitor {
         }
         subscriptionsListener = null
         connectivity = null
-        Log.i(TAG, "watch stopped")
+        AppLog.i(TAG, "watch stopped")
     }
 
     /**
@@ -223,7 +222,7 @@ object GatewayMonitor {
             synchronized(cacheLock) {
                 last = Sample(ipv4 = v4, ipv4RttMs = last4, ipv6 = v6, ipv6RttMs = last6, mtu = mtu)
             }
-            Log.i(
+            AppLog.i(
                 TAG,
                 "flood ${durationMs}ms workers=$workers " +
                     "gw4=${v4 ?: "—"} sent4=${r4.sent} recv4=${r4.received} " +
@@ -256,7 +255,7 @@ object GatewayMonitor {
         // (wifi↔cell, iface, default-data SIM, local IPv4).
         mainHandler.removeCallbacks(resolveRunnable)
         mainHandler.postDelayed(resolveRunnable, RESOLVE_DEBOUNCE_MS)
-        Log.d(TAG, "path check queued ($reason)")
+        AppLog.d(TAG, "path check queued ($reason)")
     }
 
     private fun resolveNow(context: Context, reason: String, force: Boolean = false) {
@@ -276,7 +275,7 @@ object GatewayMonitor {
                 pathKey = key
                 last = Sample(ipv4 = v4, ipv6 = v6, mtu = mtu)
             }
-            Log.i(TAG, "resolve($reason) path=$key mtu=$mtu gw4=${v4 ?: "—"} gw6=${v6 ?: "—"}")
+            AppLog.i(TAG, "resolve($reason) path=$key mtu=$mtu gw4=${v4 ?: "—"} gw6=${v6 ?: "—"}")
         }
         if (changed) {
             val copy = synchronized(pathListeners) { pathListeners.toList() }
@@ -308,7 +307,7 @@ object GatewayMonitor {
         )
         synchronized(cacheLock) { last = sample }
         if ((v4 != null && v4Rtt == null) || (v6 != null && v6Rtt == null)) {
-            Log.i(
+            AppLog.i(
                 TAG,
                 "ping loss gw4=${v4 ?: "—"} rtt4=${GatewayPinger.formatRtt(v4Rtt)} " +
                     "gw6=${v6 ?: "—"} rtt6=${GatewayPinger.formatRtt(v6Rtt)}",

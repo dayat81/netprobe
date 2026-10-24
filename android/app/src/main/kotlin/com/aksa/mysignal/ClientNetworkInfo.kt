@@ -6,7 +6,6 @@ import android.net.LinkProperties
 import android.net.NetworkCapabilities
 import android.net.RouteInfo
 import android.net.wifi.WifiManager
-import android.util.Log
 import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.Inet4Address
@@ -127,7 +126,7 @@ object ClientNetworkInfo {
         firstHopFromTtlProbe(locals)?.let { hop ->
             if (!hop.contains(':')) return rememberGateway(hop, "shell-ttl1")
         }
-        Log.i(
+        AppLog.i(
             TAG,
             "gateway v4 none locals=$locals iface=$iface cell=$cellular p2p=$p2p routes=${props?.routes?.map { routeSummary(it) }}",
         )
@@ -160,7 +159,7 @@ object ClientNetworkInfo {
             }
         }
         CellGatewayProbe.cellRaLinkLocal(cellular, p2p)?.let { return rememberGatewayV6(it, "cell-ra") }
-        Log.i(
+        AppLog.i(
             TAG,
             "gateway v6 none locals=$locals iface=$iface cell=$cellular p2p=$p2p hasLocalV6=$hasLocalV6",
         )
@@ -191,13 +190,13 @@ object ClientNetworkInfo {
 
     private fun rememberGateway(host: String, source: String): String {
         lastGateway = host
-        Log.i(TAG, "gateway=$host via $source")
+        AppLog.i(TAG, "gateway=$host via $source")
         return host
     }
 
     private fun rememberGatewayV6(host: String, source: String): String {
         lastGatewayV6 = host
-        Log.i(TAG, "gateway6=$host via $source")
+        AppLog.i(TAG, "gateway6=$host via $source")
         return host
     }
 
@@ -361,7 +360,7 @@ object ClientNetworkInfo {
                 out
             }
         } catch (e: Exception) {
-            Log.w(TAG, "shell ${cmd.joinToString(" ")}: ${e.message}")
+            AppLog.w(TAG, "shell ${cmd.joinToString(" ")}: ${e.message}")
             null
         }
     }

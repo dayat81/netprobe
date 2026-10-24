@@ -2,7 +2,6 @@ package com.aksa.mysignal
 
 import android.net.TrafficStats
 import android.os.Process
-import android.util.Log
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -132,7 +131,7 @@ class SpeedtestEngine(
         val pingSamples = ping()
         val pingMs = SpeedtestMath.idlePingMs(pingSamples)
         val jitterMs = SpeedtestMath.jitterMs(pingSamples)
-        Log.i(
+        AppLog.i(
             TAG,
             "ping ${target.family.label} ${target.serverIp} " +
                 "idle=${pingMs}ms jitter=${jitterMs}ms n=${pingSamples.size} samples=$pingSamples",
@@ -167,7 +166,7 @@ class SpeedtestEngine(
                 ),
             )
         })
-        Log.i(
+        AppLog.i(
             TAG,
             "score ${target.family.label} dl=${"%.2f".format(download)} ul=${"%.2f".format(upload)} Mbps",
         )
@@ -200,10 +199,10 @@ class SpeedtestEngine(
         if (!coroutineContext.isActive) return emptyList()
         val icmp = GatewayPinger.rttSamples(target.serverIp)
         if (icmp.size >= 3) {
-            Log.i(TAG, "ping mode=icmp n=${icmp.size}")
+            AppLog.i(TAG, "ping mode=icmp n=${icmp.size}")
             return icmp
         }
-        Log.i(TAG, "ping mode=tcp icmp=${icmp.size}")
+        AppLog.i(TAG, "ping mode=tcp icmp=${icmp.size}")
         val remote = InetSocketAddress(InetAddress.getByName(target.serverIp), 443)
         repeat(pingWarmup) {
             if (!coroutineContext.isActive) return emptyList()
@@ -309,7 +308,9 @@ class SpeedtestEngine(
                             }
                         } catch (error: Exception) {
                             if (!stop.get()) {
-                                Log.w(TAG, "${if (download) "dl" else "ul"} worker: ${error.message}")
+                                val detail = "${if (download) "dl" else "ul"} worker: ${error.message}"
+                                AppLog.w(TAG, detail)
+                                RumReporter.nonfatal("speed-worker", detail, error)
                                 delay(200)
                             }
                         }
@@ -455,7 +456,7 @@ class SpeedtestEngine(
                 val p50 = SpeedtestMath.medianDouble(
                     (if (positive.size >= 5) positive else list).sorted(),
                 )
-                Log.i(
+                AppLog.i(
                     TAG,
                     "${if (download) "dl" else "ul"} ${target.family.label} warmup=${phaseWarmup}ms " +
                         "streams=${opened.get()} meter=$meter " +

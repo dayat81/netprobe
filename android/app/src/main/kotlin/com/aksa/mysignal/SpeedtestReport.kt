@@ -1,7 +1,6 @@
 package com.aksa.mysignal
 
 import android.content.Context
-import android.util.Log
 import org.json.JSONArray
 import org.json.JSONObject
 import java.util.UUID
@@ -13,6 +12,7 @@ object SpeedtestReport {
     private const val TAG = "MySignalUpload"
 
     fun upload(context: Context, result: SpeedtestEngine.Result) {
+        RumReporter.noteSpeed(result)
         ComplaintStore.saveSpeed(context, result)
         if (!CollectorClient.measureEnabled) return
         val app = context.applicationContext
@@ -35,10 +35,10 @@ object SpeedtestReport {
             val code = try {
                 CollectorClient.postMeasurement(app, plain)
             } catch (error: Exception) {
-                Log.w(TAG, "speedtest upload failed", error)
+                AppLog.w(TAG, "speedtest upload failed", error)
                 -1
             }
-            Log.i(TAG, "speedtest HTTP $code dl=${result.downloadMbps} ul=${result.uploadMbps}")
+            AppLog.i(TAG, "speedtest HTTP $code dl=${result.downloadMbps} ul=${result.uploadMbps}")
         }
     }
 
@@ -66,10 +66,10 @@ object SpeedtestReport {
             val code = try {
                 CollectorClient.postMeasurement(app, plain)
             } catch (error: Exception) {
-                Log.w(TAG, "video upload failed", error)
+                AppLog.w(TAG, "video upload failed", error)
                 -1
             }
-            Log.i(TAG, "video HTTP $code $summary")
+            AppLog.i(TAG, "video HTTP $code $summary")
         }
     }
 

@@ -144,7 +144,9 @@ def test_dashboard_requires_login_and_shows_live_flows(server):
     assert "203.0.113.10" not in page
     status, raw = authed(server, "/")
     assert status == 200
-    assert "OpenSignal measurements" in raw.decode("utf-8")
+    page = raw.decode("utf-8")
+    assert "OpenSignal measurements" in page
+    assert "App health" in page
     status, raw = authed(server, "/api/live")
     live = json.loads(raw.decode("utf-8"))
     assert live["flows"][0]["remote_ip"] == "203.0.113.10"
@@ -1066,3 +1068,68 @@ def test_sync_ingest_roles_replays_measurements(tmp_path):
     assert any(row["job_type"] == "MEASURE" for batch in captured["writes"] for row in batch)
     assert any(row["source_ip"] == "203.0.113.50" for batch in captured["writes"] for row in batch)
     assert any(row["device_id"] == "device1234" for batch in captured["writes"] for row in batch)
+
+
+def rum_event(**extra):
+    event = {
+        "event_id": "rum-event-1",
+        "ts_ms": 1_700_000_000_000,
+        "kind": "session",
+        "level": "info",
+        "code": "session",
+        "message": "start",
+        "app_version": "2.5.87",
+        "version_code": 113,
+        "sdk": 35,
+        "model": "Pixel",
+        "manufacturer": "Google",
+    }
+    event.update(extra)
+    return event
+
+
+def rum_body(event=None):
+    return {
+        "schema_version": 1,
+        "device_id": "mysignal01",
+        "batch_id": "batch-rum-1",
+        "sent_at_ms": 1_700_000_000_000,
+        "events": [event or rum_event()],
+    }
+
+
+def test_accepts_signed_rum_and_clips_message(server):
+    long = rum_body(rum_event(message="x" * 600))
+    parsed = collector.validate_rum(long)
+    assert len(parsed["events"][0]["message"]) == 512
+    crash = rum_event(
+        kind="crash",
+        level="error",
+        code="IllegalState",
+        message="boom",
+        stack="java.lang.IllegalState\nat Main.run",
+        logs=[{"ts_ms": 11, "level": "warn", "tag": "Speed", "message": "worker failed"}],
+    )
+    status, payload = server.request("/v1/rum", rum_body(crash), nonce="nonce-value-rum-0001")
+    assert status == 200, payload
+    assert payload["accepted"] == 1
+    recent = server.config.store.recent("rum", 5)
+    assert recent[0]["event"]["device_id"] == "mysignal01"
+    assert "\n" in recent[0]["event"]["stack"]
+    live = collector.live_snapshot(server.config.store)
+    assert live["rum"][0]["event"]["kind"] == "crash"
+
+
+def test_rejects_trace_on_rum_heartbeat(server):
+    body = rum_body(rum_event(kind="heartbeat", stack="nope"))
+    status, payload = server.request("/v1/rum", body, nonce="nonce-value-rum-0002")
+    assert status == 400
+    assert payload["error"] == "unexpected rum trace"
+
+
+def test_rejects_unknown_rum_field(server):
+    event = rum_event()
+    event["imei"] = "123456789012345"
+    status, payload = server.request("/v1/rum", rum_body(event), nonce="nonce-value-rum-0003")
+    assert status == 400
+    assert payload["error"] == "unexpected rum event fields"

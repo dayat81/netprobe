@@ -2,7 +2,6 @@ package com.aksa.mysignal
 
 import android.net.DnsResolver
 import android.os.CancellationSignal
-import android.util.Log
 import java.net.Inet4Address
 import java.net.Inet6Address
 import java.net.InetAddress
@@ -80,13 +79,13 @@ data class SpeedtestTarget(
                 .filterIsInstance<Inet6Address>()
                 .filter { !it.isLoopbackAddress && !it.isLinkLocalAddress && !isNat64(it) }
             if (fromGetAll.isNotEmpty()) {
-                Log.i(TAG, "IPv6 native via getAllByName ${formatIp(fromGetAll.first())}")
+                AppLog.i(TAG, "IPv6 native via getAllByName ${formatIp(fromGetAll.first())}")
                 return fromGetAll.first()
             }
             val fromAaaa = queryAaaa(hostname)
                 .filter { !it.isLoopbackAddress && !it.isLinkLocalAddress && !isNat64(it) }
             if (fromAaaa.isNotEmpty()) {
-                Log.i(TAG, "IPv6 native via TYPE_AAAA ${formatIp(fromAaaa.first())}")
+                AppLog.i(TAG, "IPv6 native via TYPE_AAAA ${formatIp(fromAaaa.first())}")
                 return fromAaaa.first()
             }
             val nat64Only = InetAddress.getAllByName(hostname)
@@ -136,15 +135,15 @@ data class SpeedtestTarget(
                     },
                 )
             } catch (e: Exception) {
-                Log.w(TAG, "TYPE_AAAA query failed to start", e)
+                AppLog.w(TAG, "TYPE_AAAA query failed to start", e)
                 return emptyList()
             }
             if (!latch.await(5, TimeUnit.SECONDS)) {
                 signal.cancel()
-                Log.w(TAG, "TYPE_AAAA query timeout for $hostname")
+                AppLog.w(TAG, "TYPE_AAAA query timeout for $hostname")
                 return emptyList()
             }
-            error.get()?.let { Log.w(TAG, "TYPE_AAAA error for $hostname", it) }
+            error.get()?.let { AppLog.w(TAG, "TYPE_AAAA error for $hostname", it) }
             return answers.filterIsInstance<Inet6Address>()
         }
     }

@@ -113,6 +113,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onStart() {
         super.onStart()
+        RumReporter.onFirstFrame()
         RadioState.addListener(onSnapshot)
         GatewayMonitor.addPathListener(onPathChanged)
         if (hasCorePermissions()) RadioService.start(this)
@@ -764,7 +765,7 @@ class MainActivity : AppCompatActivity() {
                         throw cancelled
                     } catch (error: Exception) {
                         if (!running) break
-                        android.util.Log.w(
+                        AppLog.w(
                             "MySignalSpeed",
                             "${family.label} round failed: ${error.message}",
                             error,

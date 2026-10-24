@@ -69,6 +69,7 @@ class FirestoreStore:
             "tests": 0,
             "os_results": 0,
             "nr_status": 0,
+            "rum": 0,
             "bytes": 0,
         }
 

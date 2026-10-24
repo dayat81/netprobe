@@ -1,7 +1,6 @@
 package com.aksa.mysignal
 
 import android.content.Context
-import android.util.Log
 import org.json.JSONArray
 import org.json.JSONObject
 import java.nio.charset.StandardCharsets
@@ -38,7 +37,7 @@ class NrStatusReporter(private val context: Context) {
                 lastPostMs = System.currentTimeMillis()
                 latest = NrReportStatus(code in 200..299, "HTTP $code · $path", lastPostMs)
             } catch (e: Exception) {
-                Log.w(TAG, "nr-status post failed", e)
+                AppLog.w(TAG, "nr-status post failed", e)
                 latest = NrReportStatus(false, "error ${e.javaClass.simpleName}", System.currentTimeMillis())
             } finally {
                 busy.set(false)

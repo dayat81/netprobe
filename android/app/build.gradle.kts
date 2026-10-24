@@ -11,8 +11,8 @@ android {
         applicationId = "com.aksa.mysignal"
         minSdk = 30
         targetSdk = 35
-        versionCode = 112
-        versionName = "2.5.86"
+        versionCode = 113
+        versionName = "2.5.87"
 
         val collectorHost = (project.findProperty("mysignal.collectorHost") as String?)
             ?.trim()

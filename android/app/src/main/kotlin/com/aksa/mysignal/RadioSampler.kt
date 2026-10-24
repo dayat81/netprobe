@@ -40,7 +40,6 @@ import android.telephony.SubscriptionManager
 import android.telephony.TelephonyCallback
 import android.telephony.TelephonyDisplayInfo
 import android.telephony.TelephonyManager
-import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.core.content.ContextCompat
 import org.lsposed.hiddenapibypass.HiddenApiBypass
@@ -171,7 +170,7 @@ class RadioSampler(private val context: Context) {
             } else {
                 "absent"
             }
-            Log.i(TAG, "nrState unresolved text=$slice")
+            AppLog.i(TAG, "nrState unresolved text=$slice")
         }
         val override = t.display?.overrideNetworkType
         val ca = RadioRules.deriveCarrierAggregation(
@@ -269,13 +268,13 @@ class RadioSampler(private val context: Context) {
                 val internet = caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
                 val row = PreferApn(apn = extra, name = extra, types = if (internet) "default" else info.typeName.orEmpty(), subId = null)
                 if (internet) {
-                    if (loggedMiss.add("apn-extra")) Log.i(TAG, "apn via NetworkInfo.extraInfo=$extra")
+                    if (loggedMiss.add("apn-extra")) AppLog.i(TAG, "apn via NetworkInfo.extraInfo=$extra")
                     return row
                 }
                 if (best == null) best = row
             }
             best?.also {
-                if (loggedMiss.add("apn-extra")) Log.i(TAG, "apn via NetworkInfo.extraInfo=${it.apn} (non-internet)")
+                if (loggedMiss.add("apn-extra")) AppLog.i(TAG, "apn via NetworkInfo.extraInfo=${it.apn} (non-internet)")
             }
         } catch (_: Exception) {
             null
@@ -315,13 +314,13 @@ class RadioSampler(private val context: Context) {
                 }
             }
         } catch (e: SecurityException) {
-            if (loggedMiss.add("preferapn")) Log.i(TAG, "preferapn denied: ${e.javaClass.simpleName}")
+            if (loggedMiss.add("preferapn")) AppLog.i(TAG, "preferapn denied: ${e.javaClass.simpleName}")
         } catch (e: Exception) {
-            if (loggedMiss.add("preferapn")) Log.i(TAG, "preferapn failed: ${e.javaClass.simpleName}")
+            if (loggedMiss.add("preferapn")) AppLog.i(TAG, "preferapn failed: ${e.javaClass.simpleName}")
         }
         preferApnCache = System.currentTimeMillis() to rows
         if (rows.isNotEmpty() && loggedMiss.add("preferapn-ok")) {
-            Log.i(TAG, "preferapn ${rows.joinToString { "${it.apn}(sub=${it.subId})" }}")
+            AppLog.i(TAG, "preferapn ${rows.joinToString { "${it.apn}(sub=${it.subId})" }}")
         }
         return rows
     }
@@ -341,7 +340,7 @@ class RadioSampler(private val context: Context) {
                 HiddenApiBypass.invoke(target.javaClass, target, method)
             } catch (e: Throwable) {
                 if (loggedMiss.add(method)) {
-                    Log.i(TAG, "$method unavailable on ${target.javaClass.name}: ${e.javaClass.simpleName}")
+                    AppLog.i(TAG, "$method unavailable on ${target.javaClass.name}: ${e.javaClass.simpleName}")
                 }
                 null
             }
@@ -357,7 +356,7 @@ class RadioSampler(private val context: Context) {
             field.isAccessible = true
             field.getInt(target)
         } catch (e: Exception) {
-            if (loggedMiss.add(name)) Log.i(TAG, "$name unavailable: ${e.javaClass.simpleName}")
+            if (loggedMiss.add(name)) AppLog.i(TAG, "$name unavailable: ${e.javaClass.simpleName}")
             null
         }
     }
@@ -366,9 +365,9 @@ class RadioSampler(private val context: Context) {
         if (!exempted.compareAndSet(false, true)) return
         try {
             HiddenApiBypass.addHiddenApiExemptions("Landroid/telephony/")
-            Log.i(TAG, "hidden api exemption set")
+            AppLog.i(TAG, "hidden api exemption set")
         } catch (e: Throwable) {
-            Log.w(TAG, "hidden api exemption failed: ${e.javaClass.simpleName} ${e.cause?.message ?: e.message}")
+            AppLog.w(TAG, "hidden api exemption failed: ${e.javaClass.simpleName} ${e.cause?.message ?: e.message}")
         }
     }
 
@@ -983,7 +982,7 @@ class RadioSampler(private val context: Context) {
             for (name in providers) {
                 runCatching {
                     lm.requestLocationUpdates(name, LOCATION_INTERVAL_MS, 0f, locationListener, looper)
-                }.onFailure { Log.w(TAG, "location updates $name: ${it.message}") }
+                }.onFailure { AppLog.w(TAG, "location updates $name: ${it.message}") }
             }
             // Seed immediately so the first ticks are not empty while GPS acquires.
             val seed = providers
@@ -994,7 +993,7 @@ class RadioSampler(private val context: Context) {
                 if (prev == null || seed.time >= prev.time) lastFix = seed
             }
             locationListening = true
-            Log.i(TAG, "location updates every ${LOCATION_INTERVAL_MS}ms on $providers")
+            AppLog.i(TAG, "location updates every ${LOCATION_INTERVAL_MS}ms on $providers")
         } catch (_: SecurityException) {
             // leave listening=false; next tick may retry after grant
         }
@@ -1180,7 +1179,7 @@ class RadioSampler(private val context: Context) {
             val primary = identifier { tm.imei }
             if (primary.status == "available") return primary
             val oem = oemImei(slot) ?: return primary
-            if (loggedMiss.add("imei-oem-$slot")) Log.i(TAG, "imei slot=$slot via oem prop")
+            if (loggedMiss.add("imei-oem-$slot")) AppLog.i(TAG, "imei slot=$slot via oem prop")
             return Secret(oem, "available")
         }
 
@@ -1215,11 +1214,11 @@ class RadioSampler(private val context: Context) {
             val value = systemProp(name) ?: getprop(name) ?: continue
             val cleaned = RadioRules.clean(value, 32)
             if (DIGIT_ID.matches(cleaned) && cleaned.length in 14..16) {
-                if (loggedMiss.add("imei-prop-$name")) Log.i(TAG, "imei prop $name len=${cleaned.length}")
+                if (loggedMiss.add("imei-prop-$name")) AppLog.i(TAG, "imei prop $name len=${cleaned.length}")
                 return cleaned
             }
         }
-        if (loggedMiss.add("imei-oem-miss-$slot")) Log.i(TAG, "imei oem miss slot=$slot")
+        if (loggedMiss.add("imei-oem-miss-$slot")) AppLog.i(TAG, "imei oem miss slot=$slot")
         return null
     }
 

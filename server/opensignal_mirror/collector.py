@@ -31,12 +31,42 @@ MEASURE_PATH = "/v1/measurements"
 NR_STATUS_PATH = "/v1/nr-status"
 OOKLA_PATH = "/v1/ookla"
 TIMELINE_PATH = "/v1/timeline"
+RUM_PATH = "/v1/rum"
 LOGIN_PATH = "/login"
 READ_PATHS = {"/", "/dashboard", "/api/live", "/api/measurements"}
 ADMIN_PATHS = {"/health", "/metrics", "/v1/recent"}
 SESSION_TTL = 12 * 3600
 MAX_FLOWS = 200
 MAX_DEBUG_EVENTS = 50
+MAX_RUM_EVENTS = 8
+MAX_RUM_LOGS = 40
+RUM_KINDS = {"session", "heartbeat", "crash", "nonfatal", "exit"}
+RUM_LEVELS = {"info", "warn", "error"}
+RUM_REQUIRED = {
+    "event_id",
+    "ts_ms",
+    "kind",
+    "level",
+    "code",
+    "message",
+    "app_version",
+    "version_code",
+    "sdk",
+    "model",
+    "manufacturer",
+}
+RUM_OPTIONAL = {
+    "network",
+    "rat",
+    "foreground",
+    "cold_start_ms",
+    "queue",
+    "upload_code",
+    "speed",
+    "abi",
+    "stack",
+    "logs",
+}
 MAX_MESSAGE = 240
 MAX_CODE = 64
 ID_MIN = 8
@@ -255,6 +285,134 @@ def validate_debug(body: object) -> dict:
     return {
         "schema_version": 1,
         "device_id": _ident(body["device_id"], ID_MIN, 64),
+        "events": clean,
+    }
+
+
+def _rum_clip(value: object, limit: int, newlines: bool = False) -> str:
+    if not isinstance(value, str):
+        raise ValueError("invalid text")
+    kept = []
+    for ch in value:
+        code = ord(ch)
+        if ch == "\n" and newlines:
+            kept.append(ch)
+        elif ch == "\r":
+            continue
+        elif code < 32 or code == 127:
+            kept.append(" ")
+        else:
+            kept.append(ch)
+    text = "".join(kept).strip()
+    if len(text) > limit:
+        text = text[:limit].rstrip()
+    return text or "-"
+
+
+def _rum_int(item: dict, key: str, low: int, high: int) -> int | None:
+    if key not in item:
+        return None
+    value = item[key]
+    if not is_int(value) or value < low or value > high:
+        raise ValueError("invalid rum number")
+    return value
+
+
+def _rum_logs(value: object) -> list[dict]:
+    if not isinstance(value, list) or len(value) > MAX_RUM_LOGS:
+        raise ValueError("invalid rum logs")
+    logs = []
+    fields = {"ts_ms", "level", "tag", "message"}
+    for item in value:
+        if not isinstance(item, dict) or set(item) != fields:
+            raise ValueError("unexpected rum log fields")
+        if item["level"] not in RUM_LEVELS:
+            raise ValueError("invalid rum log level")
+        if not is_int(item["ts_ms"]) or item["ts_ms"] < 0:
+            raise ValueError("invalid rum log time")
+        logs.append(
+            {
+                "ts_ms": item["ts_ms"],
+                "level": item["level"],
+                "tag": _rum_clip(item["tag"], 40),
+                "message": _rum_clip(item["message"], 180),
+            }
+        )
+    return logs
+
+
+def validate_rum(body: object) -> dict:
+    if not isinstance(body, dict):
+        raise ValueError("body must be an object")
+    if set(body) != {"schema_version", "device_id", "batch_id", "sent_at_ms", "events"}:
+        raise ValueError("unexpected rum fields")
+    if body["schema_version"] != 1:
+        raise ValueError("unsupported schema")
+    if not is_int(body["sent_at_ms"]) or body["sent_at_ms"] < 0:
+        raise ValueError("invalid timestamp")
+    events = body["events"]
+    if not isinstance(events, list) or not 1 <= len(events) <= MAX_RUM_EVENTS:
+        raise ValueError("invalid rum list")
+    clean = []
+    for item in events:
+        if not isinstance(item, dict):
+            raise ValueError("invalid rum event")
+        extra = set(item) - RUM_REQUIRED - RUM_OPTIONAL
+        if extra or not RUM_REQUIRED <= set(item):
+            raise ValueError("unexpected rum event fields")
+        kind = item["kind"]
+        if kind not in RUM_KINDS:
+            raise ValueError("invalid rum kind")
+        if item["level"] not in RUM_LEVELS:
+            raise ValueError("invalid rum level")
+        if not is_int(item["ts_ms"]) or item["ts_ms"] < 0:
+            raise ValueError("invalid rum timestamp")
+        if kind not in ("crash", "nonfatal") and ("stack" in item or "logs" in item):
+            raise ValueError("unexpected rum trace")
+        event = {
+            "event_id": _ident(item["event_id"], ID_MIN, ID_MAX),
+            "ts_ms": item["ts_ms"],
+            "kind": kind,
+            "level": item["level"],
+            "code": _rum_clip(item["code"], 64),
+            "message": _rum_clip(item["message"], 512),
+            "app_version": _rum_clip(item["app_version"], 32),
+            "version_code": _rum_int(item, "version_code", 1, 1_000_000),
+            "sdk": _rum_int(item, "sdk", 1, 100),
+            "model": _rum_clip(item["model"], 64),
+            "manufacturer": _rum_clip(item["manufacturer"], 64),
+        }
+        for key, limit in (
+            ("network", 32),
+            ("rat", 16),
+            ("speed", 120),
+            ("abi", 32),
+        ):
+            if key in item:
+                event[key] = _rum_clip(item[key], limit)
+        if "foreground" in item:
+            if not isinstance(item["foreground"], bool):
+                raise ValueError("invalid rum foreground")
+            event["foreground"] = item["foreground"]
+        cold = _rum_int(item, "cold_start_ms", 0, 600_000)
+        if cold is not None:
+            event["cold_start_ms"] = cold
+        queue = _rum_int(item, "queue", 0, 100_000)
+        if queue is not None:
+            event["queue"] = queue
+        upload_code = _rum_int(item, "upload_code", -1, 999)
+        if upload_code is not None:
+            event["upload_code"] = upload_code
+        if "stack" in item:
+            event["stack"] = _rum_clip(item["stack"], 8192, newlines=True)
+        if "logs" in item:
+            event["logs"] = _rum_logs(item["logs"])
+        clean.append(event)
+    return {
+        "schema_version": 1,
+        "device_id": _ident(body["device_id"], ID_MIN, 64),
+        "batch_id": _ident(body["batch_id"], ID_MIN, ID_MAX),
+        "sent_at_ms": body["sent_at_ms"],
         "events": clean,
     }
 
@@ -923,6 +1081,8 @@ class Store:
                     test_type = "OOKLA"
                 elif role == "timeline":
                     test_type = event.get("kind")
+                elif role == "rum":
+                    test_type = event.get("kind")
                 elif role == "os_results":
                     if event.get("stage") == "sdk_json":
                         job = str(event.get("fields", {}).get("job_type") or "sdk_json")
@@ -1001,6 +1161,7 @@ class Store:
             "tests": 0,
             "os_results": 0,
             "nr_status": 0,
+            "rum": 0,
         }
         for row in rows:
             result[row["role"]] = row["n"]
@@ -1100,6 +1261,7 @@ def live_snapshot(store: Store, limit: int = 400) -> dict:
     measurements = latest_measurements(store)
     tests = _event_rows(store, "tests", 30)
     original = _event_rows(store, "os_results", 40)
+    rum = store.recent("rum", 30)
     return {
         "now": int(time.time()),
         "flows": ordered[:150],
@@ -1116,6 +1278,14 @@ def live_snapshot(store: Store, limit: int = 400) -> dict:
                 "ts_ms": row["event"].get("ts_ms", 0),
             }
             for row in debug
+        ],
+        "rum": [
+            {
+                "received_at": row["received_at"],
+                "device_id": row.get("device_id") or row["event"].get("device_id"),
+                "event": row["event"],
+            }
+            for row in rum
         ],
         "totals": {
             "flows": len(ordered),
@@ -1337,6 +1507,12 @@ def make_handler(config: Config):
                     return
                 self._ingest(TIMELINE_PATH, self._accept_timeline)
                 return
+            if path == RUM_PATH:
+                if config.role != "flows":
+                    self._send(404, {"error": "not_found"})
+                    return
+                self._ingest(RUM_PATH, self._accept_rum)
+                return
             if path != config.path:
                 self._send(404, {"error": "not_found"})
                 return
@@ -1349,6 +1525,13 @@ def make_handler(config: Config):
             parsed = validate_flows(body) if config.role == "flows" else validate_debug(body)
             events = parsed["flows"] if config.role == "flows" else parsed["events"]
             return config.store.insert_events(config.role, parsed["device_id"], self._client_ip(), events)
+
+        def _accept_rum(self, body: dict) -> tuple[int, int]:
+            parsed = validate_rum(body)
+            events = parsed["events"]
+            for event in events:
+                event["device_id"] = parsed["device_id"]
+            return config.store.insert_events("rum", parsed["device_id"], self._client_ip(), events)
 
         def _accept_nr_status(self, body: dict) -> tuple[int, int]:
             parsed = validate_nr_status(body)

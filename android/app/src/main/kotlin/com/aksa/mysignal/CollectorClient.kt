@@ -19,6 +19,7 @@ import javax.crypto.spec.SecretKeySpec
 object CollectorClient {
     const val MEASURE_PATH = "/v1/measurements"
     const val NR_STATUS_PATH = "/v1/nr-status"
+    const val RUM_PATH = "/v1/rum"
     private val random = SecureRandom()
 
     @Volatile
