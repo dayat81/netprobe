@@ -74,6 +74,8 @@
     <string name="speed_gateway_loading">—</string>
     <string name="speed_gateway">GW4 %1$s · %2$s · loss %3$s · GW6 %4$s · %5$s · loss %6$s</string>
     <string name="speed_family_unavailable">%1$s unavailable: %2$s</string>
+    <string name="speed_server_unreachable">Server unreachable · %1$s · tap GO to retry</string>
+    <string name="speed_no_route">No route to %1$s · tap GO to retry</string>
     <string name="speed_running">Testing…</string>
     <string name="speed_loop">Loop %1$d · tap STOP to end</string>
     <string name="speed_loop_pause">Loop %1$d done · next in %2$ds · tap STOP to keep</string>

@@ -631,6 +631,15 @@ class MainActivity : AppCompatActivity() {
                         throw cancelled
                     } catch (error: Exception) {
                         if (!videoRunning) break
+                        val kind = classifyReachFailure(error)
+                        if (kind == ReachFailure.UNREACHABLE || kind == ReachFailure.NO_ROUTE) {
+                            binding.videoStatus.text = if (kind == ReachFailure.NO_ROUTE) {
+                                getString(R.string.speed_no_route, BuildConfig.COLLECTOR_HOST)
+                            } else {
+                                getString(R.string.speed_server_unreachable, BuildConfig.COLLECTOR_HOST)
+                            }
+                            break
+                        }
                         binding.videoStatus.text = getString(
                             R.string.speed_failed,
                             error.message?.take(80) ?: error.javaClass.simpleName,
@@ -645,7 +654,11 @@ class MainActivity : AppCompatActivity() {
                 binding.videoGo.alpha = 1f
                 binding.videoHudProgress.visibility = View.INVISIBLE
                 val status = binding.videoStatus.text?.toString().orEmpty()
-                if (!status.startsWith("Failed")) {
+                if (
+                    !status.startsWith("Failed") &&
+                    !status.contains("unreachable") &&
+                    !status.contains("No route")
+                ) {
                     binding.videoStatus.text = ""
                 }
             }
@@ -704,9 +717,12 @@ class MainActivity : AppCompatActivity() {
         speedJob = lifecycleScope.launch {
             var round = 0
             var family = nextSpeedFamily
+            var holdOffline = false
+            val triedSinceSuccess = mutableSetOf<IpFamily>()
+            var sawUnreachable = false
             try {
                 while (running) {
-                    round += 1
+                    if (triedSinceSuccess.isEmpty()) round += 1
                     binding.speedStatus.text = getString(R.string.speed_loop, round)
                     binding.speedCenter.text = getString(R.string.speed_stop)
                     binding.pingValue.text = "—"
@@ -724,6 +740,8 @@ class MainActivity : AppCompatActivity() {
                         val result = SpeedtestEngine(target).run { progress ->
                             runOnUiThread { renderProgress(progress) }
                         }
+                        triedSinceSuccess.clear()
+                        sawUnreachable = false
                         SpeedtestReport.upload(applicationContext, result)
                         renderSpeedHistory()
                         if (!running) break
@@ -751,14 +769,39 @@ class MainActivity : AppCompatActivity() {
                             "${family.label} round failed: ${error.message}",
                             error,
                         )
-                        binding.speedStatus.text = getString(
-                            R.string.speed_family_unavailable,
-                            family.label,
-                            error.message?.take(48) ?: error.javaClass.simpleName,
-                        )
-                        family = family.next()
-                        nextSpeedFamily = family
-                        delay(2_000)
+                        val kind = classifyReachFailure(error)
+                        val reach = kind == ReachFailure.UNREACHABLE || kind == ReachFailure.NO_ROUTE
+                        if (kind == ReachFailure.UNREACHABLE) sawUnreachable = true
+                        triedSinceSuccess += family
+                        val other = family.next()
+                        if (reach && other !in triedSinceSuccess) {
+                            binding.speedStatus.text = getString(
+                                R.string.speed_family_unavailable,
+                                family.label,
+                                error.message?.take(48) ?: error.javaClass.simpleName,
+                            )
+                            family = other
+                            nextSpeedFamily = family
+                            delay(800)
+                        } else if (reach) {
+                            holdOffline = true
+                            binding.speedStatus.text = if (sawUnreachable) {
+                                getString(R.string.speed_server_unreachable, BuildConfig.COLLECTOR_HOST)
+                            } else {
+                                getString(R.string.speed_no_route, BuildConfig.COLLECTOR_HOST)
+                            }
+                            binding.gauge.setReading(0.0, "", "")
+                            break
+                        } else {
+                            binding.speedStatus.text = getString(
+                                R.string.speed_family_unavailable,
+                                family.label,
+                                error.message?.take(48) ?: error.javaClass.simpleName,
+                            )
+                            family = other
+                            nextSpeedFamily = family
+                            delay(2_000)
+                        }
                     }
                 }
             } catch (_: CancellationException) {
@@ -767,7 +810,11 @@ class MainActivity : AppCompatActivity() {
                 binding.speedCenter.text = getString(R.string.speed_go)
                 binding.gauge.setReading(0.0, "", "")
                 val status = binding.speedStatus.text?.toString().orEmpty()
-                if (!status.startsWith("Retrying") && !status.contains("unavailable")) {
+                if (
+                    !holdOffline &&
+                    !status.startsWith("Retrying") &&
+                    !status.contains("unavailable")
+                ) {
                     binding.speedStatus.text = ""
                 }
             }
