@@ -39,14 +39,18 @@ class MainActivity : AppCompatActivity() {
     private var ratFilter: String? = null
     private var plmnChoices: List<String> = emptyList()
     private var speedJob: Job? = null
-    private var gatewayPingJob: Job? = null
+    private var tracerouteJob: Job? = null
     private var videoJob: Job? = null
     private var complaintJob: Job? = null
     private var nextSpeedFamily: IpFamily = IpFamily.IPV4
     private var running = false
     private var videoRunning = false
     private var currentTab = Tab.RADIO
-    private val gatewayRttSamples = ArrayDeque<GatewayRttChartView.Point>(GATEWAY_RTT_CAPACITY)
+    private var serverIpv4: String? = null
+    private var serverIpv6: String? = null
+    private val onPathChanged: () -> Unit = {
+        if (currentTab == Tab.SPEED) startServerTraceroute(force = true)
+    }
 
     private val permissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions(),
@@ -94,8 +98,6 @@ class MainActivity : AppCompatActivity() {
         binding.speedServer.text = BuildConfig.COLLECTOR_HOST
         binding.speedLocal.text = "—"
         binding.speedPublic.text = "—"
-        binding.speedGw4.text = "—"
-        binding.speedGw6.text = "—"
         binding.videoServer.text = getString(
             R.string.speed_server,
             "${BuildConfig.COLLECTOR_HOST}/video",
@@ -111,13 +113,15 @@ class MainActivity : AppCompatActivity() {
     override fun onStart() {
         super.onStart()
         RadioState.addListener(onSnapshot)
+        GatewayMonitor.addPathListener(onPathChanged)
         if (hasCorePermissions()) RadioService.start(this)
         showChart()
         showWifiDetail(RadioState.latest?.wifi)
     }
 
     override fun onStop() {
-        stopGatewayPing()
+        stopServerTraceroute()
+        GatewayMonitor.removePathListener(onPathChanged)
         RadioState.removeListener(onSnapshot)
         super.onStop()
     }
@@ -138,9 +142,9 @@ class MainActivity : AppCompatActivity() {
         }
         if (tab == Tab.SPEED) {
             refreshSpeedClientIps()
-            startGatewayPing()
+            startServerTraceroute()
         } else {
-            stopGatewayPing()
+            stopServerTraceroute()
         }
         if (tab == Tab.COMPLAINT) {
             binding.complaintPane.setCurrentItem(1, false)
@@ -148,80 +152,96 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun startGatewayPing() {
-        if (gatewayPingJob?.isActive == true) return
-        gatewayPingJob = lifecycleScope.launch {
-            while (currentTab == Tab.SPEED) {
-                val gw = withContext(Dispatchers.IO) {
-                    GatewayMonitor.sample(this@MainActivity)
+    private fun startServerTraceroute(force: Boolean = false) {
+        if (!force && tracerouteJob?.isActive == true) return
+        tracerouteJob?.cancel()
+        GatewayMonitor.start(applicationContext)
+        binding.tracerouteHops.setLoading()
+        tracerouteJob = lifecycleScope.launch {
+            val host = BuildConfig.COLLECTOR_HOST
+            val (hops4, hops6, ip4, ip6) = withContext(Dispatchers.IO) {
+                val target4 = runCatching {
+                    SpeedtestTarget.resolve(hostname = host, family = IpFamily.IPV4).serverIp
+                }.getOrNull()
+                val target6 = runCatching {
+                    SpeedtestTarget.resolve(hostname = host, family = IpFamily.IPV6).serverIp
+                }.getOrNull()
+                val pool = java.util.concurrent.Executors.newFixedThreadPool(2)
+                try {
+                    val f4 = pool.submit<List<NativeTraceroute.Hop>> {
+                        NativeTraceroute.run(
+                            this@MainActivity,
+                            target4 ?: host,
+                            ipv6 = false,
+                            maxHops = 30,
+                            timeoutSec = 25,
+                        )
+                    }
+                    val f6 = pool.submit<List<NativeTraceroute.Hop>> {
+                        if (target6 == null) {
+                            emptyList()
+                        } else {
+                            NativeTraceroute.run(
+                                this@MainActivity,
+                                target6,
+                                ipv6 = true,
+                                maxHops = 30,
+                                timeoutSec = 25,
+                            )
+                        }
+                    }
+                    val v4 = runCatching { f4.get() }.getOrDefault(emptyList())
+                    val v6 = runCatching { f6.get() }.getOrDefault(emptyList())
+                    TraceBundle(v4, v6, target4, target6)
+                } finally {
+                    pool.shutdownNow()
                 }
-                if (currentTab != Tab.SPEED) break
-                val sample = GatewayRttChartView.Point(
-                    tMs = System.currentTimeMillis(),
-                    rtt4Ms = gw.ipv4RttMs,
-                    rtt6Ms = gw.ipv6RttMs,
-                    attempted4 = gw.ipv4 != null,
-                    attempted6 = gw.ipv6 != null,
-                )
-                if (gatewayRttSamples.size >= GATEWAY_RTT_CAPACITY) gatewayRttSamples.removeFirst()
-                gatewayRttSamples.addLast(sample)
-                val snap = gatewayRttSamples.toList()
-                val (lost4, att4) = gatewayLossCounts(snap, v4 = true)
-                val (lost6, att6) = gatewayLossCounts(snap, v4 = false)
-                binding.speedGw4.text = formatGwDetail(
-                    gw.ipv4 ?: "—",
-                    GatewayPinger.formatRtt(gw.ipv4RttMs),
-                    GatewayPinger.formatLoss(lost4, att4),
-                )
-                binding.speedGw6.text = formatGwDetail(
-                    gw.ipv6 ?: "—",
-                    GatewayPinger.formatRtt(gw.ipv6RttMs),
-                    GatewayPinger.formatLoss(lost6, att6),
-                )
-                // Packet-loss chart disabled (layout commented out).
-                // binding.gatewayLossChart.setSamples(snap)
-                binding.gatewayRttChart.setSamples(snap)
-                delay(GATEWAY_PING_INTERVAL_MS)
             }
+            if (currentTab != Tab.SPEED) return@launch
+            if (ip4 != null) serverIpv4 = ip4
+            if (ip6 != null) serverIpv6 = ip6
+            binding.speedServer.text = formatServerIps()
+            binding.tracerouteHops.setHops(
+                TracerouteHopView.fromRaw(hops4),
+                TracerouteHopView.fromRaw(hops6),
+                statusText = null,
+            )
         }
     }
 
-    private fun stopGatewayPing() {
-        gatewayPingJob?.cancel()
-        gatewayPingJob = null
+    private fun stopServerTraceroute() {
+        tracerouteJob?.cancel()
+        tracerouteJob = null
     }
 
     private fun refreshSpeedClientIps(family: IpFamily = nextSpeedFamily) {
         val locals = ClientNetworkInfo.localAddressesPair(this)
-        val gateway = ClientNetworkInfo.gatewayIpQuick(this)
-        val gateway6 = ClientNetworkInfo.gatewayIpv6Quick(this)
         binding.speedLocal.text = formatLocalIps(locals)
         binding.speedPublic.text = "…"
-        binding.speedGw4.text = formatGwDetail(if (gateway == "—") "…" else gateway, "…", "…")
-        binding.speedGw6.text = formatGwDetail(if (gateway6 == "—") "…" else gateway6, "…", "…")
-        binding.speedServer.text = getString(
-            R.string.speed_server_stack,
-            BuildConfig.COLLECTOR_HOST,
-            family.label,
-            "…",
-        )
+        binding.speedServer.text = formatServerIps(loading = true)
         lifecycleScope.launch {
+            val (v4, v6) = withContext(Dispatchers.IO) {
+                val a = runCatching {
+                    SpeedtestTarget.resolve(family = IpFamily.IPV4).serverIp
+                }.getOrNull()
+                val b = runCatching {
+                    SpeedtestTarget.resolve(family = IpFamily.IPV6).serverIp
+                }.getOrNull()
+                a to b
+            }
+            if (currentTab != Tab.SPEED) return@launch
+            serverIpv4 = v4
+            serverIpv6 = v6
+            binding.speedServer.text = formatServerIps()
             val target = withContext(Dispatchers.IO) {
                 runCatching { SpeedtestTarget.resolve(family = family) }.getOrNull()
             }
             if (currentTab != Tab.SPEED) return@launch
             if (target == null) {
-                binding.speedServer.text = getString(
-                    R.string.speed_server_stack,
-                    BuildConfig.COLLECTOR_HOST,
-                    family.label,
-                    "—",
-                )
                 binding.speedLocal.text = formatLocalIps(locals)
                 binding.speedPublic.text = "—"
                 return@launch
             }
-            showSpeedTarget(target)
             val public = withContext(Dispatchers.IO) {
                 ClientNetworkInfo.publicClientFromHello(target)
             }
@@ -267,32 +287,51 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun formatGwDetail(ip: String, rtt: String, loss: String): String =
-        getString(R.string.speed_gw_detail, ip, rtt, loss)
-
-    private fun gatewayLossCounts(
-        samples: List<GatewayRttChartView.Point>,
-        v4: Boolean,
-    ): Pair<Int, Int> {
-        var attempted = 0
-        var lost = 0
-        for (p in samples) {
-            val att = if (v4) p.attempted4 else p.attempted6
-            val ok = if (v4) p.rtt4Ms != null else p.rtt6Ms != null
-            if (!att) continue
-            attempted++
-            if (!ok) lost++
+    private fun formatServerIps(loading: Boolean = false): CharSequence {
+        val secondary = ContextCompat.getColor(this, R.color.text_secondary)
+        val v4Color = ContextCompat.getColor(this, R.color.gateway_v4)
+        val v6Color = ContextCompat.getColor(this, R.color.gateway_v6)
+        val sb = SpannableStringBuilder()
+        fun appendColored(text: String, color: Int) {
+            val start = sb.length
+            sb.append(text)
+            sb.setSpan(ForegroundColorSpan(color), start, sb.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
         }
-        return lost to attempted
+        appendColored(BuildConfig.COLLECTOR_HOST, secondary)
+        if (loading && serverIpv4 == null && serverIpv6 == null) {
+            appendColored("\n…", secondary)
+            return sb
+        }
+        val v4 = serverIpv4
+        val v6 = serverIpv6
+        when {
+            v4 != null && v6 != null -> {
+                appendColored("\n", secondary)
+                appendColored(v4, v4Color)
+                appendColored("\n", secondary)
+                appendColored(v6, v6Color)
+            }
+            v4 != null -> {
+                appendColored("\n", secondary)
+                appendColored(v4, v4Color)
+            }
+            v6 != null -> {
+                appendColored("\n", secondary)
+                appendColored(v6, v6Color)
+            }
+            else -> {
+                appendColored("\n—", secondary)
+            }
+        }
+        return sb
     }
 
     private fun showSpeedTarget(target: SpeedtestTarget) {
-        binding.speedServer.text = getString(
-            R.string.speed_server_stack,
-            target.hostname,
-            target.family.label,
-            target.serverIp,
-        )
+        when (target.family) {
+            IpFamily.IPV4 -> serverIpv4 = target.serverIp
+            IpFamily.IPV6 -> serverIpv6 = target.serverIp
+        }
+        binding.speedServer.text = formatServerIps()
     }
 
     private fun wireRadioPager() {
@@ -665,10 +704,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun renderProgress(progress: SpeedtestEngine.Progress) {
         if (!running) return
-        if (progress.serverLabel.isNotEmpty()) {
-            // Progress.serverLabel already formatted as "host · IPvX · ip"
-            binding.speedServer.text = progress.serverLabel
-        }
+        // Keep dual-stack server IPs; don't overwrite with single-family progress label.
         progress.pingMs?.let { binding.pingValue.text = SpeedtestMath.formatMs(it) }
         progress.jitterMs?.let { binding.jitterValue.text = "jitter ${it} ms" }
         progress.downloadMbps?.let { binding.downloadValue.text = SpeedtestMath.formatMbps(it) }
@@ -775,8 +811,10 @@ class MainActivity : AppCompatActivity() {
         if (needed.isNotEmpty()) permissionLauncher.launch(needed.toTypedArray())
     }
 
-    companion object {
-        private const val GATEWAY_PING_INTERVAL_MS = 1_000L
-        private const val GATEWAY_RTT_CAPACITY = 60
-    }
+    private data class TraceBundle(
+        val hops4: List<NativeTraceroute.Hop>,
+        val hops6: List<NativeTraceroute.Hop>,
+        val ip4: String?,
+        val ip6: String?,
+    )
 }

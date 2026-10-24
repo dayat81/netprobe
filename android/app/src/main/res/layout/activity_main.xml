@@ -203,7 +203,7 @@
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
                         android:ellipsize="middle"
-                        android:maxLines="1"
+                        android:maxLines="3"
                         android:text="@string/speed_server_loading"
                         android:textColor="@color/text_primary"
                         android:textSize="11sp" />
@@ -261,57 +261,6 @@
                         android:textSize="11sp" />
                 </LinearLayout>
 
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal"
-                    android:paddingVertical="1dp">
-
-                    <TextView
-                        android:layout_width="52dp"
-                        android:layout_height="wrap_content"
-                        android:text="@string/speed_label_gw4"
-                        android:textColor="@color/gateway_v4"
-                        android:textSize="11sp" />
-
-                    <TextView
-                        android:id="@+id/speedGw4"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:ellipsize="middle"
-                        android:maxLines="1"
-                        android:text="—"
-                        android:textColor="@color/gateway_v4"
-                        android:textSize="11sp" />
-                </LinearLayout>
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal"
-                    android:paddingVertical="1dp">
-
-                    <TextView
-                        android:layout_width="52dp"
-                        android:layout_height="wrap_content"
-                        android:text="@string/speed_label_gw6"
-                        android:textColor="@color/gateway_v6"
-                        android:textSize="11sp" />
-
-                    <TextView
-                        android:id="@+id/speedGw6"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:ellipsize="middle"
-                        android:maxLines="1"
-                        android:text="—"
-                        android:textColor="@color/gateway_v6"
-                        android:textSize="11sp" />
-                </LinearLayout>
             </LinearLayout>
 
             <FrameLayout
@@ -341,19 +290,18 @@
                     android:textStyle="bold" />
             </FrameLayout>
 
-            <!-- Packet-loss chart (disabled; keep for later)
-            <com.aksa.mysignal.GatewayLossChartView
-                android:id="@+id/gatewayLossChart"
+            <HorizontalScrollView
                 android:layout_width="match_parent"
-                android:layout_height="96dp"
-                android:layout_marginBottom="4dp" />
-            -->
+                android:layout_height="160dp"
+                android:layout_marginBottom="4dp"
+                android:fadeScrollbars="false"
+                android:scrollbars="horizontal">
 
-            <com.aksa.mysignal.GatewayRttChartView
-                android:id="@+id/gatewayRttChart"
-                android:layout_width="match_parent"
-                android:layout_height="110dp"
-                android:layout_marginBottom="4dp" />
+                <com.aksa.mysignal.TracerouteHopView
+                    android:id="@+id/tracerouteHops"
+                    android:layout_width="wrap_content"
+                    android:layout_height="match_parent" />
+            </HorizontalScrollView>
 
             <LinearLayout
                 android:layout_width="match_parent"

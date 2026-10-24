@@ -84,7 +84,7 @@ object NativeTraceroute {
                 Log.w(TAG, "traceroute timeout")
                 return emptyList()
             }
-            Log.d(TAG, "traceroute out:\n${out.take(800)}")
+            Log.i(TAG, "traceroute out:\n${out.take(2000)}")
             parseHops(out)
         } catch (e: Exception) {
             Log.w(TAG, "traceroute failed: ${e.message}")

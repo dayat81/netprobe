@@ -58,6 +58,7 @@ class RadioService : Service() {
         super.onCreate()
         ensureChannel()
         startInForeground(buildNotification(null))
+        GatewayMonitor.start(applicationContext)
         sampler = RadioSampler(applicationContext)
         nrReporter = NrStatusReporter(applicationContext)
         holdWakeLock()
@@ -87,6 +88,7 @@ class RadioService : Service() {
         worker = null
         sampler.close()
         nrReporter.close()
+        GatewayMonitor.stop()
         wakeLock?.let { if (it.isHeld) runCatching { it.release() } }
         Log.i(TAG, "sampling stopped after ${RadioState.samples} samples")
         super.onDestroy()

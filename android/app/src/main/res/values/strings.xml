@@ -60,7 +60,7 @@
     <string name="speed_server_loading">—</string>
     <string name="speed_server_stack">%1$s · %2$s · %3$s</string>
     <string name="speed_public">%1$s · %2$s</string>
-    <string name="speed_gw_detail">%1$s · %2$s · loss %3$s</string>
+    <string name="speed_gw_detail">%1$s · %2$s · %3$s pps · loss %4$s</string>
     <string name="speed_ips_loading">—</string>
     <string name="speed_ips">Local %1$s · Public %2$s · %3$s</string>
     <string name="speed_ips_v4">Local %1$s</string>
