@@ -63,18 +63,81 @@ object ComplaintStore {
             provider,
             publicIp,
         )
-        context.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
-            .putLong("speed_ts", System.currentTimeMillis())
+        val ts = System.currentTimeMillis()
+        val transport = transportNow()
+        val prefs = context.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        prefs.edit()
+            .putLong("speed_ts", ts)
             .putFloat("speed_dl", result.downloadMbps.toFloat())
             .putFloat("speed_ul", result.uploadMbps.toFloat())
             .putLong("speed_ping", result.pingMs)
             .putLong("speed_jitter", result.jitterMs)
-            .putString("speed_transport", transportNow())
+            .putString("speed_transport", transport)
             .putString("speed_server", result.serverLabel)
             .putString("speed_stack", stack)
             .putString("speed_provider", provider)
             .putString("speed_public_ip", publicIp)
             .apply()
+        appendSpeedHistory(
+            prefs,
+            Speed(
+                ts,
+                result.downloadMbps,
+                result.uploadMbps,
+                result.pingMs,
+                result.jitterMs,
+                transport,
+                result.serverLabel,
+                stack,
+                provider,
+                publicIp,
+            ),
+        )
+    }
+
+    private const val SPEED_HISTORY_MAX = 50
+
+    private fun appendSpeedHistory(prefs: android.content.SharedPreferences, entry: Speed) {
+        val existing = JSONArray(prefs.getString("speed_history", "[]"))
+        val next = JSONArray()
+        next.put(
+            JSONObject()
+                .put("ts", entry.tsMs)
+                .put("dl", entry.downloadMbps)
+                .put("ul", entry.uploadMbps)
+                .put("ping", entry.pingMs)
+                .put("jitter", entry.jitterMs)
+                .put("transport", entry.transport)
+                .put("server", entry.server.take(120))
+                .put("stack", entry.ipStack)
+                .put("provider", entry.provider.take(80))
+                .put("public_ip", entry.publicIp.take(64)),
+        )
+        for (index in 0 until minOf(existing.length(), SPEED_HISTORY_MAX - 1)) {
+            next.put(existing.getJSONObject(index))
+        }
+        prefs.edit().putString("speed_history", next.toString()).apply()
+    }
+
+    fun speedHistory(context: Context): List<Speed> {
+        val raw = context.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .getString("speed_history", "[]")
+        val array = JSONArray(raw)
+        return List(array.length()) { index ->
+            val item = array.getJSONObject(index)
+            Speed(
+                item.optLong("ts"),
+                item.optDouble("dl"),
+                item.optDouble("ul"),
+                item.optLong("ping"),
+                item.optLong("jitter"),
+                item.optString("transport"),
+                item.optString("server"),
+                item.optString("stack"),
+                item.optString("provider"),
+                item.optString("public_ip"),
+            )
+        }
     }
 
     fun saveVideo(context: Context, result: VideoTestEngine.Result) {

@@ -104,6 +104,7 @@ class MainActivity : AppCompatActivity() {
         )
         nextSpeedFamily = IpFamily.IPV4
         wireRadioPager()
+        wireSpeedPager()
         wireComplaintPager()
         updatePermissionUi()
         requestPermissions()
@@ -141,8 +142,10 @@ class MainActivity : AppCompatActivity() {
             binding.radioPane.setCurrentItem(1, false)
         }
         if (tab == Tab.SPEED) {
+            binding.speedPane.setCurrentItem(1, false)
             refreshSpeedClientIps()
             startServerTraceroute()
+            renderSpeedHistory()
         } else {
             stopServerTraceroute()
         }
@@ -360,6 +363,72 @@ class MainActivity : AppCompatActivity() {
         }
         binding.radioPane.setCurrentItem(1, false)
         showWifiDetail(RadioState.latest?.wifi)
+    }
+
+    private fun wireSpeedPager() {
+        val history = binding.speedHistory
+        val current = binding.speedCurrent
+        history.visibility = View.VISIBLE
+        current.visibility = View.VISIBLE
+        (history.parent as ViewGroup).removeView(history)
+        (current.parent as ViewGroup).removeView(current)
+        binding.speedPane.adapter = object : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
+            override fun getItemCount(): Int = 2
+
+            override fun getItemViewType(position: Int): Int = position
+
+            override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
+                val page = if (viewType == 0) history else current
+                (page.parent as? ViewGroup)?.removeView(page)
+                page.layoutParams = RecyclerView.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                )
+                return object : RecyclerView.ViewHolder(page) {}
+            }
+
+            override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) = Unit
+        }
+        binding.speedPane.setCurrentItem(1, false)
+        renderSpeedHistory()
+    }
+
+    private fun renderSpeedHistory() {
+        val list = binding.speedHistoryList
+        list.removeAllViews()
+        list.addView(historyText(getString(R.string.speed_history_title), 18f, true))
+        list.addView(historyText(getString(R.string.speed_history_back), 11f, false))
+        val items = ComplaintStore.speedHistory(this)
+        if (items.isEmpty()) {
+            list.addView(historyText(getString(R.string.speed_history_empty), 14f, false))
+            return
+        }
+        items.forEach { entry ->
+            val whenText = historyClock.format(Date(entry.tsMs))
+            val stack = entry.ipStack.ifBlank { "—" }
+            val server = entry.server.ifBlank { "—" }
+            val meta = buildString {
+                append(entry.transport.ifBlank { "—" })
+                if (entry.provider.isNotBlank()) append(" · ").append(entry.provider)
+                if (entry.publicIp.isNotBlank()) append(" · ").append(entry.publicIp)
+            }
+            list.addView(
+                historyText(
+                    getString(
+                        R.string.speed_history_row,
+                        whenText,
+                        stack,
+                        SpeedtestMath.formatMbps(entry.downloadMbps),
+                        SpeedtestMath.formatMbps(entry.uploadMbps),
+                        "${entry.pingMs} ms",
+                        "${entry.jitterMs} ms",
+                        "$server\n$meta",
+                    ),
+                    14f,
+                    false,
+                ),
+            )
+        }
     }
 
     private fun showWifiDetail(wifi: WifiSignal?) {
@@ -622,7 +691,7 @@ class MainActivity : AppCompatActivity() {
             running = false
             binding.speedCenter.text = getString(R.string.speed_go)
             binding.speedStatus.text = ""
-            binding.gauge.setReading(0.0, "")
+            binding.gauge.setReading(0.0, "", "")
             return
         }
         running = true
@@ -644,6 +713,7 @@ class MainActivity : AppCompatActivity() {
                     binding.downloadValue.text = "—"
                     binding.uploadValue.text = "—"
                     binding.jitterValue.text = getString(R.string.speed_jitter_idle)
+                    binding.gauge.setReading(0.0, "PING", family.label)
                     try {
                         val target = withContext(Dispatchers.IO) {
                             SpeedtestTarget.resolve(family = family)
@@ -655,6 +725,7 @@ class MainActivity : AppCompatActivity() {
                             runOnUiThread { renderProgress(progress) }
                         }
                         SpeedtestReport.upload(applicationContext, result)
+                        renderSpeedHistory()
                         if (!running) break
                         // Hold final DL/UL on screen so the user can stop before the next round.
                         binding.pingValue.text = SpeedtestMath.formatMs(result.pingMs)
@@ -662,7 +733,7 @@ class MainActivity : AppCompatActivity() {
                         binding.downloadValue.text = SpeedtestMath.formatMbps(result.downloadMbps)
                         binding.uploadValue.text = SpeedtestMath.formatMbps(result.uploadMbps)
                         binding.speedCenter.text = getString(R.string.speed_stop)
-                        binding.gauge.setReading(result.downloadMbps, "DONE")
+                        binding.gauge.setReading(result.downloadMbps, "DONE", result.ipFamily.label)
                         for (left in 10 downTo 1) {
                             if (!running) break
                             binding.speedStatus.text = getString(R.string.speed_loop_pause, round, left)
@@ -694,6 +765,7 @@ class MainActivity : AppCompatActivity() {
             } finally {
                 running = false
                 binding.speedCenter.text = getString(R.string.speed_go)
+                binding.gauge.setReading(0.0, "", "")
                 val status = binding.speedStatus.text?.toString().orEmpty()
                 if (!status.startsWith("Retrying") && !status.contains("unavailable")) {
                     binding.speedStatus.text = ""
@@ -704,7 +776,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun renderProgress(progress: SpeedtestEngine.Progress) {
         if (!running) return
-        // Keep dual-stack server IPs; don't overwrite with single-family progress label.
+        val familyLabel = progress.ipFamily?.label.orEmpty()
         progress.pingMs?.let { binding.pingValue.text = SpeedtestMath.formatMs(it) }
         progress.jitterMs?.let { binding.jitterValue.text = "jitter ${it} ms" }
         progress.downloadMbps?.let { binding.downloadValue.text = SpeedtestMath.formatMbps(it) }
@@ -712,19 +784,19 @@ class MainActivity : AppCompatActivity() {
         when (progress.phase) {
             SpeedtestEngine.Phase.PING -> {
                 binding.speedCenter.text = getString(R.string.speed_stop)
-                binding.gauge.setReading(0.0, "PING")
+                binding.gauge.setReading(0.0, "PING", familyLabel)
             }
             SpeedtestEngine.Phase.DOWNLOAD -> {
                 binding.speedCenter.text = SpeedtestMath.formatMbps(progress.liveMbps)
-                binding.gauge.setReading(progress.liveMbps, "DOWNLOAD")
+                binding.gauge.setReading(progress.liveMbps, "DOWNLOAD", familyLabel)
             }
             SpeedtestEngine.Phase.UPLOAD -> {
                 binding.speedCenter.text = SpeedtestMath.formatMbps(progress.liveMbps)
-                binding.gauge.setReading(progress.liveMbps, "UPLOAD")
+                binding.gauge.setReading(progress.liveMbps, "UPLOAD", familyLabel)
             }
             SpeedtestEngine.Phase.DONE -> {
                 binding.speedCenter.text = getString(R.string.speed_stop)
-                binding.gauge.setReading(progress.downloadMbps ?: 0.0, "DONE")
+                binding.gauge.setReading(progress.downloadMbps ?: 0.0, "DONE", familyLabel)
             }
             SpeedtestEngine.Phase.FAILED, SpeedtestEngine.Phase.IDLE -> Unit
         }

@@ -7,6 +7,7 @@ import android.graphics.RectF
 import android.graphics.SweepGradient
 import android.util.AttributeSet
 import android.view.View
+import androidx.core.content.ContextCompat
 import kotlin.math.cos
 import kotlin.math.min
 import kotlin.math.sin
@@ -47,11 +48,19 @@ class SpeedtestGaugeView @JvmOverloads constructor(
         style = Paint.Style.FILL
         color = NEEDLE
     }
+    private val familyPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        textAlign = Paint.Align.CENTER
+        isFakeBoldText = true
+        textSize = dp(14f)
+    }
+    private val colorV4 = ContextCompat.getColor(context, R.color.gateway_v4)
+    private val colorV6 = ContextCompat.getColor(context, R.color.gateway_v6)
     private val arc = RectF()
     private var mbps = 0f
     private var phase = ""
+    private var family = ""
 
-    fun setReading(speedMbps: Double, phaseLabel: String) {
+    fun setReading(speedMbps: Double, phaseLabel: String, familyLabel: String = family) {
         val next = speedMbps.toFloat().coerceAtLeast(0f)
         val phaseChanged = !phase.equals(phaseLabel, ignoreCase = true)
         // New phase (esp. DOWNLOAD→UPLOAD): snap to reading so the needle returns to 0
@@ -63,6 +72,7 @@ class SpeedtestGaugeView @JvmOverloads constructor(
             else -> next
         }
         phase = phaseLabel
+        family = familyLabel
         invalidate()
     }
 
@@ -136,6 +146,16 @@ class SpeedtestGaugeView @JvmOverloads constructor(
                 needle,
             )
             canvas.drawCircle(cx, cy, dp(5f), hub)
+        }
+
+        if (family.isNotEmpty()) {
+            familyPaint.color = when {
+                family.contains("6", ignoreCase = true) -> colorV6
+                else -> colorV4
+            }
+            familyPaint.textSize = dp(15f)
+            // Bottom of the open 270° arc — clear of the centered GO/STOP control.
+            canvas.drawText(family, cx, (cy + radius * 0.72f).coerceAtMost(height - dp(6f)), familyPaint)
         }
     }
 

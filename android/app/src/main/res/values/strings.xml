@@ -33,6 +33,11 @@
     <string name="complaint_history_empty">No posts yet. Swipe left for the latest draft.</string>
     <string name="complaint_swipe">Swipe right for history</string>
     <string name="radio_wifi_swipe">Swipe right for Wi-Fi</string>
+    <string name="speed_history_swipe">Swipe right for history</string>
+    <string name="speed_history_title">Speed history</string>
+    <string name="speed_history_empty">No tests yet. Swipe left to run a speedtest.</string>
+    <string name="speed_history_back">Swipe left for speedtest</string>
+    <string name="speed_history_row">%1$s · %2$s\n↓ %3$s  ↑ %4$s  ping %5$s  jitter %6$s\n%7$s</string>
     <string name="radio_wifi_title">Wi-Fi</string>
     <string name="radio_wifi_associated">Associated AP</string>
     <string name="radio_wifi_congestion">Congestion</string>
