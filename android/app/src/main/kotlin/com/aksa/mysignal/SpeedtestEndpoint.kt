@@ -216,6 +216,7 @@ object SpeedtestHttps {
                 ssl.sslParameters = params
             } catch (_: Exception) {
             }
+            ssl.soTimeout = 8_000
             return ssl
         }
     }

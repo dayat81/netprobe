@@ -36,7 +36,11 @@ class MeasureContractTest {
         "arfcn", "bands", "bandwidth_khz", "rsrp", "rsrq", "sinr", "rssi", "cqi", "timing_advance",
         "ss_rsrp", "ss_rsrq", "ss_sinr", "csi_rsrp", "csi_rsrq", "csi_sinr", "dbm", "asu", "level",
     )
-    private val cellOptional = setOf("sub_id", "sim_slot", "carrier", "channel")
+    private val cellOptional = setOf(
+        "sub_id", "sim_slot", "carrier", "channel", "timing_advance_micros",
+        "cqi_table_index", "csi_cqi_table_index", "csi_cqi_report", "additional_plmns",
+        "operator_alpha_long", "operator_alpha_short",
+    )
 
     private fun sample(): RadioSnapshot {
         val carriers = listOf(

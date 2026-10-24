@@ -95,13 +95,24 @@ data class RadioCell(
     val sinr: Int? = null,
     val rssi: Int? = null,
     val cqi: Int? = null,
+    /** LTE CQI table index, 1–6. OpenSignal stores this next to the CQI value. */
+    val cqiTableIndex: Int? = null,
     val timingAdvance: Int? = null,
+    /** NR timing advance in microseconds. OpenSignal stores this beside the LTE step count. */
+    val timingAdvanceMicros: Int? = null,
     val ssRsrp: Int? = null,
     val ssRsrq: Int? = null,
     val ssSinr: Int? = null,
     val csiRsrp: Int? = null,
     val csiRsrq: Int? = null,
     val csiSinr: Int? = null,
+    /** NR CSI CQI table index, 1–3. */
+    val csiCqiTableIndex: Int? = null,
+    /** NR CSI CQI report entries, each 0–15. */
+    val csiCqiReport: List<Int> = emptyList(),
+    val additionalPlmns: List<String> = emptyList(),
+    val operatorAlphaLong: String = "",
+    val operatorAlphaShort: String = "",
     val dbm: Int? = null,
     val asu: Int? = null,
     val level: Int? = null,
@@ -136,13 +147,20 @@ data class RadioCell(
         .put("sinr", sinr.orNull())
         .put("rssi", rssi.orNull())
         .put("cqi", cqi.orNull())
+        .put("cqi_table_index", cqiTableIndex.orNull())
         .put("timing_advance", timingAdvance.orNull())
+        .put("timing_advance_micros", timingAdvanceMicros.orNull())
         .put("ss_rsrp", ssRsrp.orNull())
         .put("ss_rsrq", ssRsrq.orNull())
         .put("ss_sinr", ssSinr.orNull())
         .put("csi_rsrp", csiRsrp.orNull())
         .put("csi_rsrq", csiRsrq.orNull())
         .put("csi_sinr", csiSinr.orNull())
+        .put("csi_cqi_table_index", csiCqiTableIndex.orNull())
+        .put("csi_cqi_report", JSONArray(csiCqiReport.take(8)))
+        .put("additional_plmns", JSONArray(additionalPlmns.take(8)))
+        .put("operator_alpha_long", operatorAlphaLong.ifEmpty { null }.orNullText())
+        .put("operator_alpha_short", operatorAlphaShort.ifEmpty { null }.orNullText())
         .put("dbm", dbm.orNull())
         .put("asu", asu.orNull())
         .put("level", level.orNull())
@@ -461,3 +479,5 @@ data class NrSnapshot(
 }
 
 internal fun Int?.orNull(): Any = this ?: JSONObject.NULL
+
+internal fun String?.orNullText(): Any = if (this.isNullOrEmpty()) JSONObject.NULL else this

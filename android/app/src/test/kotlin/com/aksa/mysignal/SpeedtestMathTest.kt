@@ -67,11 +67,9 @@ class SpeedtestMathTest {
     }
 
     @Test
-    fun idlePingUsesBestThreeAfterSpikeFilter() {
-        // Production-like pool with cellular spikes 168/184/188.
+    fun idlePingIsTheLowestSample() {
         val settled = listOf(164L, 129L, 124L, 188L, 120L, 168L, 115L, 129L, 115L, 123L, 184L, 114L)
-        // after spike filter, best 3 ≈ 114,115,115 → 115
-        assertEquals(115L, SpeedtestMath.idlePingMs(settled))
+        assertEquals(114L, SpeedtestMath.idlePingMs(settled))
         assertEquals(0L, SpeedtestMath.idlePingMs(emptyList()))
     }
 

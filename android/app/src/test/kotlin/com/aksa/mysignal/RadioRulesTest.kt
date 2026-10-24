@@ -25,6 +25,7 @@ class RadioRulesTest {
         val text = "DataSpecificRegistrationInfo :{ isNrAvailable = true isEnDcAvailable = true " +
             "mIsUsingCarrierAggregation = false }"
         assertEquals(true, RadioRules.parseEndcAvailable(text))
+        assertEquals(true, RadioRules.parseEndcAvailable("CellInfoLte:{isEndcAvailable=true}"))
         assertEquals(false, RadioRules.parseCarrierAggregation(text))
         assertEquals(true, RadioRules.parseCarrierAggregation("isUsingCarrierAggregation=true"))
         assertNull(RadioRules.parseCarrierAggregation("nothing here"))

@@ -27,6 +27,78 @@ object CellGatewayProbe {
     private const val TAG = "MySignalGw"
     private const val RECV_TIMEOUT_MS = 1_200L
 
+    /**
+     * Packet RTT to [host]. One echo per sample, default hop limit.
+     * Traceroute to the speedtest address is this number; a TCP handshake to
+     * port 443 is slower because the load balancer finishes it later.
+     */
+    fun echoRtts(host: String, ipv6: Boolean, warmup: Int, count: Int): List<Long> {
+        val dest = runCatching { InetAddress.getByName(host) }.getOrNull() ?: return emptyList()
+        if (ipv6 && dest !is Inet6Address) return emptyList()
+        if (!ipv6 && dest !is Inet4Address) return emptyList()
+        var fd: FileDescriptor? = null
+        return try {
+            val socket = Os.socket(
+                if (ipv6) OsConstants.AF_INET6 else OsConstants.AF_INET,
+                OsConstants.SOCK_DGRAM,
+                if (ipv6) OsConstants.IPPROTO_ICMPV6 else OsConstants.IPPROTO_ICMP,
+            )
+            fd = socket
+            Os.setsockoptTimeval(
+                socket,
+                OsConstants.SOL_SOCKET,
+                OsConstants.SO_RCVTIMEO,
+                StructTimeval.fromMillis(200),
+            )
+            val id = Random.nextInt(1, 0xffff)
+            var seq = 1
+            repeat(warmup.coerceAtLeast(0)) {
+                echoOnce(socket, dest, ipv6, id, seq)
+                seq++
+            }
+            val samples = ArrayList<Long>(count)
+            var misses = 0
+            repeat(count) {
+                val sample = echoOnce(socket, dest, ipv6, id, seq)
+                seq++
+                if (sample == null) {
+                    misses++
+                    if (samples.isEmpty() && misses >= 2) return samples
+                } else {
+                    samples += sample
+                    misses = 0
+                }
+            }
+            samples
+        } catch (e: Exception) {
+            Log.d(TAG, "icmp rtt $host: ${e.message}")
+            emptyList()
+        } finally {
+            closeQuietly(fd)
+        }
+    }
+
+    private fun echoOnce(
+        fd: FileDescriptor,
+        dest: InetAddress,
+        ipv6: Boolean,
+        id: Int,
+        seq: Int,
+    ): Long? {
+        val packet = if (ipv6) buildIcmp6Echo(id, seq) else buildIcmp4Echo(id, seq)
+        val started = System.nanoTime()
+        Os.sendto(fd, packet, 0, packet.size, 0, dest, 0)
+        val buf = ByteArray(256)
+        val peer = InetSocketAddress(0)
+        val n = try {
+            Os.recvfrom(fd, buf, 0, buf.size, 0, peer)
+        } catch (_: Exception) {
+            return null
+        }
+        if (n <= 0 || !isIcmpEchoReply(buf, n)) return null
+        return ((System.nanoTime() - started) / 1_000_000L).coerceAtLeast(1L)
+    }
+
     fun firstHop(network: Network?, locals: Set<String>): String? {
         for (target in listOf("8.8.8.8", "1.1.1.1", "9.9.9.9")) {
             probeIcmp4(network, target)?.let { hop ->

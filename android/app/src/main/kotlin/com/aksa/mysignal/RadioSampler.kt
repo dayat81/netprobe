@@ -214,7 +214,8 @@ class RadioSampler(private val context: Context) {
             ca = ca.value,
             caSource = ca.source,
             endcAvailable = RadioRules.parseEndcAvailable(registrationText)
-                ?: RadioRules.parseEndcAvailable(serviceText),
+                ?: RadioRules.parseEndcAvailable(serviceText)
+                ?: lteEndcAvailable(t),
             channel = RadioRules.parseChannelNumber(serviceText)
                 ?: service?.channelNumber?.let { RadioRules.bounded(it, 1, 10_000_000) },
             servingSignal = servingSignal(runCatching { tm.signalStrength }.getOrNull() ?: t.signal, networkType),
@@ -379,6 +380,21 @@ class RadioSampler(private val context: Context) {
                 (it.domain and NetworkRegistrationInfo.DOMAIN_PS) != 0
         }
     }
+
+    /** MCC+MNC strings from CellIdentity.getAdditionalPlmns, capped like the collector. */
+    private fun plmns(values: Set<String>?): List<String> =
+        values.orEmpty()
+            .map { RadioRules.clean(it, 6) }
+            .filter { it.length in 5..6 && it.all(Char::isDigit) }
+            .distinct()
+            .take(8)
+
+    /** OpenSignal reads `isEndcAvailable` from the registered LTE cell text, not only ServiceState. */
+    private fun lteEndcAvailable(tracker: SubTracker): Boolean? =
+        tracker.cellInfos()
+            .filterIsInstance<CellInfoLte>()
+            .filter { it.isRegistered }
+            .firstNotNullOfOrNull { RadioRules.parseEndcAvailable(it.toString()) }
 
     private fun cells(trackers: List<SubTracker>): List<RadioCell> {
         val serving = ArrayList<RadioCell>()
@@ -556,11 +572,19 @@ class RadioSampler(private val context: Context) {
             bands = id.bands.filter { it in 1..300 },
             bandwidthKhz = RadioRules.bounded(id.bandwidth, 1, 400_000),
             rsrp = RadioRules.bounded(sig.rsrp, -200, 0),
-            rsrq = RadioRules.bounded(sig.rsrq, -40, 10),
+            rsrq = RadioRules.bounded(sig.rsrq, -40, 20),
             sinr = RadioRules.bounded(sig.rssnr, -30, 50),
             rssi = RadioRules.bounded(sig.rssi, -200, 0),
             cqi = RadioRules.bounded(sig.cqi, 0, 15),
+            cqiTableIndex = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                RadioRules.bounded(sig.cqiTableIndex, 1, 6)
+            } else {
+                null
+            },
             timingAdvance = RadioRules.bounded(sig.timingAdvance, 0, 4096),
+            additionalPlmns = plmns(id.additionalPlmns),
+            operatorAlphaLong = RadioRules.clean(id.operatorAlphaLong, 64),
+            operatorAlphaShort = RadioRules.clean(id.operatorAlphaShort, 64),
             dbm = RadioRules.bounded(sig.dbm, -200, 0),
             asu = RadioRules.bounded(sig.asuLevel, 0, 200),
             level = RadioRules.bounded(sig.level, 0, 4),
@@ -571,8 +595,18 @@ class RadioSampler(private val context: Context) {
         val id = info.cellIdentity as CellIdentityNr
         val sig = info.cellSignalStrength as CellSignalStrengthNr
         val ssRsrp = RadioRules.bounded(sig.ssRsrp, -200, 0)
-        val ssRsrq = RadioRules.bounded(sig.ssRsrq, -40, 20)
+        val ssRsrq = RadioRules.bounded(sig.ssRsrq, -43, 20)
         val ssSinr = RadioRules.bounded(sig.ssSinr, -30, 50)
+        val timingAdvanceMicros = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            RadioRules.bounded(sig.timingAdvanceMicros, 0, 2_000_000)
+        } else {
+            null
+        }
+        val csiCqi = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            sig.csiCqiReport.mapNotNull { RadioRules.bounded(it, 0, 15) }.take(8)
+        } else {
+            emptyList()
+        }
         return RadioCell(
             registered = registered,
             rat = "NR",
@@ -584,14 +618,24 @@ class RadioSampler(private val context: Context) {
             nrarfcn = RadioRules.bounded(id.nrarfcn, 0, 3_279_165),
             bands = id.bands.filter { it in 1..300 },
             rsrp = ssRsrp,
-            rsrq = ssRsrq?.takeIf { it in -40..10 },
+            rsrq = ssRsrq,
             sinr = ssSinr,
+            timingAdvanceMicros = timingAdvanceMicros,
             ssRsrp = ssRsrp,
             ssRsrq = ssRsrq,
             ssSinr = ssSinr,
             csiRsrp = RadioRules.bounded(sig.csiRsrp, -200, 0),
             csiRsrq = RadioRules.bounded(sig.csiRsrq, -40, 20),
             csiSinr = RadioRules.bounded(sig.csiSinr, -30, 50),
+            csiCqiTableIndex = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                RadioRules.bounded(sig.csiCqiTableIndex, 1, 3)
+            } else {
+                null
+            },
+            csiCqiReport = csiCqi,
+            additionalPlmns = plmns(id.additionalPlmns),
+            operatorAlphaLong = RadioRules.clean(id.operatorAlphaLong, 64),
+            operatorAlphaShort = RadioRules.clean(id.operatorAlphaShort, 64),
             dbm = RadioRules.bounded(sig.dbm, -200, 0),
             asu = RadioRules.bounded(sig.asuLevel, 0, 200),
             level = RadioRules.bounded(sig.level, 0, 4),
@@ -700,7 +744,7 @@ class RadioSampler(private val context: Context) {
     private fun nrSignal(nr: CellSignalStrengthNr) = ServingSignal(
         rat = "NR",
         rsrp = RadioRules.bounded(nr.ssRsrp, -200, 0),
-        rsrq = RadioRules.bounded(nr.ssRsrq, -40, 20),
+        rsrq = RadioRules.bounded(nr.ssRsrq, -43, 20),
         sinr = RadioRules.bounded(nr.ssSinr, -30, 50),
         level = RadioRules.bounded(nr.level, 0, 4),
         dbm = RadioRules.bounded(nr.dbm, -200, 0),

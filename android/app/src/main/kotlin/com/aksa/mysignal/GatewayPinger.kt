@@ -17,6 +17,38 @@ object GatewayPinger {
     /** IPv6 header 40 + ICMPv6 echo 8. */
     private const val V6_OVERHEAD = 48
 
+    /**
+     * Several ICMP echoes via the system ping binary. Stops within [deadlineMs]
+     * so a missing reply cannot stall the speedtest (the raw ICMP socket timed out
+     * 22 times and froze the needle for ~19 s).
+     */
+    fun rttSamples(host: String, count: Int = 6, deadlineMs: Long = 3_000L): List<Long> {
+        if (host.isBlank()) return emptyList()
+        val isV6 = host.contains(':')
+        val bins = if (isV6) listOf("ping6", "ping") else listOf("ping")
+        val n = count.coerceIn(3, 8).toString()
+        for (bin in bins) {
+            val cmds = listOf(
+                arrayOf(bin, "-c", n, "-i", "0.2", "-W", "1", "-n", host),
+                arrayOf(bin, "-c", n, "-W", "1", "-n", host),
+            )
+            for (cmd in cmds) {
+                try {
+                    val proc = ProcessBuilder(*cmd).redirectErrorStream(true).start()
+                    if (!proc.waitFor(deadlineMs, TimeUnit.MILLISECONDS)) proc.destroyForcibly()
+                    val out = proc.inputStream.bufferedReader().use { it.readText() }
+                    val samples = TIME_RE.findAll(out).mapNotNull {
+                        it.groupValues[1].toDoubleOrNull()?.roundToLong()?.coerceAtLeast(1L)
+                    }.toList()
+                    if (samples.isNotEmpty()) return samples
+                } catch (_: Exception) {
+                    // next command
+                }
+            }
+        }
+        return emptyList()
+    }
+
     fun pingOnce(host: String, timeoutMs: Int = 800, payloadBytes: Int? = null): Double? {
         if (host.isBlank() || host == "—") return null
         val isV6 = host.contains(':')

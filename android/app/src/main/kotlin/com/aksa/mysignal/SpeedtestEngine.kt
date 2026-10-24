@@ -4,47 +4,50 @@ import android.net.TrafficStats
 import android.os.Process
 import android.util.Log
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.coroutines.yield
-import java.io.BufferedInputStream
 import java.io.InputStream
-import java.io.OutputStream
+import java.net.InetAddress
+import java.net.InetSocketAddress
+import java.net.Socket
 import java.net.HttpURLConnection
 import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicLong
-import javax.net.ssl.SSLSocket
 import kotlin.coroutines.coroutineContext
 
 /**
  * HTTP speedtest against Azure OoklaServer-like endpoints.
  *
- * REA of Ookla `libandroidsharedsuite` (ThreadedStage + ConnectionScaling): multi
- * TCP connections that stay open and scale. Download uses staggered persistent
- * GET streams; upload uses long fixed-length POSTs. On stop we disconnect live
- * sockets so blocked write/read cannot hang the suite (Ookla ends upload cleanly).
- * Latency uses one keep-alive TLS socket and times TTFB only.
+ * REA of Ookla `libandroidsharedsuite` (ThreadedStage + ConnectionScaling): each stage
+ * starts at 4 sockets and adds [ConnectionScaler.factor] while a socket stays busy,
+ * up to [ConnectionScaler.maxConnections]. [BandwidthStableStop] ends the stage once
+ * the plateau holds. On stop we disconnect live sockets so a blocked write cannot
+ * hang the suite.
+ * Unloaded latency is an ICMP echo to the server address, same packet RTT as
+ * traceroute. The shown ping is the lowest sample. A TCP handshake to port 443
+ * is slower: the load balancer answers it after the edge ICMP reply.
  */
 class SpeedtestEngine(
     private val target: SpeedtestTarget,
     private val io: CoroutineDispatcher = Dispatchers.IO,
     private val pingCount: Int = 16,
     private val pingWarmup: Int = 6,
-    /** Drop cold measured samples before idle/jitter (TLS settle). */
+    /** Drop the first measured handshakes before idle/jitter. */
     private val pingSettleDrop: Int = 4,
-    /**
-     * Classic Ookla docs: up to 4 HTTP threads; native ConnectionScaling goes higher.
-     * 8/4 sits between — 12 streams were overshooting Ookla UI results on the same radio.
-     */
-    private val streams: Int = 8,
-    private val uploadStreams: Int = 4,
+    /** Ookla ConnectionScaling: start at 4, add 2 while each socket stays busy, cap 16. */
+    private val connectionScaler: ConnectionScaler = ConnectionScaler(),
     /** Open this many sockets first, then add the rest in waves. */
     private val streamStartBatch: Int = 4,
     private val streamStaggerMs: Long = 250L,
@@ -132,7 +135,7 @@ class SpeedtestEngine(
         Log.i(
             TAG,
             "ping ${target.family.label} ${target.serverIp} " +
-                "idle=${pingMs}ms jitter=${jitterMs}ms samples=$pingSamples",
+                "idle=${pingMs}ms jitter=${jitterMs}ms n=${pingSamples.size} samples=$pingSamples",
         )
         onProgress(progress(Phase.DOWNLOAD, pingMs = pingMs, jitterMs = jitterMs))
         val download = throughput(root, download = true, onMbps = { mbps ->
@@ -190,108 +193,41 @@ class SpeedtestEngine(
     }
 
     /**
-     * One TLS socket, keep-alive GET /hello, time TTFB only (body drain outside the
-     * stopwatch). Avoids HttpURLConnection pool / header parsing overhead between samples.
+     * Unloaded latency. ICMP echo to [SpeedtestTarget.serverIp], then the lowest sample.
+     * On this Wi-Fi the same address is ~5 ms by traceroute and ~20 ms by TCP:443.
      */
     private suspend fun ping(): List<Long> {
-        val path = helloPath()
-        val request = buildHelloRequest(path)
-        val socket: SSLSocket = SpeedtestHttps.openSocket(target)
+        if (!coroutineContext.isActive) return emptyList()
+        val icmp = GatewayPinger.rttSamples(target.serverIp)
+        if (icmp.size >= 3) {
+            Log.i(TAG, "ping mode=icmp n=${icmp.size}")
+            return icmp
+        }
+        Log.i(TAG, "ping mode=tcp icmp=${icmp.size}")
+        val remote = InetSocketAddress(InetAddress.getByName(target.serverIp), 443)
+        repeat(pingWarmup) {
+            if (!coroutineContext.isActive) return emptyList()
+            tcpRtt(remote)
+            yield()
+        }
+        val raw = ArrayList<Long>(pingCount)
+        repeat(pingCount) {
+            if (!coroutineContext.isActive) return settlePingSamples(raw)
+            raw += tcpRtt(remote)
+            yield()
+        }
+        return settlePingSamples(raw)
+    }
+
+    private fun tcpRtt(remote: InetSocketAddress): Long {
+        val socket = Socket()
+        socket.tcpNoDelay = true
+        val started = System.nanoTime()
         try {
-            val out = socket.outputStream
-            val inp = BufferedInputStream(socket.inputStream, 8 * 1024)
-            repeat(pingWarmup) {
-                if (!coroutineContext.isActive) return emptyList()
-                helloExchange(out, inp, request)
-                yield()
-            }
-            val raw = ArrayList<Long>(pingCount)
-            repeat(pingCount) {
-                if (!coroutineContext.isActive) return settlePingSamples(raw)
-                val started = System.nanoTime()
-                val contentLength = writeAndReadHeaders(out, inp, request)
-                val ms = ((System.nanoTime() - started) / 1_000_000L).coerceAtLeast(0L)
-                drainExact(inp, contentLength)
-                raw += ms
-                yield()
-            }
-            return settlePingSamples(raw)
+            socket.connect(remote, 3_000)
+            return ((System.nanoTime() - started) / 1_000_000L).coerceAtLeast(1L)
         } finally {
             runCatching { socket.close() }
-        }
-    }
-
-    private fun helloPath(): String {
-        val prefix = target.pathPrefix.trimEnd('/')
-        val base = if (prefix.isEmpty() || prefix == "/") "" else prefix
-        return "$base/hello"
-    }
-
-    private fun buildHelloRequest(path: String): ByteArray {
-        val p = if (path.startsWith("/")) path else "/$path"
-        return (
-            "GET $p HTTP/1.1\r\n" +
-                "Host: ${target.hostname}\r\n" +
-                "Connection: keep-alive\r\n" +
-                "Accept-Encoding: identity\r\n" +
-                "Cache-Control: no-cache\r\n" +
-                "\r\n"
-            ).toByteArray(Charsets.US_ASCII)
-    }
-
-    private fun helloExchange(out: OutputStream, inp: InputStream, request: ByteArray) {
-        val len = writeAndReadHeaders(out, inp, request)
-        drainExact(inp, len)
-    }
-
-    /** Write request, read status+headers; return Content-Length (0 if absent). */
-    private fun writeAndReadHeaders(out: OutputStream, inp: InputStream, request: ByteArray): Int {
-        out.write(request)
-        out.flush()
-        val headers = readHttpHeaders(inp)
-        val status = headers.lineSequence().firstOrNull().orEmpty()
-        if (!status.contains(" 200")) {
-            throw IllegalStateException("ping HTTP $status")
-        }
-        val length = headers.lineSequence()
-            .map { it.trim() }
-            .firstOrNull { it.startsWith("Content-Length:", ignoreCase = true) }
-            ?.substringAfter(':')
-            ?.trim()
-            ?.toIntOrNull()
-            ?: 0
-        return length.coerceAtLeast(0)
-    }
-
-    private fun readHttpHeaders(inp: InputStream): String {
-        val buf = ByteArray(1)
-        val out = StringBuilder(256)
-        var state = 0 // count trailing \r\n\r\n
-        while (state < 4) {
-            val n = inp.read(buf)
-            if (n <= 0) throw IllegalStateException("ping EOF in headers")
-            val c = buf[0].toInt() and 0xff
-            out.append(c.toChar())
-            state = when {
-                state == 0 && c == '\r'.code -> 1
-                state == 1 && c == '\n'.code -> 2
-                state == 2 && c == '\r'.code -> 3
-                state == 3 && c == '\n'.code -> 4
-                c == '\r'.code -> 1
-                else -> 0
-            }
-        }
-        return out.toString()
-    }
-
-    private fun drainExact(inp: InputStream, length: Int) {
-        if (length <= 0) return
-        var left = length
-        val buf = ByteArray(minOf(4096, length))
-        while (left > 0) {
-            val n = inp.read(buf, 0, minOf(buf.size, left))
-            if (n <= 0) break
-            left -= n
         }
     }
 
@@ -305,13 +241,18 @@ class SpeedtestEngine(
         root: String,
         download: Boolean,
         onMbps: (Double) -> Unit,
-    ): Double = coroutineScope {
+    ): Double {
         val bytes = AtomicLong(0)
         val stop = AtomicBoolean(false)
         val liveConnections = ConcurrentLinkedQueue<HttpURLConnection>()
         val wallStarted = System.nanoTime()
         val scoreSamples = CopyOnWriteArrayList<Double>()
-        val workerCount = if (download) streams else uploadStreams
+        val scaler = connectionScaler
+        val stable = BandwidthStableStop()
+        val opened = AtomicInteger(0)
+        // Workers sit outside the ticker scope. A blocked socket must not hold the stage open.
+        val pool = CoroutineScope(io + SupervisorJob())
+        val workerCount = scaler.initial
         // Download: count InputStream reads (TrafficStats uid rx updates in rare
         // jumps → peak200=2000+ Mbps and a thrashing needle, see 2.5.64 logs).
         // Upload: prefer uid tx (write() into the SSL buffer overstates goodput).
@@ -342,28 +283,45 @@ class SpeedtestEngine(
             stop.set(true)
             while (true) {
                 val connection = liveConnections.poll() ?: break
-                runCatching { connection.disconnect() }
+                // disconnect() can block behind a stuck write. Do not wait for it.
+                Thread {
+                    runCatching { connection.disconnect() }
+                }.apply {
+                    isDaemon = true
+                    start()
+                }
             }
         }
-        val workers = List(workerCount) { index ->
-            async(io) {
-                val wave = index / streamStartBatch
-                if (wave > 0) delay(wave * streamStaggerMs)
-                if (stop.get() || !coroutineContext.isActive) return@async
-                try {
-                    if (download) {
-                        downloadStream(root, bytes, stop, liveConnections)
-                    } else {
-                        uploadStream(root, bytes, stop, liveConnections)
-                    }
-                } catch (error: Exception) {
-                    // Abort/disconnect on stop is expected; never fail the round.
-                    if (!stop.get()) {
-                        Log.w(TAG, "${if (download) "dl" else "ul"} worker: ${error.message}")
+        fun spawn(targetCount: Int) {
+            val from = opened.get()
+            if (targetCount <= from) return
+            opened.set(targetCount)
+            for (index in from until targetCount) {
+                pool.launch {
+                    val wave = index / streamStartBatch
+                    if (wave > 0) delay(wave * streamStaggerMs)
+                    while (!stop.get() && isActive) {
+                        try {
+                            if (download) {
+                                downloadStream(root, bytes, stop, liveConnections)
+                            } else {
+                                uploadStream(root, bytes, stop, liveConnections)
+                            }
+                        } catch (error: Exception) {
+                            if (!stop.get()) {
+                                Log.w(TAG, "${if (download) "dl" else "ul"} worker: ${error.message}")
+                                delay(200)
+                            }
+                        }
                     }
                 }
             }
         }
+        spawn(workerCount)
+        var measureBytes = 0L
+        var lastGrowElapsed = 0L
+        try {
+        return coroutineScope {
         val ticker = async(io) {
             var measuring = false
             var measureStarted = 0L
@@ -397,6 +355,7 @@ class SpeedtestEngine(
                         }
                         measuring = true
                         measureStarted = System.nanoTime()
+                        measureBytes = total
                         lastBytes = total
                         lastElapsed = 0L
                         scoreMarkBytes = total
@@ -427,7 +386,25 @@ class SpeedtestEngine(
                         } else if (elapsed - scoreMarkElapsed >= tickScoreInterval) {
                             val scoreMs = (elapsed - scoreMarkElapsed).coerceAtLeast(1L)
                             val scoreDelta = (total - scoreMarkBytes).coerceAtLeast(0L)
-                            scoreSamples += SpeedtestMath.mbps(scoreDelta, scoreMs)
+                            val sampleMbps = SpeedtestMath.mbps(scoreDelta, scoreMs)
+                            scoreSamples += sampleMbps
+                            stable.record(sampleMbps)
+                            // Ookla opens another socket while each one is still busy
+                            // (~6 Mbps). A flat reading on a full socket is not "done".
+                            val perConnection = sampleMbps / opened.get().coerceAtLeast(1)
+                            val busy = perConnection >= 6.0
+                            if (
+                                elapsed - lastGrowElapsed >= 800L &&
+                                opened.get() < scaler.maxConnections &&
+                                sampleMbps > 1.0 &&
+                                (busy || !stable.isStable())
+                            ) {
+                                val next = scaler.grow(opened.get())
+                                if (next > opened.get()) {
+                                    spawn(next)
+                                    lastGrowElapsed = elapsed
+                                }
+                            }
                             scoreMarkBytes = total
                             scoreMarkElapsed = elapsed
                         }
@@ -458,7 +435,11 @@ class SpeedtestEngine(
                     val pastMin = elapsed >= minDurationMs
                     val pastMax = elapsed >= maxDurationMs
                     val enough = scoreSamples.size >= minScoreSamples
-                    if (pastMax || (pastMin && enough)) {
+                    val stalled = elapsed >= 2_000L && total - measureBytes < 8_192L
+                    val perConnection = if (opened.get() == 0) 0.0 else live / opened.get()
+                    val socketsFull = perConnection < 6.0 || opened.get() >= scaler.maxConnections
+                    val plateau = elapsed >= 4_000L && stable.isStable() && socketsFull
+                    if (pastMax || stalled || plateau || (pastMin && enough)) {
                         abortConnections()
                     }
                 }
@@ -477,7 +458,7 @@ class SpeedtestEngine(
                 Log.i(
                     TAG,
                     "${if (download) "dl" else "ul"} ${target.family.label} warmup=${phaseWarmup}ms " +
-                        "streams=$workerCount meter=$meter " +
+                        "streams=${opened.get()} meter=$meter " +
                         "peak200=${"%.1f".format(peakWindow)} peakLive=${"%.1f".format(peakLive)} " +
                         "p50=${"%.1f".format(p50)} score=${"%.1f".format(scored)} " +
                         "appBytes=${bytes.get()} n=${list.size}",
@@ -485,16 +466,12 @@ class SpeedtestEngine(
             }
         }
         try {
-            // Await ticker first (sets stop + disconnect). Never wait on blocked writers
-            // the way 2.5.62 did — that left ~15s dead air after upload vs Ookla.
+            // Await the ticker only. Socket threads live on [pool] and must not
+            // keep the stage open after a radio drop (2.5.79 cell hang).
             runCatching { ticker.await() }
         } finally {
             abortConnections()
         }
-        withTimeoutOrNull(400L) {
-            workers.forEach { runCatching { it.await() } }
-        }
-        workers.forEach { it.cancel() }
         val list = scoreSamples.toList()
         val scored = if (download) {
             SpeedtestMath.stableMbps(list)
@@ -502,13 +479,14 @@ class SpeedtestEngine(
             SpeedtestMath.ooklaUploadMbps(list)
         }
         if (scored > 0.0) scored
-        else {
-            val elapsed = if (scoreSamples.isEmpty()) {
-                ((System.nanoTime() - wallStarted) / 1_000_000L).coerceAtLeast(1L)
-            } else {
-                minDurationMs
-            }
-            SpeedtestMath.mbps(transferred(), elapsed)
+        else SpeedtestMath.mbps(
+            transferred(),
+            ((System.nanoTime() - wallStarted) / 1_000_000L).coerceAtLeast(1L),
+        )
+        }
+        } finally {
+            abortConnections()
+            pool.cancel()
         }
     }
 

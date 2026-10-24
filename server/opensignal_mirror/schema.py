@@ -131,6 +131,36 @@ def _secret(value: object, kind: str) -> dict:
     return {"value": raw, "status": "available"}
 
 
+def _plmns(value: object) -> list[str]:
+    if value is None:
+        return []
+    if not isinstance(value, list) or len(value) > 8:
+        raise ValueError("invalid plmns")
+    plmns = []
+    for item in value:
+        text = _plain(item, 6)
+        if not text:
+            continue
+        if not text.isdigit() or not 5 <= len(text) <= 6:
+            raise ValueError("invalid plmn")
+        plmns.append(text)
+    return plmns
+
+
+def _cqi_report(value: object) -> list[int]:
+    if value is None:
+        return []
+    if not isinstance(value, list) or len(value) > 8:
+        raise ValueError("invalid cqi report")
+    report = []
+    for item in value:
+        number = _opt_int(item, 0, 15)
+        if number is None:
+            raise ValueError("invalid cqi report")
+        report.append(number)
+    return report
+
+
 def _bands(value: object) -> list[int]:
     if not isinstance(value, list) or len(value) > MAX_BANDS:
         raise ValueError("invalid bands")
@@ -176,7 +206,19 @@ CELL_FIELDS = frozenset(
     }
 )
 # Added later; old APKs simply omit them.
-CELL_OPTIONAL = frozenset({"sub_id", "sim_slot", "carrier", "channel"})
+CELL_OPTIONAL = frozenset({
+    "sub_id",
+    "sim_slot",
+    "carrier",
+    "channel",
+    "timing_advance_micros",
+    "cqi_table_index",
+    "csi_cqi_table_index",
+    "csi_cqi_report",
+    "additional_plmns",
+    "operator_alpha_long",
+    "operator_alpha_short",
+})
 SIGNAL_FIELDS = frozenset({"rat", "rsrp", "rsrq", "sinr", "level", "dbm"})
 
 
@@ -189,7 +231,7 @@ def _signal(value: object) -> dict | None:
     return {
         "rat": item["rat"],
         "rsrp": _opt_int(item["rsrp"], -200, 0),
-        "rsrq": _opt_int(item["rsrq"], -40, 20),
+        "rsrq": _opt_int(item["rsrq"], -43, 20),
         "sinr": _opt_int(item["sinr"], -30, 50),
         "level": _opt_int(item["level"], 0, 4),
         "dbm": _opt_int(item["dbm"], -200, 0),
@@ -223,17 +265,24 @@ def _cell(value: object) -> dict:
         "bands": _bands(item["bands"]),
         "bandwidth_khz": _opt_int(item["bandwidth_khz"], 0, 400000),
         "rsrp": _opt_int(item["rsrp"], -200, 0),
-        "rsrq": _opt_int(item["rsrq"], -40, 10),
+        "rsrq": _opt_int(item["rsrq"], -43, 20),
         "sinr": _opt_int(item["sinr"], -30, 50),
         "rssi": _opt_int(item["rssi"], -200, 0),
         "cqi": _opt_int(item["cqi"], 0, 15),
+        "cqi_table_index": _opt_int(item.get("cqi_table_index"), 1, 6),
         "timing_advance": _opt_int(item["timing_advance"], 0, 4096),
         "ss_rsrp": _opt_int(item["ss_rsrp"], -200, 0),
-        "ss_rsrq": _opt_int(item["ss_rsrq"], -40, 20),
+        "ss_rsrq": _opt_int(item["ss_rsrq"], -43, 20),
+        "timing_advance_micros": _opt_int(item.get("timing_advance_micros"), 0, 2_000_000),
         "ss_sinr": _opt_int(item["ss_sinr"], -30, 50),
         "csi_rsrp": _opt_int(item["csi_rsrp"], -200, 0),
         "csi_rsrq": _opt_int(item["csi_rsrq"], -40, 20),
         "csi_sinr": _opt_int(item["csi_sinr"], -30, 50),
+        "csi_cqi_table_index": _opt_int(item.get("csi_cqi_table_index"), 1, 3),
+        "csi_cqi_report": _cqi_report(item.get("csi_cqi_report")),
+        "additional_plmns": _plmns(item.get("additional_plmns")),
+        "operator_alpha_long": _plain(item.get("operator_alpha_long"), 64),
+        "operator_alpha_short": _plain(item.get("operator_alpha_short"), 64),
         "dbm": _opt_int(item["dbm"], -200, 0),
         "asu": _opt_int(item["asu"], 0, 200),
         "level": _opt_int(item["level"], 0, 4),

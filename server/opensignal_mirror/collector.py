@@ -326,11 +326,11 @@ def _validate_nr_cell(item: object) -> dict:
         ("nrarfcn", 0, 3_279_165),
         ("bandwidth_khz", 0, 400_000),
         ("rsrp", -200, 0),
-        ("rsrq", -40, 20),
+        ("rsrq", -43, 20),
         ("sinr", -30, 50),
         ("rssi", -200, 0),
         ("ss_rsrp", -200, 0),
-        ("ss_rsrq", -40, 20),
+        ("ss_rsrq", -43, 20),
         ("ss_sinr", -30, 50),
     ):
         number = _opt_cell_int(item.get(key), low, high)

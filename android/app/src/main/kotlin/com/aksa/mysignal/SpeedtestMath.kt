@@ -16,18 +16,10 @@ object SpeedtestMath {
         }
     }
 
-    /**
-     * Idle latency: drop cellular spikes (>1.4× median), then mean of the best 3
-     * (or all remaining if fewer). Matches Ookla-style “best idle” feel on HTTPS.
-     */
+    /** Ookla reports the lowest unloaded ping, not the mean. */
     fun idlePingMs(samples: List<Long>): Long {
         if (samples.isEmpty()) return 0L
-        val sorted = samples.sorted()
-        val med = medianMs(sorted).coerceAtLeast(1L)
-        val tight = sorted.filter { it <= (med * 1.4).roundToLong() + 15L }
-        val pool = if (tight.size >= 3) tight else sorted
-        val n = 3.coerceAtMost(pool.size)
-        return (pool.take(n).sum().toDouble() / n).roundToLong()
+        return samples.min()
     }
 
     fun jitterMs(samples: List<Long>): Long {
