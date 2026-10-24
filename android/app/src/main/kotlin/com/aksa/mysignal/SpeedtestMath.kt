@@ -16,6 +16,20 @@ object SpeedtestMath {
         }
     }
 
+    /**
+     * Idle latency: drop cellular spikes (>1.4× median), then mean of the best 3
+     * (or all remaining if fewer). Matches Ookla-style “best idle” feel on HTTPS.
+     */
+    fun idlePingMs(samples: List<Long>): Long {
+        if (samples.isEmpty()) return 0L
+        val sorted = samples.sorted()
+        val med = medianMs(sorted).coerceAtLeast(1L)
+        val tight = sorted.filter { it <= (med * 1.4).roundToLong() + 15L }
+        val pool = if (tight.size >= 3) tight else sorted
+        val n = 3.coerceAtMost(pool.size)
+        return (pool.take(n).sum().toDouble() / n).roundToLong()
+    }
+
     fun jitterMs(samples: List<Long>): Long {
         if (samples.size < 2) return 0L
         var total = 0.0
@@ -31,41 +45,59 @@ object SpeedtestMath {
     }
 
     /**
-     * Ookla-style trimmed mean over post-ramp window samples.
-     * Drops lowest/highest 10% (at least one each side when n ≥ 10); falls back to median when n < 10.
+     * Classic Ookla download trim: drop lowest 30% and highest 10%, average the rest.
+     * Falls back to median when n < 10.
      */
-    fun trimmedMeanMbps(samples: List<Double>): Double {
+    fun trimmedMeanMbps(
+        samples: List<Double>,
+        lowFrac: Double = 0.30,
+        highFrac: Double = 0.10,
+    ): Double {
         if (samples.isEmpty()) return 0.0
         val sorted = samples.sorted()
         if (sorted.size < 10) {
             return medianDouble(sorted)
         }
-        val trim = (sorted.size * 0.10).toInt().coerceAtLeast(1)
-        val kept = sorted.subList(trim, sorted.size - trim)
+        val low = (sorted.size * lowFrac).toInt().coerceAtLeast(1)
+        val high = (sorted.size * highFrac).toInt().coerceAtLeast(1)
+        val end = sorted.size - high
+        if (end <= low) return medianDouble(sorted)
+        val kept = sorted.subList(low, end)
         if (kept.isEmpty()) return sorted[sorted.size / 2]
         return kept.sum() / kept.size
     }
 
     /**
-     * Stable goodput: drop idle/gap samples below 20% of median, then 20% trimmed mean.
-     * Aimed at plateau scores (Ookla-like) instead of HTTP chunk-gap drag.
+     * Download score: ignore near-idle gaps, then Ookla 30%/10% trim.
      */
-    fun stableMbps(samples: List<Double>): Double {
+    fun stableMbps(
+        samples: List<Double>,
+        lowFrac: Double = 0.30,
+        highFrac: Double = 0.10,
+    ): Double {
         if (samples.isEmpty()) return 0.0
-        val sorted = samples.sorted()
+        val positive = samples.filter { it > 0.0 }
+        val base = if (positive.size >= 5) positive else samples
+        val sorted = base.sorted()
         val median = medianDouble(sorted)
         if (median <= 0.0) return 0.0
         val floor = median * 0.20
         val active = sorted.filter { it >= floor }
-        val pool = if (active.isEmpty()) sorted else active
-        if (pool.size < 5) return medianDouble(pool)
-        if (pool.size < 10) return medianDouble(pool)
-        val trim = (pool.size * 0.20).toInt().coerceAtLeast(1)
-        val end = pool.size - trim
-        if (end <= trim) return medianDouble(pool)
-        val kept = pool.subList(trim, end)
-        if (kept.isEmpty()) return medianDouble(pool)
-        return kept.sum() / kept.size
+        val pool = if (active.size >= 5) active else sorted
+        return trimmedMeanMbps(pool, lowFrac = lowFrac, highFrac = highFrac)
+    }
+
+    /**
+     * Ookla upload: sort chunk speeds, average the fastest half
+     * (https://www.speedtest.net/about/knowledge/faq — upload methodology).
+     */
+    fun ooklaUploadMbps(samples: List<Double>): Double {
+        val positive = samples.filter { it > 0.0 }.sorted()
+        if (positive.isEmpty()) return 0.0
+        if (positive.size < 4) return medianDouble(positive)
+        val start = positive.size / 2
+        val fastest = positive.subList(start, positive.size)
+        return fastest.sum() / fastest.size
     }
 
     fun medianDouble(sorted: List<Double>): Double {

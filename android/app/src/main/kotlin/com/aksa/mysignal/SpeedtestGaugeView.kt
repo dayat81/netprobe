@@ -52,7 +52,16 @@ class SpeedtestGaugeView @JvmOverloads constructor(
     private var phase = ""
 
     fun setReading(speedMbps: Double, phaseLabel: String) {
-        mbps = speedMbps.toFloat().coerceAtLeast(0f)
+        val next = speedMbps.toFloat().coerceAtLeast(0f)
+        val phaseChanged = !phase.equals(phaseLabel, ignoreCase = true)
+        // New phase (esp. DOWNLOAD→UPLOAD): snap to reading so the needle returns to 0
+        // before upload climbs. Same-phase upload still eases to avoid jitter.
+        mbps = when {
+            phaseChanged -> next
+            phaseLabel.contains("UPLOAD", ignoreCase = true) && mbps > 0f ->
+                mbps * 0.82f + next * 0.18f
+            else -> next
+        }
         phase = phaseLabel
         invalidate()
     }

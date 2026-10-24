@@ -155,7 +155,7 @@ object SpeedtestHttps {
         val connection = URL(absoluteUrl).openConnection() as HttpsURLConnection
         connection.requestMethod = method
         connection.connectTimeout = 12_000
-        connection.readTimeout = 30_000
+        connection.readTimeout = 60_000
         connection.useCaches = false
         connection.instanceFollowRedirects = true
         connection.setRequestProperty("Host", target.hostname)
@@ -168,6 +168,16 @@ object SpeedtestHttps {
             HttpsURLConnection.getDefaultHostnameVerifier().verify(expected, session)
         }
         return connection
+    }
+
+    /** One TLS socket to the forced peer IP (SNI = hostname) for keep-alive HTTP ping. */
+    fun openSocket(target: SpeedtestTarget, port: Int = 443): SSLSocket {
+        val addr = InetAddress.getByName(target.serverIp)
+        val socket = SniSslSocketFactory(target.hostname).createSocket(addr, port) as SSLSocket
+        socket.tcpNoDelay = true
+        socket.soTimeout = 12_000
+        socket.startHandshake()
+        return socket
     }
 
     private class SniSslSocketFactory(

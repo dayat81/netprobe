@@ -67,6 +67,15 @@ class SpeedtestMathTest {
     }
 
     @Test
+    fun idlePingUsesBestThreeAfterSpikeFilter() {
+        // Production-like pool with cellular spikes 168/184/188.
+        val settled = listOf(164L, 129L, 124L, 188L, 120L, 168L, 115L, 129L, 115L, 123L, 184L, 114L)
+        // after spike filter, best 3 ≈ 114,115,115 → 115
+        assertEquals(115L, SpeedtestMath.idlePingMs(settled))
+        assertEquals(0L, SpeedtestMath.idlePingMs(emptyList()))
+    }
+
+    @Test
     fun jitterIsMeanAbsDelta() {
         assertEquals(8L, SpeedtestMath.jitterMs(listOf(10, 20, 15)))
         assertEquals(0L, SpeedtestMath.jitterMs(listOf(8)))
@@ -81,8 +90,8 @@ class SpeedtestMathTest {
     @Test
     fun trimmedMeanDropsOutliersWhenEnoughSamples() {
         val samples = (1..10).map { it * 10.0 } // 10..100
-        // trim 1 each side → 20..90, mean = 55
-        assertEquals(55.0, SpeedtestMath.trimmedMeanMbps(samples), 0.0001)
+        // Ookla: drop lowest 30% (3) + highest 10% (1) → 40..90, mean = 65
+        assertEquals(65.0, SpeedtestMath.trimmedMeanMbps(samples), 0.0001)
     }
 
     @Test
@@ -100,6 +109,24 @@ class SpeedtestMathTest {
         )
         val score = SpeedtestMath.stableMbps(samples)
         assertEquals(42.0, score, 2.5)
+    }
+
+    @Test
+    fun stableMbpsSurvivesMajorityZeroUploadGaps() {
+        // Production 2.5.60: p50=0 when >half of 500ms windows are idle stalls.
+        val samples = listOf(
+            0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+            80.0, 95.0, 110.0, 100.0, 88.0, 105.0, 92.0, 98.0,
+        )
+        val score = SpeedtestMath.stableMbps(samples, lowFrac = 0.30)
+        org.junit.Assert.assertTrue("score=$score", score in 85.0..110.0)
+    }
+
+    @Test
+    fun ooklaUploadAveragesFastestHalf() {
+        val samples = listOf(10.0, 20.0, 30.0, 40.0, 50.0, 60.0, 70.0, 80.0)
+        // Fastest half: 50..80 → mean 65
+        assertEquals(65.0, SpeedtestMath.ooklaUploadMbps(samples), 0.0001)
     }
 
     @Test
