@@ -13,7 +13,7 @@
         <item name="android:letterSpacing">0.01</item>
     </style>
 
-    <style name="Theme.MySignal" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+    <style name="Theme.Magnon" parent="Theme.MaterialComponents.DayNight.NoActionBar">
         <item name="colorPrimary">@color/accent</item>
         <item name="android:statusBarColor">@color/bg</item>
         <item name="android:navigationBarColor">@color/bg</item>

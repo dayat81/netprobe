@@ -4,15 +4,15 @@ plugins {
 }
 
 android {
-    namespace = "com.aksa.mysignal"
+    namespace = "com.aksa.magnon"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.aksa.mysignal"
+        applicationId = "com.aksa.magnon"
         minSdk = 30
         targetSdk = 35
-        versionCode = 116
-        versionName = "2.5.90"
+        versionCode = 117
+        versionName = "2.6.0"
 
         val collectorHost = (project.findProperty("mysignal.collectorHost") as String?)
             ?.trim()
@@ -46,6 +46,31 @@ android {
         buildConfigField("boolean", "MEASURE_ENABLED", measureEnabled.toString())
         buildConfigField("int", "SPEEDTEST_PORT", "443")
         buildConfigField("String", "SPEEDTEST_PATH", "\"/speedtest/\"")
+        val googleClientId = (project.findProperty("magnon.googleClientId") as String?)
+            ?.trim()
+            ?.ifEmpty { null }
+            ?: ""
+        buildConfigField("String", "GOOGLE_CLIENT_ID", "\"${googleClientId.replace("\"", "")}\"")
+        buildConfigField("String", "FLAVOR_LEVEL", "\"lite\"")
+        buildConfigField("boolean", "IS_PREMIUM", "false")
+    }
+
+    flavorDimensions += "level"
+    productFlavors {
+        create("lite") {
+            dimension = "level"
+            applicationId = "com.aksa.magnon.lite"
+            resValue("string", "app_name", "Magnon Lite")
+            buildConfigField("String", "FLAVOR_LEVEL", "\"lite\"")
+            buildConfigField("boolean", "IS_PREMIUM", "false")
+        }
+        create("premium") {
+            dimension = "level"
+            applicationId = "com.aksa.magnon.premium"
+            resValue("string", "app_name", "Magnon Premium")
+            buildConfigField("String", "FLAVOR_LEVEL", "\"premium\"")
+            buildConfigField("boolean", "IS_PREMIUM", "true")
+        }
     }
 
     buildTypes {
@@ -81,9 +106,10 @@ android {
 
     applicationVariants.configureEach {
         val vName = versionName
+        val flavor = flavorName
         outputs.configureEach {
             val outputImpl = this as com.android.build.gradle.internal.api.BaseVariantOutputImpl
-            outputImpl.outputFileName = "mysignal-$vName.apk"
+            outputImpl.outputFileName = "magnon-$flavor-$vName.apk"
         }
     }
 }
@@ -100,6 +126,9 @@ dependencies {
     implementation("org.lsposed.hiddenapibypass:hiddenapibypass:6.1")
     implementation("androidx.media3:media3-exoplayer:1.5.1")
     implementation("androidx.media3:media3-ui:1.5.1")
+    implementation("androidx.credentials:credentials:1.3.0")
+    implementation("androidx.credentials:credentials-play-services-auth:1.3.0")
+    implementation("com.google.android.libraries.identity.googleid:googleid:1.1.1")
 
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.json:json:20240303")

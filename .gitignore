@@ -5,6 +5,9 @@
 keystore.properties
 *.jks
 *.keystore
+tmp/magnon-hmac.key
+tmp/magnon-release.pass
+tmp/magnon-oauth-web.json
 /.idea/
 .DS_Store
 /build/

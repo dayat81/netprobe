@@ -27,7 +27,7 @@
         android:label="@string/app_name"
         android:supportsRtl="true"
         android:usesCleartextTraffic="true"
-        android:theme="@style/Theme.MySignal">
+        android:theme="@style/Theme.Magnon">
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -54,7 +54,7 @@
             android:name=".NrWidgetPinnedReceiver"
             android:exported="false">
             <intent-filter>
-                <action android:name="com.aksa.mysignal.action.WIDGET_PINNED" />
+                <action android:name="com.aksa.magnon.action.WIDGET_PINNED" />
             </intent-filter>
         </receiver>
 

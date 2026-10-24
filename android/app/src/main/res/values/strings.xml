@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">netprobe</string>
+    <string name="app_name">Magnon</string>
     <string name="app_subtitle">Live radio · transport through eNB · every 3 s</string>
     <string name="export_json">Export JSON</string>
     <string name="start_sampling">Start sampling</string>
@@ -9,12 +9,12 @@
     <string name="permission_needed">Location + Phone permissions are required for radio sampling.</string>
     <string name="precise_missing">Precise phone state not granted: CA carriers / NR SCG from PhysicalChannelConfig unavailable.</string>
     <string name="grant_permissions">Grant permissions</string>
-    <string name="widget_brand">netprobe 5G</string>
+    <string name="widget_brand">Magnon</string>
     <string name="widget_description">Live 5G path: advertised_only vs data_path</string>
     <string name="widget_placeholder">waiting…</string>
-    <string name="widget_name">netprobe 5G path</string>
+    <string name="widget_name">Magnon</string>
     <string name="add_widget">Add 5G path widget</string>
-    <string name="widget_pin_unsupported">Launcher cannot pin widgets. Long-press home → Widgets → netprobe.</string>
+    <string name="widget_pin_unsupported">Launcher cannot pin widgets. Long-press home → Widgets → Magnon.</string>
     <string name="widget_pin_requested">Confirm Add on the home screen</string>
     <string name="widget_already_added">Widget already on home screen</string>
     <string name="widget_pinned_ok">5G path widget added</string>
@@ -27,6 +27,23 @@
     <string name="tab_speed">Speed</string>
     <string name="tab_video">Video</string>
     <string name="tab_complaint">Post</string>
+    <string name="tab_network">Network</string>
+    <string name="tab_points">Poin</string>
+    <string name="magnon_sign_in">Sign in with Google</string>
+    <string name="magnon_sign_out">Sign out</string>
+    <string name="magnon_sign_in_cancelled">Sign-in dibatalkan.</string>
+    <string name="magnon_no_google_account">Tidak ada akun Google di perangkat ini.</string>
+    <string name="magnon_login_unconfigured">Login belum diatur.</string>
+    <string name="magnon_stay_lite">Akun ini Magnon Lite. Tetap di aplikasi Lite.</string>
+    <string name="magnon_points_line">%1$s · %2$s · poin %3$d</string>
+    <string name="magnon_post_credit">Post %1$d/%2$d hari ini</string>
+    <string name="magnon_test_credit">Tes %1$d/%2$d hari ini</string>
+    <string name="magnon_no_job">Tidak ada tugas ukur.</string>
+    <string name="magnon_job">Ada tugas ukur di area dan jam yang diminta sponsor.</string>
+    <string name="magnon_job_lite">Tugas Lite: Speed dan Video di area dan jam yang diminta sponsor.</string>
+    <string name="magnon_job_premium">Tugas Premium: Speed, Video, Network, dan Radio di area dan jam yang diminta sponsor.</string>
+    <string name="magnon_accept">Terima</string>
+    <string name="magnon_skip">Lewati</string>
     <string name="complaint_preview">Draft for X</string>
     <string name="complaint_share">Share to X</string>
     <string name="complaint_history">History</string>

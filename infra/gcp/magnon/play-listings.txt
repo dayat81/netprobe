@@ -1,0 +1,25 @@
+Play Console (pemilik akun Google menyelesaikan biaya 25 USD dan verifikasi identitas).
+Dua aplikasi terpisah, akun yang sama.
+
+Magnon Lite
+applicationId: com.aksa.magnon.lite
+Tujuan: keluhan dan pujian.
+Tab: Speed, Video, Post, Poin.
+Tidak mengukur radio, traceroute, atau ping gateway.
+Kredit post: 3 per hari.
+
+Magnon Premium
+applicationId: com.aksa.magnon.premium
+Tujuan: pengukuran teknis dan tugas sponsor.
+Tab: Speed, Video, Network, Radio, Poin.
+Tidak ada tab Post. Kontributor premium tetap boleh memakai Magnon Lite dengan Gmail yang sama.
+Kredit tes: 20 per hari.
+
+Jangan publikasikan ke produksi sebelum verifikasi Google selesai.
+Keystore rilis: tmp/magnon-release.jks (tidak masuk git). Alias magnon.
+SHA-1 untuk client OAuth Android, kedua applicationId:
+FB:72:C8:01:8D:2D:77:00:70:D9:98:25:42:29:1E:32:B5:6C:69:D5
+Client OAuth web (audience token Gmail) dibuat di
+https://console.cloud.google.com/auth/clients?project=magnon-app-dayat81
+lalu disimpan sebagai properti gradle magnon.googleClientId dan env MAGNON_GOOGLE_CLIENT_ID.
+Selama client ID kosong, tombol masuk menulis "Login belum diatur."

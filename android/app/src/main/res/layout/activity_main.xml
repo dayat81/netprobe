@@ -135,7 +135,7 @@
                 android:layout_height="0dp"
                 android:layout_weight="1">
 
-                <com.aksa.mysignal.RadioChartView
+                <com.aksa.magnon.RadioChartView
                     android:id="@+id/chart"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent" />
@@ -308,7 +308,7 @@
                 android:layout_height="0dp"
                 android:layout_weight="1">
 
-                <com.aksa.mysignal.SpeedtestGaugeView
+                <com.aksa.magnon.SpeedtestGaugeView
                     android:id="@+id/gauge"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent" />
@@ -337,7 +337,7 @@
                 android:fadeScrollbars="false"
                 android:scrollbars="horizontal">
 
-                <com.aksa.mysignal.TracerouteHopView
+                <com.aksa.magnon.TracerouteHopView
                     android:id="@+id/tracerouteHops"
                     android:layout_width="wrap_content"
                     android:layout_height="match_parent" />
@@ -720,6 +720,129 @@
                 android:orientation="vertical"
                 android:padding="16dp" />
         </ScrollView>
+
+        <ScrollView
+            android:id="@+id/networkPane"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:visibility="gone">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/tab_network"
+                    android:textColor="@color/text_primary"
+                    android:textSize="20sp" />
+
+                <TextView
+                    android:id="@+id/networkGateway"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="—"
+                    android:textColor="@color/text_secondary" />
+
+                <com.aksa.magnon.TracerouteHopView
+                    android:id="@+id/networkHops"
+                    android:layout_width="match_parent"
+                    android:layout_height="160dp"
+                    android:layout_marginTop="8dp" />
+
+                <TextView
+                    android:id="@+id/networkJobs"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:text="@string/magnon_no_job"
+                    android:textColor="@color/text_primary" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/jobAccept"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="@string/magnon_accept"
+                    android:visibility="gone" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/jobSkip"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/magnon_skip"
+                    android:visibility="gone" />
+            </LinearLayout>
+        </ScrollView>
+
+        <ScrollView
+            android:id="@+id/pointsPane"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:visibility="gone">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/pointsSignIn"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/magnon_sign_in" />
+
+                <TextView
+                    android:id="@+id/pointsBalance"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:textColor="@color/text_primary"
+                    android:textSize="18sp" />
+
+                <TextView
+                    android:id="@+id/pointsHistory"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:textColor="@color/text_secondary" />
+
+                <TextView
+                    android:id="@+id/pointsBoard"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:textColor="@color/text_primary" />
+
+                <TextView
+                    android:id="@+id/pointsJobs"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:text="@string/magnon_no_job"
+                    android:textColor="@color/text_primary" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/pointsAccept"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="@string/magnon_accept"
+                    android:visibility="gone" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/pointsSkip"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/magnon_skip"
+                    android:visibility="gone" />
+            </LinearLayout>
+        </ScrollView>
     </FrameLayout>
 
     <LinearLayout
@@ -747,6 +870,15 @@
             android:textColor="@color/text_secondary" />
 
         <com.google.android.material.button.MaterialButton
+            android:id="@+id/tabNetwork"
+            style="@style/TabLabel"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:text="@string/tab_network"
+            android:textColor="@color/text_secondary" />
+
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/tabRadio"
             style="@style/TabLabel"
             android:layout_width="0dp"
@@ -762,6 +894,15 @@
             android:layout_height="match_parent"
             android:layout_weight="1"
             android:text="@string/tab_complaint"
+            android:textColor="@color/text_secondary" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/tabPoints"
+            style="@style/TabLabel"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:text="@string/tab_points"
             android:textColor="@color/text_secondary" />
     </LinearLayout>
 </LinearLayout>

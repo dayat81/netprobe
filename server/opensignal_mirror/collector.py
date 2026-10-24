@@ -1219,6 +1219,11 @@ class Config:
             self.store = Store(self.db_path, self.ttl_seconds, self.max_db_bytes)
         self.limiter = RateLimiter(self.rate_per_minute)
         self.started = int(time.time())
+        self.magnon = None
+        if env.get("MAGNON_PORTAL") == "1":
+            from opensignal_mirror.magnon import build_portal
+
+            self.magnon = build_portal(env)
         clickhouse = env.get("OSM_CLICKHOUSE_URL", "").strip()
         self.telemetry = ClickHouseTelemetry(clickhouse) if clickhouse else None
 
@@ -1433,6 +1438,16 @@ def make_handler(config: Config):
         def do_GET(self) -> None:  # noqa: N802
             parsed_url = urlsplit(self.path)
             path = parsed_url.path
+            if config.magnon is not None and path == "/":
+                from opensignal_mirror.magnon import home_html
+
+                self._send_bytes(200, home_html(), "text/html; charset=utf-8")
+                return
+            if config.magnon is not None and (
+                path == "/magnon" or path.startswith("/api/magnon") or path.startswith("/v1/magnon")
+            ):
+                self._magnon("GET")
+                return
             if path in ("/", "/dashboard"):
                 if self._read_allowed(page=True):
                     self._send_bytes(200, dashboard_html(), "text/html; charset=utf-8")
@@ -1480,6 +1495,11 @@ def make_handler(config: Config):
 
         def do_POST(self) -> None:  # noqa: N802
             path = urlsplit(self.path).path
+            if config.magnon is not None and (
+                path == "/v1/auth/google" or path.startswith("/v1/magnon") or path.startswith("/api/magnon")
+            ):
+                self._magnon("POST")
+                return
             if path == LOGIN_PATH:
                 self._login()
                 return
@@ -1518,6 +1538,77 @@ def make_handler(config: Config):
                 return
             self._ingest(path, self._accept_role)
 
+        def _magnon(self, method: str) -> None:
+            from opensignal_mirror.magnon import handle, portal_html, token_from_headers
+
+            parsed = urlsplit(self.path)
+            if method == "GET" and parsed.path == "/magnon":
+                self._send_bytes(200, portal_html(config.magnon.client_id), "text/html; charset=utf-8")
+                return
+            body: dict = {}
+            if method == "POST":
+                try:
+                    length = int(self.headers.get("Content-Length", ""))
+                except ValueError:
+                    self._send(411, {"error": "length_required"})
+                    return
+                if length < 2 or length > 8192:
+                    self._send(413, {"error": "body_too_large"})
+                    return
+                raw = self.rfile.read(length)
+                try:
+                    body = json.loads(raw.decode("utf-8"))
+                except (json.JSONDecodeError, UnicodeError):
+                    self._send(400, {"error": "invalid_json"})
+                    return
+                if not isinstance(body, dict):
+                    self._send(400, {"error": "invalid_json"})
+                    return
+            else:
+                body = {key: values[0] for key, values in parse_qs(parsed.query).items() if values}
+            status, payload, cookie = handle(
+                config.magnon,
+                method,
+                parsed.path,
+                token_from_headers(self.headers),
+                body,
+                self._session_user() is not None,
+            )
+            if cookie:
+                self.send_response(status)
+                self.send_header("Content-Type", "application/json")
+                self.send_header(
+                    "Set-Cookie",
+                    "magnon_session=%s; HttpOnly; SameSite=Lax; Path=/; Max-Age=%s" % (cookie, 30 * 24 * 3600),
+                )
+                raw_body = json.dumps(payload, separators=(",", ":")).encode("utf-8")
+                self.send_header("Content-Length", str(len(raw_body)))
+                self.send_header("Connection", "close")
+                self.end_headers()
+                self.wfile.write(raw_body)
+                return
+            self._send(status, payload)
+
+        def _magnon_tests(self, parsed: dict) -> None:
+            if config.magnon is None:
+                return
+            try:
+                config.magnon.note_tests(
+                    parsed.get("device_id", ""),
+                    parsed.get("tests") or [],
+                    parsed.get("snapshots") or [],
+                )
+            except Exception as exc:
+                sys.stderr.write("magnon points failed: %s\n" % exc)
+
+        def _magnon_radio(self, parsed: dict) -> None:
+            if config.magnon is None:
+                return
+            try:
+                config.magnon.award(parsed.get("device_id", ""), str(parsed.get("event_id") or ""), "radio", parsed)
+            except Exception as exc:
+                sys.stderr.write("magnon radio points failed: %s\n" % exc)
+
         def _client_ip(self) -> str:
             return client_ip(self.client_address[0], self.headers, config.trusted_proxies)
 
@@ -1539,6 +1630,7 @@ def make_handler(config: Config):
             accepted, duplicate = config.store.insert_events(
                 "nr_status", parsed["device_id"], source, [parsed]
             )
+            self._magnon_radio(parsed)
             if config.telemetry:
                 try:
                     config.telemetry.ensure_schema()
@@ -1592,6 +1684,7 @@ def make_handler(config: Config):
             result_accepted, result_duplicate = config.store.insert_events(
                 "os_results", parsed["device_id"], source, parsed["os_results"]
             )
+            self._magnon_tests(parsed)
             if config.telemetry:
                 try:
                     config.telemetry.ensure_schema()

@@ -1,1 +1,2 @@
 google-cloud-firestore>=2.16
+google-auth>=2.29
