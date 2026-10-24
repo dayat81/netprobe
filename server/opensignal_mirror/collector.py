@@ -946,7 +946,7 @@ class Store:
                         remote_ip,
                         remote_port,
                         proto,
-                        json.dumps(event, separators=(",", ":"), sort_keys=True),
+                        json.dumps(_with_quality(event), separators=(",", ":"), sort_keys=True),
                         ts_ms,
                         rat,
                         imei,
@@ -1050,7 +1050,12 @@ class Config:
             env.get("OSM_TRUSTED_PROXIES", "127.0.0.1/32,::1/128")
         )
         self.path = FLOW_PATH if self.role == "flows" else DEBUG_PATH
-        self.store = Store(self.db_path, self.ttl_seconds, self.max_db_bytes)
+        if env.get("OSM_STORE", "sqlite") == "firestore":
+            from opensignal_mirror.firestore_store import FirestoreStore
+
+            self.store = FirestoreStore(self.ttl_seconds)
+        else:
+            self.store = Store(self.db_path, self.ttl_seconds, self.max_db_bytes)
         self.limiter = RateLimiter(self.rate_per_minute)
         self.started = int(time.time())
         clickhouse = env.get("OSM_CLICKHOUSE_URL", "").strip()
@@ -1124,7 +1129,17 @@ def live_snapshot(store: Store, limit: int = 400) -> dict:
     }
 
 
+def _with_quality(event: dict) -> dict:
+    from opensignal_mirror.session_gate import current_quality
+
+    stamped = dict(event)
+    stamped.setdefault("quality", current_quality())
+    return stamped
+
+
 def _event_rows(store: Store, role: str, limit: int) -> list[dict]:
+    if getattr(store, "backend", "") == "firestore":
+        return store.recent(role, limit)
     with store.lock, store._connect() as conn:
         rows = conn.execute(
             """
@@ -1155,6 +1170,8 @@ def _like_token(value: str) -> str:
 
 
 def search_measurements(store: Store, query: str, limit: int = 50) -> list[dict]:
+    if getattr(store, "backend", "") == "firestore":
+        return store.search(query, limit)
     if not re_fullmatch_query(query):
         raise ValueError("invalid query")
     token = _like_token(query)
@@ -1418,6 +1435,9 @@ def make_handler(config: Config):
                 return
             try:
                 self._authenticate(path, raw)
+                from opensignal_mirror.session_gate import bind_request
+
+                bind_request(self.headers)
                 parsed_body = json.loads(raw.decode("utf-8"))
                 accepted, duplicate = accept(parsed_body)
             except PermissionError as exc:

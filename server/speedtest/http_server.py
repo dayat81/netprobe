@@ -9,15 +9,15 @@ import sys
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlparse
 
-HOST = os.environ.get("SPEEDTEST_HOST", "127.0.0.1")
-PORT = int(os.environ.get("SPEEDTEST_PORT", "8099"))
+HOST = os.environ.get("SPEEDTEST_HOST", "0.0.0.0")
+PORT = int(os.environ.get("PORT", os.environ.get("SPEEDTEST_PORT", "8099")))
 SERVER_NAME = os.environ.get("SPEEDTEST_SERVER_NAME", "mysignal-azure")
 REGION = os.environ.get("SPEEDTEST_REGION", "southeastasia")
 VERSION = "1.0.0"
 CHUNK = 64 * 1024
 DEFAULT_DOWNLOAD = 25_000_000
-MAX_DOWNLOAD = 128 * 1024 * 1024
-MAX_UPLOAD = 128 * 1024 * 1024
+MAX_DOWNLOAD = int(os.environ.get("SPEEDTEST_MAX_DOWNLOAD", str(128 * 1024 * 1024)))
+MAX_UPLOAD = int(os.environ.get("SPEEDTEST_MAX_BODY", str(16 * 1024 * 1024)))
 FILL = os.urandom(CHUNK)
 
 

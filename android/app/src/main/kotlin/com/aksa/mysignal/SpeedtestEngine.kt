@@ -60,10 +60,9 @@ class SpeedtestEngine(
     private val scoreIntervalMs: Long = 500L,
     /** Upload score uses 1 s windows so HTTP body gaps average out. */
     private val uploadScoreIntervalMs: Long = 1_000L,
-    /** One body per connection — server MAX_DOWNLOAD / MAX_UPLOAD is 128 MiB. */
-    private val downloadChunk: Int = 128 * 1024 * 1024,
-    /** One body covers the whole upload phase → no mid-test TLS reconnect stall. */
-    private val uploadBodyBytes: Int = 128 * 1024 * 1024,
+    /** Per request stays under Cloud Run's 32 MiB body cap; the phase loops until time/bytes. */
+    private val downloadChunk: Int = 16 * 1024 * 1024,
+    private val uploadBodyBytes: Int = 16 * 1024 * 1024,
     private val readBufBytes: Int = 1024 * 1024,
     /** Smaller writes → steadier TCP pacing on uplink (less 0/500 Mbps sawtooth). */
     private val uploadWriteBytes: Int = 256 * 1024,
