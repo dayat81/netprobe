@@ -77,14 +77,42 @@ object NativeTraceroute {
                 .redirectErrorStream(true)
                 .directory(bin.parentFile)
                 .start()
-            val out = proc.inputStream.bufferedReader().use { it.readText() }
-            if (!proc.waitFor(timeoutSec, TimeUnit.SECONDS)) {
-                proc.destroyForcibly()
-                AppLog.w(TAG, "traceroute timeout")
-                return emptyList()
+            val out = StringBuilder()
+            val reader = Thread {
+                runCatching {
+                    proc.inputStream.bufferedReader().use { stream ->
+                        val buf = CharArray(512)
+                        while (true) {
+                            val n = stream.read(buf)
+                            if (n < 0) break
+                            out.append(buf, 0, n)
+                        }
+                    }
+                }
             }
-            AppLog.i(TAG, "traceroute out:\n${out.take(2000)}")
-            parseHops(out)
+            reader.isDaemon = true
+            reader.start()
+            val deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(timeoutSec)
+            try {
+                while (true) {
+                    if (Thread.currentThread().isInterrupted) {
+                        proc.destroyForcibly()
+                        AppLog.i(TAG, "traceroute cancelled")
+                        return emptyList()
+                    }
+                    if (proc.waitFor(200, TimeUnit.MILLISECONDS)) break
+                    if (System.nanoTime() > deadline) {
+                        proc.destroyForcibly()
+                        AppLog.w(TAG, "traceroute timeout")
+                        return emptyList()
+                    }
+                }
+            } finally {
+                reader.join(1_000)
+            }
+            val text = out.toString()
+            AppLog.i(TAG, "traceroute out:\n${text.take(2000)}")
+            parseHops(text)
         } catch (e: Exception) {
             AppLog.w(TAG, "traceroute failed: ${e.message}")
             emptyList()

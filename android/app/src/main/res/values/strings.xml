@@ -78,6 +78,8 @@
     <string name="speed_no_route">No route to %1$s · tap GO to retry</string>
     <string name="speed_running">Testing…</string>
     <string name="speed_loop">Loop %1$d · tap STOP to end</string>
+    <string name="speed_loop_route">Loop %1$d · route</string>
+    <string name="speed_label_gw">GW</string>
     <string name="speed_loop_pause">Loop %1$d done · next in %2$ds · tap STOP to keep</string>
     <string name="speed_done">Done</string>
     <string name="speed_failed">Failed: %1$s</string>

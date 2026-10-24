@@ -84,8 +84,10 @@ object ClientNetworkInfo {
             .mapNotNull { formatHost(it) }
             .firstOrNull()
 
+        // Link-local (fe80::) is not a speedtest endpoint address. Global, then ULA.
         val ipv6 = addrs
             .filterIsInstance<Inet6Address>()
+            .filter { !it.isLinkLocalAddress }
             .sortedWith(compareBy({ ipv6Rank(it) }, { it.hostAddress.orEmpty() }))
             .mapNotNull { formatHost(it) }
             .distinct()
@@ -164,6 +166,33 @@ object ClientNetworkInfo {
             "gateway v6 none locals=$locals iface=$iface cell=$cellular p2p=$p2p hasLocalV6=$hasLocalV6",
         )
         return "—"
+    }
+
+    /**
+     * Route-table gateway for this moment, ignoring the cached hop.
+     * Cellular point-to-point routes that name the phone itself are skipped.
+     */
+    fun freshGateways(context: Context): Pair<String, String> {
+        val locals = localAddresses(context)
+        val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager
+        val props = cm?.activeNetwork?.let { cm.getLinkProperties(it) }
+        val v4 = gatewayFromRoutesV4(props?.routes, locals)
+            ?: gatewayFromWifiDhcp(context, locals)
+            ?: "—"
+        val v6 = gatewayFromRoutesV6(props?.routes, locals) ?: "—"
+        if (v4 != "—") rememberGateway(v4, "speed-route")
+        if (v6 != "—") rememberGatewayV6(v6, "speed-route")
+        return v4 to v6
+    }
+
+    /** First responding traceroute hop for the speedtest path. Replaces the route-table guess. */
+    fun noteFirstHops(ipv4: String?, ipv6: String?) {
+        ipv4?.takeIf { it.isNotBlank() && it != "—" && !it.contains(':') }?.let {
+            rememberGateway(it, "speed-trace")
+        }
+        ipv6?.takeIf { it.isNotBlank() && it != "—" && it.contains(':') }?.let {
+            rememberGatewayV6(it, "speed-trace")
+        }
     }
 
     /** Sync snapshot used by UI before IO probe finishes. */

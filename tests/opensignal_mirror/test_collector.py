@@ -331,6 +331,25 @@ def measurement_plain():
     }
 
 
+def test_speed_trace_is_optional_and_clipped():
+    plain = measurement_plain()
+    without = schema.validate_measurement_plain(plain)
+    assert "trace" not in without["tests"][0]
+    traced = measurement_plain()
+    traced["tests"][0]["trace"] = {
+        "ipv4": [{"ttl": 1, "host": "10.1.1.1", "rtt_ms": 4.5}, {"ttl": 2}],
+        "ipv6": [{"ttl": 1, "host": "fe80::1", "rtt_ms": 12}],
+    }
+    parsed = schema.validate_measurement_plain(traced)
+    hops = parsed["tests"][0]["trace"]
+    assert hops["ipv4"][0]["host"] == "10.1.1.1"
+    assert "host" not in hops["ipv4"][1]
+    assert hops["ipv6"][0]["host"] == "fe80::1"
+    traced["tests"][0]["trace"]["extra"] = []
+    with pytest.raises(ValueError):
+        schema.validate_measurement_plain(traced)
+
+
 def measurement_envelope(server, plain, sent=1):
     device = "device1234"
     batch = "batch12345"

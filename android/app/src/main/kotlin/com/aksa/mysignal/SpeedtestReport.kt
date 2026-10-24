@@ -11,11 +11,17 @@ import kotlin.math.roundToLong
 object SpeedtestReport {
     private const val TAG = "MySignalUpload"
 
-    fun upload(context: Context, result: SpeedtestEngine.Result) {
+    fun upload(
+        context: Context,
+        result: SpeedtestEngine.Result,
+        hops4: List<NativeTraceroute.Hop> = emptyList(),
+        hops6: List<NativeTraceroute.Hop> = emptyList(),
+    ) {
         RumReporter.noteSpeed(result)
         ComplaintStore.saveSpeed(context, result)
         if (!CollectorClient.measureEnabled) return
         val app = context.applicationContext
+        val trace = traceJson(hops4, hops6)
         thread(name = "mysignal-speed-upload", start = true) {
             val test = JSONObject()
                 .put("event_id", "myspd" + UUID.randomUUID().toString().replace("-", "").take(16))
@@ -29,6 +35,7 @@ object SpeedtestReport {
                 .put("loss_pct", JSONObject.NULL)
                 .put("server", result.serverLabel.take(120))
                 .put("summary", "mysignal")
+            if (trace != null) test.put("trace", trace)
             val plain = JSONObject()
                 .put("snapshots", JSONArray())
                 .put("tests", JSONArray().put(test))
@@ -38,7 +45,10 @@ object SpeedtestReport {
                 AppLog.w(TAG, "speedtest upload failed", error)
                 -1
             }
-            AppLog.i(TAG, "speedtest HTTP $code dl=${result.downloadMbps} ul=${result.uploadMbps}")
+            AppLog.i(
+                TAG,
+                "speedtest HTTP $code dl=${result.downloadMbps} ul=${result.uploadMbps} trace=${trace != null}",
+            )
         }
     }
 
@@ -71,6 +81,30 @@ object SpeedtestReport {
             }
             AppLog.i(TAG, "video HTTP $code $summary")
         }
+    }
+
+    internal fun traceJson(
+        hops4: List<NativeTraceroute.Hop>,
+        hops6: List<NativeTraceroute.Hop>,
+    ): JSONObject? {
+        val v4 = hopArray(hops4)
+        val v6 = hopArray(hops6)
+        if (v4.length() == 0 && v6.length() == 0) return null
+        val trace = JSONObject()
+        if (v4.length() > 0) trace.put("ipv4", v4)
+        if (v6.length() > 0) trace.put("ipv6", v6)
+        return trace
+    }
+
+    private fun hopArray(hops: List<NativeTraceroute.Hop>): JSONArray {
+        val array = JSONArray()
+        hops.take(30).forEach { hop ->
+            val item = JSONObject().put("ttl", hop.ttl.coerceIn(1, 64))
+            hop.host?.trim()?.takeIf { it.isNotEmpty() }?.let { item.put("host", it.take(64)) }
+            hop.rttMs?.takeIf { it.isFinite() && it >= 0.0 }?.let { item.put("rtt_ms", it) }
+            array.put(item)
+        }
+        return array
     }
 
     private fun bps(mbps: Double): Long = (mbps * 1_000_000.0).roundToLong().coerceAtLeast(0L)

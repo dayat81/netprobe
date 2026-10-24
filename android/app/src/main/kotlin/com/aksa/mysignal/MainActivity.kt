@@ -21,8 +21,11 @@ import com.google.android.material.button.MaterialButton
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runInterruptible
 import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -49,7 +52,7 @@ class MainActivity : AppCompatActivity() {
     private var serverIpv4: String? = null
     private var serverIpv6: String? = null
     private val onPathChanged: () -> Unit = {
-        if (currentTab == Tab.SPEED) startServerTraceroute(force = true)
+        if (currentTab == Tab.SPEED && !running) startServerTraceroute(force = true)
     }
 
     private val permissionLauncher = registerForActivityResult(
@@ -98,6 +101,7 @@ class MainActivity : AppCompatActivity() {
         binding.speedServer.text = BuildConfig.COLLECTOR_HOST
         binding.speedLocal.text = "—"
         binding.speedPublic.text = "—"
+        binding.speedGateway.text = "—"
         binding.videoServer.text = getString(
             R.string.speed_server,
             "${BuildConfig.COLLECTOR_HOST}/video",
@@ -162,55 +166,97 @@ class MainActivity : AppCompatActivity() {
         GatewayMonitor.start(applicationContext)
         binding.tracerouteHops.setLoading()
         tracerouteJob = lifecycleScope.launch {
-            val host = BuildConfig.COLLECTOR_HOST
-            val (hops4, hops6, ip4, ip6) = withContext(Dispatchers.IO) {
-                val target4 = runCatching {
-                    SpeedtestTarget.resolve(hostname = host, family = IpFamily.IPV4).serverIp
-                }.getOrNull()
-                val target6 = runCatching {
-                    SpeedtestTarget.resolve(hostname = host, family = IpFamily.IPV6).serverIp
-                }.getOrNull()
-                val pool = java.util.concurrent.Executors.newFixedThreadPool(2)
-                try {
-                    val f4 = pool.submit<List<NativeTraceroute.Hop>> {
-                        NativeTraceroute.run(
-                            this@MainActivity,
-                            target4 ?: host,
-                            ipv6 = false,
-                            maxHops = 30,
-                            timeoutSec = 25,
-                        )
-                    }
-                    val f6 = pool.submit<List<NativeTraceroute.Hop>> {
-                        if (target6 == null) {
-                            emptyList()
-                        } else {
-                            NativeTraceroute.run(
-                                this@MainActivity,
-                                target6,
-                                ipv6 = true,
-                                maxHops = 30,
-                                timeoutSec = 25,
-                            )
-                        }
-                    }
-                    val v4 = runCatching { f4.get() }.getOrDefault(emptyList())
-                    val v6 = runCatching { f6.get() }.getOrDefault(emptyList())
-                    TraceBundle(v4, v6, target4, target6)
-                } finally {
-                    pool.shutdownNow()
+            val bundle = traceServer()
+            if (currentTab != Tab.SPEED || running) return@launch
+            applyTrace(bundle)
+        }
+    }
+
+    private suspend fun traceServer(): TraceBundle = coroutineScope {
+        val host = BuildConfig.COLLECTOR_HOST
+        val (target4, target6) = withContext(Dispatchers.IO) {
+            val v4 = runCatching {
+                SpeedtestTarget.resolve(hostname = host, family = IpFamily.IPV4).serverIp
+            }.getOrNull()
+            val v6 = runCatching {
+                SpeedtestTarget.resolve(hostname = host, family = IpFamily.IPV6).serverIp
+            }.getOrNull()
+            v4 to v6
+        }
+        val v4 = async(Dispatchers.IO) {
+            runInterruptible {
+                NativeTraceroute.run(
+                    this@MainActivity,
+                    target4 ?: host,
+                    ipv6 = false,
+                    maxHops = 30,
+                    timeoutSec = 25,
+                )
+            }
+        }
+        val v6 = async(Dispatchers.IO) {
+            runInterruptible {
+                if (target6 == null) {
+                    emptyList()
+                } else {
+                    NativeTraceroute.run(
+                        this@MainActivity,
+                        target6,
+                        ipv6 = true,
+                        maxHops = 30,
+                        timeoutSec = 25,
+                    )
                 }
             }
-            if (currentTab != Tab.SPEED) return@launch
-            if (ip4 != null) serverIpv4 = ip4
-            if (ip6 != null) serverIpv6 = ip6
-            binding.speedServer.text = formatServerIps()
-            binding.tracerouteHops.setHops(
-                TracerouteHopView.fromRaw(hops4),
-                TracerouteHopView.fromRaw(hops6),
-                statusText = null,
-            )
         }
+        TraceBundle(v4.await(), v6.await(), target4, target6)
+    }
+
+    /** Local IP, public IP and provider, route gateway, then a fresh traceroute. */
+    private suspend fun refreshRound(target: SpeedtestTarget): TraceBundle {
+        val locals = withContext(Dispatchers.IO) {
+            ClientNetworkInfo.localAddressesPair(this@MainActivity)
+        }
+        binding.speedLocal.text = formatLocalIps(locals)
+        binding.speedPublic.text = "…"
+        binding.speedGateway.text = "…"
+        binding.tracerouteHops.setLoading()
+        val public = withContext(Dispatchers.IO) {
+            ClientNetworkInfo.publicClientFromHello(target)
+        }
+        if (!running) return TraceBundle(emptyList(), emptyList(), null, null)
+        binding.speedPublic.text = formatPublic(public.ip, public.provider)
+        val route = withContext(Dispatchers.IO) {
+            ClientNetworkInfo.freshGateways(this@MainActivity)
+        }
+        if (!running) return TraceBundle(emptyList(), emptyList(), null, null)
+        binding.speedGateway.text = formatGateway(
+            route.first.takeIf { it != "—" },
+            route.second.takeIf { it != "—" },
+        )
+        val bundle = traceServer()
+        if (!running) return bundle
+        applyTrace(bundle, keepRouteGateway = true)
+        return bundle
+    }
+
+    private fun applyTrace(bundle: TraceBundle, keepRouteGateway: Boolean = false) {
+        if (bundle.ip4 != null) serverIpv4 = bundle.ip4
+        if (bundle.ip6 != null) serverIpv6 = bundle.ip6
+        binding.speedServer.text = formatServerIps()
+        val gw4 = bundle.hops4.firstOrNull { !it.host.isNullOrBlank() }?.host
+        val gw6 = bundle.hops6.firstOrNull { !it.host.isNullOrBlank() }?.host
+        val route4 = ClientNetworkInfo.lastGateway
+        val route6 = ClientNetworkInfo.lastGatewayV6
+        ClientNetworkInfo.noteFirstHops(gw4, gw6)
+        val shown4 = gw4 ?: if (keepRouteGateway) route4 else null
+        val shown6 = gw6 ?: if (keepRouteGateway) route6 else null
+        binding.speedGateway.text = formatGateway(shown4, shown6)
+        binding.tracerouteHops.setHops(
+            TracerouteHopView.fromRaw(bundle.hops4),
+            TracerouteHopView.fromRaw(bundle.hops6),
+            statusText = null,
+        )
     }
 
     private fun stopServerTraceroute() {
@@ -279,6 +325,11 @@ class MainActivity : AppCompatActivity() {
             else -> appendColored("—", secondary)
         }
         return sb
+    }
+
+    private fun formatGateway(ipv4: String?, ipv6: String?): CharSequence {
+        val locals = ClientNetworkInfo.LocalAddresses(ipv4, ipv6)
+        return formatLocalIps(locals)
     }
 
     private fun formatPublic(ip: String, provider: String): String {
@@ -737,13 +788,17 @@ class MainActivity : AppCompatActivity() {
                         }
                         nextSpeedFamily = family
                         showSpeedTarget(target)
-                        refreshSpeedClientIps(family)
+                        binding.speedStatus.text = getString(R.string.speed_loop_route, round)
+                        tracerouteJob?.cancel()
+                        val trace = refreshRound(target)
+                        if (!running) break
+                        binding.speedStatus.text = getString(R.string.speed_loop, round)
                         val result = SpeedtestEngine(target).run { progress ->
                             runOnUiThread { renderProgress(progress) }
                         }
                         triedSinceSuccess.clear()
                         sawUnreachable = false
-                        SpeedtestReport.upload(applicationContext, result)
+                        SpeedtestReport.upload(applicationContext, result, trace.hops4, trace.hops6)
                         renderSpeedHistory()
                         if (!running) break
                         // Hold final DL/UL on screen so the user can stop before the next round.

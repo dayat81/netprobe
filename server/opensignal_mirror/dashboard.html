@@ -161,6 +161,19 @@
       if (className) td.className = className;
       return td;
     };
+    const traceLine = (trace) => {
+      if (!trace) return "";
+      const side = (name, hops) => {
+        if (!Array.isArray(hops) || !hops.length) return "";
+        const path = hops.map((hop) => {
+          const host = hop.host || "*";
+          const rtt = hop.rtt_ms == null ? "" : " " + Math.round(Number(hop.rtt_ms)) + "ms";
+          return hop.ttl + " " + host + rtt;
+        }).join(" → ");
+        return name + " " + path;
+      };
+      return [side("v4", trace.ipv4), side("v6", trace.ipv6)].filter(Boolean).join("\n");
+    };
     function repairJson(text) {
       let out = "";
       const stack = [];
@@ -417,6 +430,18 @@
           const tr = document.createElement("tr");
           tr.append(cell(age(item.ts_ms, nowMs)), cell(item.source), cell(item.test_type), cell(bps(item.download_bps), "down"), cell(bps(item.upload_bps), "up"), cell(item.latency_ms == null ? "–" : item.latency_ms + " ms"), cell(item.server), cell(item.summary));
           tests.append(tr);
+          const route = traceLine(item.trace);
+          if (route) {
+            const extra = document.createElement("tr");
+            const td = document.createElement("td");
+            td.colSpan = 8;
+            const pre = document.createElement("pre");
+            pre.className = "json-str";
+            pre.textContent = route;
+            td.append(pre);
+            extra.append(td);
+            tests.append(extra);
+          }
         }
         const body = document.querySelector("#flows");
         body.replaceChildren();

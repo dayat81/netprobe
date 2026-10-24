@@ -612,8 +612,42 @@ def _snapshot(value: object) -> dict:
     return out
 
 
+def _hop(value: object) -> dict:
+    item = _shape(value, {"ttl"}, {"host", "rtt_ms"}, "hop")
+    ttl = item["ttl"]
+    if not is_int(ttl) or ttl < 1 or ttl > 64:
+        raise ValueError("invalid hop")
+    out = {"ttl": ttl}
+    if "host" in item and item["host"] is not None:
+        host = _plain(item["host"], 64)
+        if host:
+            out["host"] = host
+    if "rtt_ms" in item:
+        rtt = _opt_float(item["rtt_ms"], 0, 60_000)
+        if rtt is not None:
+            out["rtt_ms"] = rtt
+    return out
+
+
+def _trace(value: object) -> dict:
+    item = _shape(value, set(), {"ipv4", "ipv6"}, "trace")
+    out = {}
+    for family in ("ipv4", "ipv6"):
+        hops = item.get(family)
+        if hops is None:
+            continue
+        if not isinstance(hops, list) or len(hops) > 32:
+            raise ValueError("invalid trace")
+        parsed = [_hop(hop) for hop in hops]
+        if parsed:
+            out[family] = parsed
+    if not out:
+        raise ValueError("invalid trace")
+    return out
+
+
 def _test_result(value: object) -> dict:
-    item = _exact(
+    item = _shape(
         value,
         {
             "event_id",
@@ -628,6 +662,7 @@ def _test_result(value: object) -> dict:
             "server",
             "summary",
         },
+        {"trace"},
         "test",
     )
     if item["source"] not in TEST_SOURCES:
@@ -638,7 +673,7 @@ def _test_result(value: object) -> dict:
         raise ValueError("invalid timestamp")
     download = item["download_bps"]
     upload = item["upload_bps"]
-    return {
+    result = {
         "event_id": _ident(item["event_id"], ID_MIN, ID_MAX),
         "ts_ms": item["ts_ms"],
         "source": item["source"],
@@ -651,6 +686,9 @@ def _test_result(value: object) -> dict:
         "server": _plain(item["server"], 120),
         "summary": _text(item["summary"], 240),
     }
+    if "trace" in item and item["trace"] is not None:
+        result["trace"] = _trace(item["trace"])
+    return result
 
 
 def _field_text(value: object) -> str:
