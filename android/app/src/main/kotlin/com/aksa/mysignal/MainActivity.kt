@@ -48,7 +48,7 @@ class MainActivity : AppCompatActivity() {
     private var nextSpeedFamily: IpFamily = IpFamily.IPV4
     private var running = false
     private var videoRunning = false
-    private var currentTab = Tab.RADIO
+    private var currentTab = Tab.SPEED
     private var serverIpv4: String? = null
     private var serverIpv6: String? = null
     private val onPathChanged: () -> Unit = {
@@ -112,7 +112,7 @@ class MainActivity : AppCompatActivity() {
         wireComplaintPager()
         updatePermissionUi()
         requestPermissions()
-        showTab(Tab.RADIO)
+        showTab(Tab.SPEED)
     }
 
     override fun onStart() {

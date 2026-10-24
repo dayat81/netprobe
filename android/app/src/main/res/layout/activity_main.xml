@@ -729,22 +729,13 @@
         android:orientation="horizontal">
 
         <com.google.android.material.button.MaterialButton
-            android:id="@+id/tabRadio"
-            style="@style/TabLabel"
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_weight="1"
-            android:text="@string/tab_radio"
-            android:textColor="@color/accent" />
-
-        <com.google.android.material.button.MaterialButton
             android:id="@+id/tabSpeed"
             style="@style/TabLabel"
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="1"
             android:text="@string/tab_speed"
-            android:textColor="@color/text_secondary" />
+            android:textColor="@color/accent" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/tabVideo"
@@ -753,6 +744,15 @@
             android:layout_height="match_parent"
             android:layout_weight="1"
             android:text="@string/tab_video"
+            android:textColor="@color/text_secondary" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/tabRadio"
+            style="@style/TabLabel"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:text="@string/tab_radio"
             android:textColor="@color/text_secondary" />
 
         <com.google.android.material.button.MaterialButton

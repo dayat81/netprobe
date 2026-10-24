@@ -85,11 +85,13 @@ class SpeedtestGaugeView @JvmOverloads constructor(
         tickMark.strokeWidth = dp(2f)
         tick.textSize = dp(10f)
 
-        val pad = stroke / 2f + dp(22f)
-        val size = min(width.toFloat(), height.toFloat() * 1.15f)
-        val left = (width - size) / 2f + pad
-        val top = (height - size) / 2f + pad * 0.35f
-        arc.set(left, top, left + size - 2 * pad, top + size - 2 * pad)
+        // Keep the hub on the view center so it sits on the GO/STOP control.
+        // The same inset above and below leaves the crown labels inside the view.
+        val inset = stroke / 2f + dp(20f)
+        val diameter = min(width - 2 * inset, height - 2 * inset).coerceAtLeast(0f)
+        val left = (width - diameter) / 2f
+        val top = (height - diameter) / 2f
+        arc.set(left, top, left + diameter, top + diameter)
 
         val cx = arc.centerX()
         val cy = arc.centerY()
