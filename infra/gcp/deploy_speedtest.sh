@@ -3,7 +3,7 @@ set -euo pipefail
 source "$(dirname "$0")/env.sh"
 IMAGE="${AR}/speedtest:prod"
 cd "${REPO_ROOT}"
-gcloud builds submit --project "${PROJECT}" --tag "${IMAGE}" -f server/Dockerfile.speedtest .
+gcloud builds submit --project "${PROJECT}" --config infra/gcp/cloudbuild-speedtest.yaml --substitutions "_IMAGE=${IMAGE}" .
 gcloud run deploy netprobe-speedtest \
   --project "${PROJECT}" \
   --region "${REGION}" \

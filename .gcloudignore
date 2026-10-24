@@ -1,0 +1,7 @@
+.git
+tmp
+android
+web
+.pytest_cache
+**/*.apk
+**/.gradle
