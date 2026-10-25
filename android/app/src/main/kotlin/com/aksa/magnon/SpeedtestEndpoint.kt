@@ -1,6 +1,7 @@
 package com.aksa.magnon
 
 import android.net.DnsResolver
+import android.net.Network
 import android.os.CancellationSignal
 import java.net.Inet4Address
 import java.net.Inet6Address
@@ -150,8 +151,15 @@ data class SpeedtestTarget(
 }
 
 object SpeedtestHttps {
-    fun open(target: SpeedtestTarget, absoluteUrl: String, method: String): HttpsURLConnection {
-        val connection = URL(absoluteUrl).openConnection() as HttpsURLConnection
+    fun open(
+        target: SpeedtestTarget,
+        absoluteUrl: String,
+        method: String,
+        network: Network? = null,
+    ): HttpsURLConnection {
+        val connection = (
+            network?.openConnection(URL(absoluteUrl)) ?: URL(absoluteUrl).openConnection()
+            ) as HttpsURLConnection
         connection.requestMethod = method
         connection.connectTimeout = 12_000
         connection.readTimeout = 60_000
@@ -161,7 +169,7 @@ object SpeedtestHttps {
         connection.setRequestProperty("Cache-Control", "no-cache")
         connection.setRequestProperty("Accept-Encoding", "identity")
         connection.setRequestProperty("Connection", "keep-alive")
-        connection.sslSocketFactory = SniSslSocketFactory(target.hostname)
+        connection.sslSocketFactory = SniSslSocketFactory(target.hostname, connection.sslSocketFactory)
         val expected = target.hostname
         connection.hostnameVerifier = HostnameVerifier { _, session ->
             HttpsURLConnection.getDefaultHostnameVerifier().verify(expected, session)
@@ -181,8 +189,8 @@ object SpeedtestHttps {
 
     private class SniSslSocketFactory(
         private val peerHost: String,
+        private val delegate: SSLSocketFactory = HttpsURLConnection.getDefaultSSLSocketFactory(),
     ) : SSLSocketFactory() {
-        private val delegate: SSLSocketFactory = HttpsURLConnection.getDefaultSSLSocketFactory()
 
         override fun getDefaultCipherSuites(): Array<String> = delegate.defaultCipherSuites
 

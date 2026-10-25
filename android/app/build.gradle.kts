@@ -19,8 +19,8 @@ android {
         applicationId = "com.aksa.magnon"
         minSdk = 30
         targetSdk = 35
-        versionCode = 121
-        versionName = "2.6.4"
+        versionCode = 122
+        versionName = "2.6.5"
 
         val collectorHost = cfg("mysignal.collectorHost", "MAGNON_COLLECTOR_HOST", "127.0.0.1")
         val collectorPort = cfg("mysignal.collectorPort", "MAGNON_COLLECTOR_PORT", "8000").toIntOrNull() ?: 8000

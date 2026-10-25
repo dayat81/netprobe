@@ -3,6 +3,7 @@ package com.aksa.magnon
 import android.content.Context
 import android.net.ConnectivityManager
 import android.net.LinkProperties
+import android.net.Network
 import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.Inet4Address
@@ -86,20 +87,28 @@ object ClientNetworkInfo {
 
     fun publicIpFromHello(target: SpeedtestTarget): String = publicClientFromHello(target).ip
 
-    fun publicClientFromHello(target: SpeedtestTarget): PublicClientInfo {
-        val ip = fetchPublicIp(target)
+    fun remember(info: PublicClientInfo) {
+        lastPublic = info
+    }
+
+    fun publicClientFromHello(
+        target: SpeedtestTarget,
+        network: Network? = null,
+        publish: Boolean = true,
+    ): PublicClientInfo {
+        val ip = fetchPublicIp(target, network)
         val info = if (ip == "—") {
             PublicClientInfo(ip = "—", provider = "—")
         } else {
             PublicClientInfo(ip = ip, provider = providerForPublicIp(ip))
         }
-        lastPublic = info
+        if (publish) lastPublic = info
         return info
     }
 
-    private fun fetchPublicIp(target: SpeedtestTarget): String {
+    private fun fetchPublicIp(target: SpeedtestTarget, network: Network? = null): String {
         val url = SpeedtestEngine.helloUrl(target.root())
-        val connection = SpeedtestHttps.open(target, url, "GET").apply {
+        val connection = SpeedtestHttps.open(target, url, "GET", network).apply {
             setRequestProperty("Connection", "close")
             connectTimeout = 8_000
             readTimeout = 8_000

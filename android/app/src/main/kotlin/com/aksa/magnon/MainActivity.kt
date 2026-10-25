@@ -4,6 +4,9 @@ import android.Manifest
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.pm.PackageManager
+import android.net.ConnectivityManager
+import android.net.Network
+import android.net.NetworkCapabilities
 import android.os.Bundle
 import android.view.View
 import android.view.ViewGroup
@@ -50,6 +53,12 @@ class MainActivity : AppCompatActivity() {
     private var shownProvider = ""
     private var shownTransport = ""
     private var integrityStopped = false
+    private var pathCallback: ConnectivityManager.NetworkCallback? = null
+    private var pathJob: Job? = null
+    private val pathGeneration = PathGeneration()
+    private var pathDirty = false
+    private var watchedNetwork: Network? = null
+    private var watchedKind = ""
 
     private val permissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions(),
@@ -103,9 +112,11 @@ class MainActivity : AppCompatActivity() {
         super.onStart()
         if (integrityStopped) return
         RumReporter.onFirstFrame()
+        watchDefaultNetwork()
     }
 
     override fun onStop() {
+        unwatchDefaultNetwork()
         super.onStop()
     }
 
@@ -141,12 +152,20 @@ class MainActivity : AppCompatActivity() {
     /** Local address and public address. Lite shows the server name and the provider only. */
     /** Server name and provider. Lite does not resolve a gateway. */
     private suspend fun refreshPublic(target: SpeedtestTarget) {
+        val generation = pathGeneration.next()
+        pathJob?.cancel()
         binding.speedServer.text = BuildConfig.COLLECTOR_HOST
-        val public = withContext(Dispatchers.IO) {
-            ClientNetworkInfo.publicClientFromHello(target)
+        val network = watchedNetwork ?: activeNetwork()
+        val job = lifecycleScope.launch {
+            val public = withContext(Dispatchers.IO) {
+                ClientNetworkInfo.publicClientFromHello(target, network, publish = false)
+            }
+            if (!pathGeneration.accept(generation)) return@launch
+            ClientNetworkInfo.remember(public)
+            showProvider(public.provider)
         }
-        if (!running) return
-        showProvider(public.provider)
+        pathJob = job
+        job.join()
     }
 
     /** Gateway ping and traceroute, concurrent with the speed or video round. Premium only. */
@@ -155,21 +174,12 @@ class MainActivity : AppCompatActivity() {
 
     private fun refreshSpeedClientIps() {
         binding.speedServer.text = BuildConfig.COLLECTOR_HOST
-        binding.speedPublic.text = "…"
-        lifecycleScope.launch {
-            val target = withContext(Dispatchers.IO) {
-                runCatching { SpeedtestTarget.resolve(family = IpFamily.IPV4) }.getOrNull()
-            }
-            if (currentTab != Tab.SPEED) return@launch
-            if (target == null) {
-                showProvider("")
-                return@launch
-            }
-            val public = withContext(Dispatchers.IO) {
-                ClientNetworkInfo.publicClientFromHello(target)
-            }
-            if (currentTab == Tab.SPEED) showProvider(public.provider)
+        val network = watchedNetwork ?: activeNetwork()
+        if (network == null) {
+            showProvider("")
+            return
         }
+        requestProvider(network)
     }
 
 
@@ -184,6 +194,104 @@ class MainActivity : AppCompatActivity() {
         shownProvider = name.trim().takeIf { it.isNotEmpty() && it != "—" }?.uppercase(Locale.US).orEmpty()
         binding.speedPublic.text = shownProvider.ifBlank { "—" }
         renderVideoHeader()
+    }
+
+    private fun watchDefaultNetwork() {
+        if (pathCallback != null) return
+        val manager = getSystemService(ConnectivityManager::class.java) ?: return
+        val callback = object : ConnectivityManager.NetworkCallback() {
+            override fun onAvailable(network: Network) {
+                runOnUiThread { applyPath(network) }
+            }
+
+            override fun onLost(network: Network) {
+                runOnUiThread {
+                    if (watchedNetwork != null && watchedNetwork != network) return@runOnUiThread
+                    applyPath(null)
+                }
+            }
+
+            override fun onCapabilitiesChanged(network: Network, caps: NetworkCapabilities) {
+                val kind = kindOf(caps)
+                runOnUiThread {
+                    if (watchedNetwork != null && network != watchedNetwork) return@runOnUiThread
+                    if (network == watchedNetwork && kind == watchedKind) return@runOnUiThread
+                    applyPath(network)
+                }
+            }
+        }
+        pathCallback = callback
+        runCatching { manager.registerDefaultNetworkCallback(callback) }
+    }
+
+    private fun unwatchDefaultNetwork() {
+        val callback = pathCallback ?: return
+        pathCallback = null
+        runCatching {
+            getSystemService(ConnectivityManager::class.java)?.unregisterNetworkCallback(callback)
+        }
+        pathJob?.cancel()
+    }
+
+    private fun applyPath(network: Network?) {
+        val kind = network?.let { kindOf(it) }.orEmpty()
+        watchedNetwork = network
+        watchedKind = kind
+        if (running || videoRunning) {
+            pathDirty = true
+            return
+        }
+        pathDirty = false
+        if (network == null || kind.isEmpty()) {
+            pathGeneration.next()
+            pathJob?.cancel()
+            showTransport("")
+            showProvider("")
+            return
+        }
+        showTransport(kind)
+        requestProvider(network)
+    }
+
+    private fun settlePath() {
+        if (running || videoRunning || !pathDirty) return
+        applyPath(watchedNetwork)
+    }
+
+    private fun requestProvider(network: Network) {
+        val generation = pathGeneration.next()
+        binding.speedPublic.text = "…"
+        pathJob?.cancel()
+        pathJob = lifecycleScope.launch {
+            val target = withContext(Dispatchers.IO) {
+                runCatching { SpeedtestTarget.resolve(family = IpFamily.IPV4) }.getOrNull()
+            }
+            if (!pathGeneration.accept(generation)) return@launch
+            if (target == null) {
+                showProvider("")
+                return@launch
+            }
+            val public = withContext(Dispatchers.IO) {
+                ClientNetworkInfo.publicClientFromHello(target, network, publish = false)
+            }
+            if (!pathGeneration.accept(generation)) return@launch
+            ClientNetworkInfo.remember(public)
+            showProvider(public.provider)
+        }
+    }
+
+    private fun activeNetwork(): Network? =
+        getSystemService(ConnectivityManager::class.java)?.activeNetwork
+
+    private fun kindOf(network: Network): String {
+        val caps = getSystemService(ConnectivityManager::class.java)?.getNetworkCapabilities(network) ?: return ""
+        return kindOf(caps)
+    }
+
+    private fun kindOf(caps: NetworkCapabilities): String = when {
+        caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) -> "wifi"
+        caps.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) -> "cell"
+        else -> ""
     }
 
     private fun refreshTransport() {
@@ -682,11 +790,22 @@ class MainActivity : AppCompatActivity() {
                     clearVideoMetrics()
                     val place = async(Dispatchers.IO) { PlaceCapture.district(applicationContext) }
                     val path = async(Dispatchers.IO) { NetworkPath.kind(applicationContext) }
-                    val providerName = async(Dispatchers.IO) {
-                        val target = runCatching { SpeedtestTarget.resolve(family = IpFamily.IPV4) }.getOrNull()
-                            ?: return@async ""
-                        ClientNetworkInfo.publicClientFromHello(target).provider
+                    val network = watchedNetwork ?: activeNetwork()
+                    val generation = pathGeneration.next()
+                    pathJob?.cancel()
+                    val providerName = lifecycleScope.async {
+                        val info = withContext(Dispatchers.IO) {
+                            val target = runCatching { SpeedtestTarget.resolve(family = IpFamily.IPV4) }.getOrNull()
+                                ?: return@withContext null
+                            ClientNetworkInfo.publicClientFromHello(target, network, publish = false)
+                        } ?: return@async ""
+                        if (pathGeneration.accept(generation)) {
+                            ClientNetworkInfo.remember(info)
+                            showProvider(info.provider)
+                        }
+                        info.provider
                     }
+                    pathJob = providerName
                     try {
                         val transport = path.await()
                         showTransport(transport)
@@ -702,7 +821,6 @@ class MainActivity : AppCompatActivity() {
                         if (!videoRunning) break
                         renderVideoResult(result)
                         val named = providerName.await()
-                        showProvider(named)
                         val found = place.await()
                         SpeedtestReport.uploadVideo(
                             applicationContext,
@@ -747,12 +865,12 @@ class MainActivity : AppCompatActivity() {
                     } finally {
                         place.cancel()
                         path.cancel()
-                        providerName.cancel()
                     }
                 }
             } catch (_: CancellationException) {
             } finally {
                 videoRunning = false
+                settlePath()
                 binding.videoGo.text = getString(R.string.speed_go)
                 binding.videoGo.alpha = 1f
                 binding.videoHudProgress.visibility = View.INVISIBLE
@@ -915,6 +1033,7 @@ class MainActivity : AppCompatActivity() {
             } catch (_: CancellationException) {
             } finally {
                 running = false
+                settlePath()
                 binding.speedCenter.text = getString(R.string.speed_go)
                 binding.gauge.setReading(0.0, "", "")
                 val status = binding.speedStatus.text?.toString().orEmpty()
