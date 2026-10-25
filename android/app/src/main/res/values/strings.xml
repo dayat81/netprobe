@@ -62,6 +62,8 @@
     <string name="post_auto_yes_id">Ya</string>
     <string name="post_auto_no_id">Tidak</string>
     <string name="complaint_share">Share to X</string>
+    <string name="complaint_online">Online</string>
+    <string name="complaint_offline">Offline. Posting needs an internet connection.</string>
     <string name="complaint_quota">Usage %1$d/10 · credit %2$d</string>
     <string name="complaint_quota_placeholder">Usage 0/10 · credit 0</string>
     <string name="complaint_copy">Copy</string>

@@ -27,47 +27,66 @@ object PlaceCapture {
         val latitude: Double? = null,
         val longitude: Double? = null,
     )
+    private const val TAG = "PlaceCapture"
     private const val MAX_ACCURACY_M = 150f
     private const val WAIT_MS = 12_000L
     private val executor = Executors.newSingleThreadExecutor()
 
     suspend fun district(context: Context): Place = withContext(Dispatchers.IO) {
-        val fix = freshGps(context.applicationContext) ?: return@withContext Place()
-        val named = name(context.applicationContext, fix.latitude, fix.longitude)
-        named.copy(latitude = fix.latitude, longitude = fix.longitude)
+        when (val gps = freshGps(context.applicationContext)) {
+            is GpsHit -> {
+                val named = names(context.applicationContext, gps.location.latitude, gps.location.longitude)
+                val place = named.copy(latitude = gps.location.latitude, longitude = gps.location.longitude)
+                if (PlaceFill.named(place.kelurahan, place.kecamatan, place.kabupaten, place.provinsi)) {
+                    AppLog.i(TAG, "place named")
+                }
+                place
+            }
+            GpsMiss.OFF -> Place().also { AppLog.i(TAG, "place gps_off") }
+            GpsMiss.TIMEOUT -> Place().also { AppLog.i(TAG, "place gps_timeout") }
+            GpsMiss.COARSE -> Place().also { AppLog.i(TAG, "place coarse") }
+        }
     }
 
+    fun names(context: Context, latitude: Double, longitude: Double): Place = name(context, latitude, longitude)
+
+    private sealed interface GpsRead
+
+    private sealed class GpsMiss : GpsRead {
+        data object OFF : GpsMiss()
+        data object TIMEOUT : GpsMiss()
+        data object COARSE : GpsMiss()
+    }
+
+    private class GpsHit(val location: Location) : GpsRead
+
     @SuppressLint("MissingPermission")
-    private suspend fun freshGps(context: Context): Location? {
+    private suspend fun freshGps(context: Context): GpsRead {
         if (
             ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION)
             != PackageManager.PERMISSION_GRANTED
         ) {
-            return null
+            return GpsMiss.OFF
         }
-        val manager = context.getSystemService(LocationManager::class.java) ?: return null
+        val manager = context.getSystemService(LocationManager::class.java) ?: return GpsMiss.OFF
         val gpsOn = runCatching { manager.isProviderEnabled(LocationManager.GPS_PROVIDER) }.getOrDefault(false)
-        if (!gpsOn) return null
-        return withTimeoutOrNull(WAIT_MS) {
+        if (!gpsOn) return GpsMiss.OFF
+        val reading = withTimeoutOrNull(WAIT_MS) {
             suspendCancellableCoroutine { cont ->
                 val signal = CancellationSignal()
                 cont.invokeOnCancellation { signal.cancel() }
                 val started = runCatching {
                     manager.getCurrentLocation(LocationManager.GPS_PROVIDER, signal, executor) { raw ->
                         if (!cont.isActive) return@getCurrentLocation
-                        cont.resume(acceptable(raw))
+                        cont.resume(raw)
                     }
                 }
                 if (started.isFailure && cont.isActive) cont.resume(null)
             }
         }
-    }
-
-    /** A coarse reading is not accepted in place of a tight GPS fix. */
-    private fun acceptable(location: Location?): Location? {
-        if (location == null || !location.hasAccuracy()) return null
-        if (location.accuracy > MAX_ACCURACY_M) return null
-        return location
+        if (reading == null) return GpsMiss.TIMEOUT
+        if (!reading.hasAccuracy() || reading.accuracy > MAX_ACCURACY_M) return GpsMiss.COARSE
+        return GpsHit(reading)
     }
 
     @Suppress("DEPRECATION")

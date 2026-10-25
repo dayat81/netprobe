@@ -59,6 +59,8 @@ class MainActivity : AppCompatActivity() {
     private var pathDirty = false
     private var watchedNetwork: Network? = null
     private var watchedKind = ""
+    private var postOnline = false
+    private var placeJob: Job? = null
 
     private val permissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions(),
@@ -214,6 +216,7 @@ class MainActivity : AppCompatActivity() {
             override fun onCapabilitiesChanged(network: Network, caps: NetworkCapabilities) {
                 val kind = kindOf(caps)
                 runOnUiThread {
+                    showLink(network)
                     if (watchedNetwork != null && network != watchedNetwork) return@runOnUiThread
                     if (network == watchedNetwork && kind == watchedKind) return@runOnUiThread
                     applyPath(network)
@@ -234,6 +237,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun applyPath(network: Network?) {
+        showLink(network)
         val kind = network?.let { kindOf(it) }.orEmpty()
         watchedNetwork = network
         watchedKind = kind
@@ -278,6 +282,19 @@ class MainActivity : AppCompatActivity() {
             ClientNetworkInfo.remember(public)
             showProvider(public.provider)
         }
+    }
+
+    private fun showLink(network: Network? = watchedNetwork ?: activeNetwork()) {
+        val caps = network?.let { getSystemService(ConnectivityManager::class.java)?.getNetworkCapabilities(it) }
+        postOnline = caps != null &&
+            caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
+            caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
+        if (!::binding.isInitialized) return
+        binding.complaintLink.text = getString(if (postOnline) R.string.complaint_online else R.string.complaint_offline)
+        binding.complaintLink.setTextColor(
+            ContextCompat.getColor(this, if (postOnline) R.color.accent else R.color.text_secondary),
+        )
+        refreshDraftActions()
     }
 
     private fun activeNetwork(): Network? =
@@ -588,9 +605,61 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun showPost() {
+        showLink()
         renderEventPicker()
         refreshDraftActions()
         loadQuota()
+        fillPlaces()
+    }
+
+    private fun fillPlaces() {
+        placeJob?.cancel()
+        val events = ComplaintStore.postEvents(this).take(pickableEventLimit)
+        placeJob = lifecycleScope.launch {
+            var changed = false
+            for (event in events) {
+                if (!PlaceFill.pending(event.kelurahan, event.kecamatan, event.kabupaten, event.provinsi, event.latitude, event.longitude)) {
+                    continue
+                }
+                val latitude = event.latitude ?: continue
+                val longitude = event.longitude ?: continue
+                val named = withContext(Dispatchers.IO) { PlaceCapture.names(applicationContext, latitude, longitude) }
+                if (!PlaceFill.named(named.kelurahan, named.kecamatan, named.kabupaten, named.provinsi)) continue
+                ComplaintStore.rememberPlace(
+                    this@MainActivity,
+                    event.key,
+                    named.kelurahan,
+                    named.kecamatan,
+                    named.kabupaten,
+                    named.provinsi,
+                )
+                changed = true
+            }
+            val newest = events.firstOrNull()
+            val newestNamed = newest != null && PlaceFill.named(newest.kelurahan, newest.kecamatan, newest.kabupaten, newest.provinsi)
+            if (newest != null && !newestNamed && newest.latitude == null) {
+                val found = withContext(Dispatchers.IO) { PlaceCapture.district(applicationContext) }
+                val latitude = found.latitude
+                val longitude = found.longitude
+                if (latitude != null && longitude != null) {
+                    ComplaintStore.rememberPlace(
+                        this@MainActivity,
+                        newest.key,
+                        found.kelurahan,
+                        found.kecamatan,
+                        found.kabupaten,
+                        found.provinsi,
+                        latitude,
+                        longitude,
+                    )
+                    changed = true
+                }
+            }
+            if (changed && currentTab == Tab.COMPLAINT) {
+                renderEventPicker()
+                refreshDraftActions()
+            }
+        }
     }
 
     private fun showQuota(freeUsed: Int, balance: Int) {
@@ -637,11 +706,7 @@ class MainActivity : AppCompatActivity() {
         val kind = if (event.kind == "video") "Video" else "Speed"
         val provider = event.provider.trim().ifBlank { "—" }
         val transport = NetworkPath.label(event.transport).ifBlank { "—" }
-        val place = listOf(event.kelurahan, event.kecamatan, event.kabupaten, event.provinsi)
-            .map { it.trim() }
-            .filter { it.isNotEmpty() }
-            .joinToString(" · ")
-            .ifBlank { "—" }
+        val place = PlaceFill.label(event.kelurahan, event.kecamatan, event.kabupaten, event.provinsi)
         val metrics = if (event.kind == "video") {
             val load = event.loadMs?.let { SpeedtestMath.formatMs(it) } ?: "—"
             val buffer = event.bufferingPct?.let { "%.1f".format(it) } ?: "—"
@@ -712,13 +777,15 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun refreshDraftActions() {
-        binding.complaintDraft.isEnabled = selectedEventKeys.isNotEmpty() && complaintJob?.isActive != true
+        binding.complaintDraft.isEnabled =
+            postOnline && selectedEventKeys.isNotEmpty() && complaintJob?.isActive != true
         val cache = draftCache
         val matches = cache != null && cache.key == selectionKey()
         binding.complaintShare.isEnabled = matches && cache.eligible
     }
 
     private fun draftSelected() {
+        if (!postOnline) return
         val key = selectionKey()
         val cached = draftCache
         if (cached != null && cached.key == key) {

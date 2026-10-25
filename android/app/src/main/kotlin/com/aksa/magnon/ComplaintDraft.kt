@@ -73,6 +73,8 @@ object ComplaintStore {
         val kecamatan: String,
         val kabupaten: String,
         val provinsi: String,
+        val latitude: Double? = null,
+        val longitude: Double? = null,
         val downloadMbps: Double? = null,
         val uploadMbps: Double? = null,
         val pingMs: Long? = null,
@@ -377,6 +379,8 @@ object ComplaintStore {
                 kecamatan = speed.kecamatan,
                 kabupaten = speed.kabupaten,
                 provinsi = speed.provinsi,
+                latitude = speed.latitude,
+                longitude = speed.longitude,
                 downloadMbps = speed.downloadMbps,
                 uploadMbps = speed.uploadMbps,
                 pingMs = speed.pingMs,
@@ -395,12 +399,64 @@ object ComplaintStore {
                 kecamatan = video.kecamatan,
                 kabupaten = video.kabupaten,
                 provinsi = video.provinsi,
+                latitude = video.latitude,
+                longitude = video.longitude,
                 loadMs = video.loadMs,
                 resolution = video.resolution,
                 bufferingPct = video.bufferingPct,
             )
         }
         return (speeds + videos).sortedByDescending { it.tsMs }
+    }
+
+    fun rememberPlace(
+        context: Context,
+        key: String,
+        kelurahan: String,
+        kecamatan: String,
+        kabupaten: String,
+        provinsi: String,
+        latitude: Double? = null,
+        longitude: Double? = null,
+    ) {
+        val prefs = context.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        val editor = prefs.edit()
+        writePlace(prefs, editor, "speed_history", "speed", key, kelurahan, kecamatan, kabupaten, provinsi, latitude, longitude)
+        writePlace(prefs, editor, "video_history", "video", key, kelurahan, kecamatan, kabupaten, provinsi, latitude, longitude)
+        editor.apply()
+    }
+
+    private fun writePlace(
+        prefs: android.content.SharedPreferences,
+        editor: android.content.SharedPreferences.Editor,
+        historyKey: String,
+        prefix: String,
+        key: String,
+        kelurahan: String,
+        kecamatan: String,
+        kabupaten: String,
+        provinsi: String,
+        latitude: Double?,
+        longitude: Double?,
+    ) {
+        val array = JSONArray(prefs.getString(historyKey, "[]"))
+        var changed = false
+        for (index in 0 until array.length()) {
+            val item = array.optJSONObject(index) ?: continue
+            val id = item.optString("id")
+            val ts = item.optLong("ts")
+            if (id != key && key != "$prefix:$ts") continue
+            if (kelurahan.isNotBlank()) item.put("kelurahan", kelurahan.take(80))
+            if (kecamatan.isNotBlank()) item.put("kecamatan", kecamatan.take(80))
+            if (kabupaten.isNotBlank()) item.put("kabupaten", kabupaten.take(80))
+            if (provinsi.isNotBlank()) item.put("provinsi", provinsi.take(80))
+            if (latitude != null && longitude != null && latitude.isFinite() && longitude.isFinite()) {
+                item.put("lat", latitude)
+                item.put("lon", longitude)
+            }
+            changed = true
+        }
+        if (changed) editor.putString(historyKey, array.toString())
     }
 
     private fun samplesJson(samples: List<Sample>): String {

@@ -502,6 +502,16 @@
             android:visibility="gone">
 
             <TextView
+                android:id="@+id/complaintLink"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:paddingBottom="4dp"
+                android:text="@string/complaint_offline"
+                android:textColor="@color/text_secondary"
+                android:textSize="14sp"
+                android:textStyle="bold" />
+
+            <TextView
                 android:id="@+id/complaintQuota"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
