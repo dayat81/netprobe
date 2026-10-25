@@ -705,6 +705,10 @@ def test_public_portal_compares_districts_without_the_old_pitch():
     assert "ten newest loops" in visible
     assert "@magnontest" in visible
     assert "sepuluh loop terbaru" in visible
+    assert "same district" in visible
+    assert "kecamatan yang sama" in visible
+    assert "gps place" in visible
+    assert "nama tempat dari gps" in visible
     assert "google" not in visible
     assert 'href="/posts"' in visible
     assert "postingan" in visible
