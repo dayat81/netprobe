@@ -24,6 +24,7 @@ from opensignal_mirror.magnon import (  # noqa: E402
     place_from_components,
     result_page,
     strip_identity,
+    _jev_questions,
 )
 
 
@@ -439,11 +440,22 @@ def test_compose_lists_selected_events_and_omits_a_disputed_place():
         seen["events"] = [row["id"] for row in brief["events"]]
         seen["kecamatan"] = brief.get("kecamatan", "")
         seen["provider"] = brief.get("provider", "")
+        seen["questions"] = list(_jev_questions(brief))
         assert "speed" not in brief
-        return {"post_intent": "complaint", "quality_band": "poor"}
+        return {
+            "post_intent": "complaint",
+            "quality_band": "poor",
+            "event_bands": [
+                {"id": "myspd0000000000000001", "quality_band": "poor"},
+                {"id": "mysvd0000000000000002", "quality_band": "fair"},
+            ],
+        }
 
-    def draft(brief, _classification):
+    def draft(brief, classification):
         seen["draft_ids"] = [row["id"] for row in brief["events"]]
+        seen["bands"] = [row.get("quality_band") for row in brief["events"]]
+        seen["intent"] = classification["post_intent"]
+        seen["set_band"] = classification["quality_band"]
         return {"sentence": "Two slow tests.", "summary": "Both slow."}
 
     result = compose_post(
@@ -483,22 +495,31 @@ def test_compose_lists_selected_events_and_omits_a_disputed_place():
     )
     assert seen["events"] == ["myspd0000000000000001", "mysvd0000000000000002"]
     assert seen["draft_ids"] == seen["events"]
+    assert seen["bands"] == ["poor", "fair"]
+    assert seen["intent"] == "complaint"
+    assert seen["set_band"] == "poor"
+    assert seen["questions"] == ["quality_band", "event_0", "event_1"]
     assert seen["kecamatan"] == ""
     assert seen["provider"] == "Telkomsel"
     run_id = result["url"].rsplit("/", 1)[-1]
     status, page = result_page(ledger, run_id)
     text = page.decode("utf-8")
     assert status == 200
+    assert "Two slow tests." in text
     assert "myspd0000000000000001" in text
     assert "mysvd0000000000000002" in text
     assert "3.5" in text
     assert "360p" in text
-    assert "Menteng" not in text
-    assert "Gambir" not in text
+    assert "<h2>Speed</h2>" in text
+    assert "<h2>Video</h2>" in text
+    assert "<strong>Kecamatan</strong><span>Menteng</span>" in text
+    assert "<strong>Kecamatan</strong><span>Gambir</span>" in text
+    assert "<strong>Quality</strong><span>poor</span>" in text
+    assert "<strong>Quality</strong><span>fair</span>" in text
     assert "-6.2" not in text
     assert "203.0.113.9" not in text
     assert "<strong>Provider</strong><span>Telkomsel</span>" in text
-    assert "<h2>Speed</h2>" not in text
+    assert "viewBox" not in text
 
 
 def test_abbreviated_district_matches_the_map_name():
