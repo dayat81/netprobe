@@ -37,6 +37,7 @@ class MainActivity : AppCompatActivity() {
     private var videoJob: Job? = null
     private var complaintJob: Job? = null
     private val selectedEventKeys = linkedSetOf<String>()
+    private val pickableEventLimit = 10
     private var draftCache: DraftCache? = null
     private var running = false
     private var videoRunning = false
@@ -477,9 +478,13 @@ class MainActivity : AppCompatActivity() {
     private fun renderEventPicker() {
         val list = binding.complaintEvents
         list.removeAllViews()
-        val events = ComplaintStore.postEvents(this)
+        val events = ComplaintStore.postEvents(this).take(pickableEventLimit)
         val known = events.map { it.key }.toSet()
         selectedEventKeys.retainAll(known)
+        val anchor = events.firstOrNull { it.key in selectedEventKeys }
+        if (anchor != null) {
+            selectedEventKeys.retainAll(events.filter { samePath(it, anchor) }.map { it.key }.toSet())
+        }
         if (events.isEmpty()) {
             list.addView(historyText(getString(R.string.complaint_events_empty), 14f, false))
             return
@@ -487,34 +492,76 @@ class MainActivity : AppCompatActivity() {
         events.forEach { event ->
             list.addView(eventCheck(event))
         }
+        refreshEventAvailability()
     }
 
     private fun eventCheck(event: ComplaintStore.PostEvent): CheckBox {
         val whenText = historyClock.format(Date(event.tsMs))
+        val kind = if (event.kind == "video") "Video" else "Speed"
+        val provider = event.provider.trim().ifBlank { "—" }
+        val transport = NetworkPath.label(event.transport).ifBlank { "—" }
+        val place = listOf(event.kelurahan, event.kecamatan, event.kabupaten, event.provinsi)
+            .map { it.trim() }
+            .filter { it.isNotEmpty() }
+            .joinToString(" · ")
+            .ifBlank { "—" }
         val metrics = if (event.kind == "video") {
             val load = event.loadMs?.let { SpeedtestMath.formatMs(it) } ?: "—"
             val buffer = event.bufferingPct?.let { "%.1f".format(it) } ?: "—"
-            "$whenText · Video\n${event.resolution.ifBlank { "—" }} · load $load ms · buf $buffer%"
+            "${event.resolution.ifBlank { "—" }} · load $load ms · buf $buffer%"
         } else {
             val down = event.downloadMbps?.let { SpeedtestMath.formatMbps(it) } ?: "—"
             val up = event.uploadMbps?.let { SpeedtestMath.formatMbps(it) } ?: "—"
             val ping = event.pingMs?.let { SpeedtestMath.formatMs(it) } ?: "—"
-            "$whenText · Speed\n↓ $down  ↑ $up  ping $ping ms"
+            "↓ $down  ↑ $up  ping $ping ms"
         }
-        val label = if (event.eventId.isBlank()) metrics else "$metrics\n${event.eventId}"
+        val label = buildString {
+            append("$whenText · $kind\n$provider · $transport\n$place\n$metrics")
+            if (event.eventId.isNotBlank()) append("\n${event.eventId}")
+        }
         return CheckBox(this).apply {
+            tag = event
             text = label
             setTextColor(ContextCompat.getColor(this@MainActivity, R.color.text_primary))
             isChecked = selectedEventKeys.contains(event.key)
             setOnCheckedChangeListener { _, checked ->
-                if (checked && selectedEventKeys.size >= 20 && !selectedEventKeys.contains(event.key)) {
+                val current = selectedAnchor()
+                if (checked && current != null && !samePath(event, current)) {
                     isChecked = false
                     return@setOnCheckedChangeListener
                 }
                 if (checked) selectedEventKeys.add(event.key) else selectedEventKeys.remove(event.key)
+                refreshEventAvailability()
                 refreshDraftActions()
             }
         }
+    }
+
+    private fun selectedAnchor(): ComplaintStore.PostEvent? {
+        val list = binding.complaintEvents
+        for (index in 0 until list.childCount) {
+            val box = list.getChildAt(index) as? CheckBox ?: continue
+            val event = box.tag as? ComplaintStore.PostEvent ?: continue
+            if (event.key in selectedEventKeys) return event
+        }
+        return null
+    }
+
+    private fun refreshEventAvailability() {
+        val anchor = selectedAnchor()
+        val list = binding.complaintEvents
+        for (index in 0 until list.childCount) {
+            val box = list.getChildAt(index) as? CheckBox ?: continue
+            val event = box.tag as? ComplaintStore.PostEvent ?: continue
+            box.isEnabled = anchor == null || event.key in selectedEventKeys || samePath(event, anchor)
+            box.alpha = if (box.isEnabled) 1f else 0.4f
+        }
+    }
+
+    private fun samePath(event: ComplaintStore.PostEvent, anchor: ComplaintStore.PostEvent): Boolean {
+        val transport = NetworkPath.canonical(event.transport) == NetworkPath.canonical(anchor.transport)
+        val provider = event.provider.trim().equals(anchor.provider.trim(), ignoreCase = true)
+        return transport && provider
     }
 
     private fun selectionKey(): String {
@@ -543,7 +590,7 @@ class MainActivity : AppCompatActivity() {
             refreshDraftActions()
             return
         }
-        val chosen = ComplaintStore.postEvents(this).filter { it.key in selectedEventKeys }
+        val chosen = ComplaintStore.postEvents(this).take(pickableEventLimit).filter { it.key in selectedEventKeys }
         complaintJob?.cancel()
         binding.complaintDraft.isEnabled = false
         binding.complaintShare.isEnabled = false
@@ -620,7 +667,8 @@ class MainActivity : AppCompatActivity() {
                         }
                         if (!videoRunning) break
                         renderVideoResult(result)
-                        showProvider(providerName.await())
+                        val named = providerName.await()
+                        showProvider(named)
                         val found = place.await()
                         SpeedtestReport.uploadVideo(
                             applicationContext,
@@ -632,6 +680,7 @@ class MainActivity : AppCompatActivity() {
                             found.provinsi,
                             found.latitude,
                             found.longitude,
+                            named,
                         )
                         binding.videoGo.alpha = 1f
                         for (left in 10 downTo 1) {

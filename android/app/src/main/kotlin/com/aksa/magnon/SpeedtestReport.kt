@@ -74,10 +74,11 @@ object SpeedtestReport {
         provinsi: String = "",
         latitude: Double? = null,
         longitude: Double? = null,
+        provider: String = "",
     ) {
         val eventId = "mysvd" + UUID.randomUUID().toString().replace("-", "").take(16)
         ComplaintStore.saveVideo(
-            context, result, kecamatan, transport, kelurahan, kabupaten, provinsi, latitude, longitude, eventId,
+            context, result, kecamatan, transport, kelurahan, kabupaten, provinsi, latitude, longitude, eventId, provider,
         )
         if (!CollectorClient.measureEnabled) return
         val app = context.applicationContext

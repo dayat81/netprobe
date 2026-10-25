@@ -59,6 +59,7 @@ object ComplaintStore {
         val latitude: Double? = null,
         val longitude: Double? = null,
         val eventId: String = "",
+        val provider: String = "",
     )
 
     data class PostEvent(
@@ -267,6 +268,7 @@ object ComplaintStore {
         latitude: Double? = null,
         longitude: Double? = null,
         eventId: String = "",
+        provider: String = "",
     ) {
         val stages = result.stages.map { Stage(it.resolution, it.loadMs, it.playedMs, it.bufferMs) }
         val place = kecamatan.trim().take(80)
@@ -289,6 +291,7 @@ object ComplaintStore {
             latitude = latitude?.takeIf { it.isFinite() },
             longitude = longitude?.takeIf { it.isFinite() },
             eventId = eventId.trim().take(40),
+            provider = provider.trim().take(80),
         )
         shownVideo = saved
         context.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
@@ -297,6 +300,7 @@ object ComplaintStore {
             .putString("video_res", result.maxResolution)
             .putFloat("video_buf", result.bufferingPct.toFloat())
             .putString("video_transport", path)
+            .putString("video_provider", saved.provider)
             .putString("video_kecamatan", place)
             .putString("video_kelurahan", village)
             .putString("video_kabupaten", regency)
@@ -321,6 +325,7 @@ object ComplaintStore {
                 .put("res", entry.resolution)
                 .put("buf", entry.bufferingPct)
                 .put("transport", entry.transport)
+                .put("provider", entry.provider.take(80))
                 .put("kecamatan", entry.kecamatan.take(80))
                 .put("kelurahan", entry.kelurahan.take(80))
                 .put("kabupaten", entry.kabupaten.take(80))
@@ -354,6 +359,7 @@ object ComplaintStore {
                 latitude = jsonCoord(item, "lat"),
                 longitude = jsonCoord(item, "lon"),
                 eventId = item.optString("id"),
+                provider = item.optString("provider"),
             )
         }
     }
@@ -384,7 +390,7 @@ object ComplaintStore {
                 kind = "video",
                 tsMs = video.tsMs,
                 transport = video.transport,
-                provider = "",
+                provider = video.provider,
                 kelurahan = video.kelurahan,
                 kecamatan = video.kecamatan,
                 kabupaten = video.kabupaten,
@@ -481,6 +487,7 @@ object ComplaintStore {
             prefs.getString("video_kelurahan", "").orEmpty(),
             prefs.getString("video_kabupaten", "").orEmpty(),
             prefs.getString("video_provinsi", "").orEmpty(),
+            provider = prefs.getString("video_provider", "").orEmpty(),
             latitude = readCoord(prefs.getString("video_lat", "")),
             longitude = readCoord(prefs.getString("video_lon", "")),
         )
