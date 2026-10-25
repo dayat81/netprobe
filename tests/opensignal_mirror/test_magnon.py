@@ -425,9 +425,80 @@ def test_compose_publishes_speed_and_video_charts_without_identity():
     assert "radio" not in seen["keys"]
     assert "samples" not in seen["speed_keys"]
     stored = ledger.run(run_id)
+    assert stored.get("events") == []
     assert "public_ip" not in stored
     assert "location" not in stored
     assert result_page(ledger, "notfoundpage")[0] == 404
+
+
+def test_compose_lists_selected_events_and_omits_a_disputed_place():
+    ledger = MemoryLedger()
+    seen = {}
+
+    def classify(brief):
+        seen["events"] = [row["id"] for row in brief["events"]]
+        seen["kecamatan"] = brief.get("kecamatan", "")
+        seen["provider"] = brief.get("provider", "")
+        assert "speed" not in brief
+        return {"post_intent": "complaint", "quality_band": "poor"}
+
+    def draft(brief, _classification):
+        seen["draft_ids"] = [row["id"] for row in brief["events"]]
+        return {"sentence": "Two slow tests.", "summary": "Both slow."}
+
+    result = compose_post(
+        {
+            "language": "en",
+            "latitude": -6.2,
+            "longitude": 106.8,
+            "public_ip": "203.0.113.9",
+            "events": [
+                {
+                    "id": "myspd0000000000000001",
+                    "kind": "speed",
+                    "when": "25/10 14:00",
+                    "kecamatan": "Menteng",
+                    "provider": "Telkomsel",
+                    "transport": "cellular",
+                    "download_mbps": 3.5,
+                    "upload_mbps": 1.0,
+                    "ping_ms": 200,
+                },
+                {
+                    "id": "mysvd0000000000000002",
+                    "kind": "video",
+                    "when": "25/10 14:05",
+                    "kecamatan": "Gambir",
+                    "provider": "Telkomsel",
+                    "transport": "cellular",
+                    "resolution": "360p",
+                    "load_ms": 2400,
+                    "buffering_pct": 8,
+                },
+            ],
+        },
+        classify=classify,
+        draft=draft,
+        store=ledger,
+    )
+    assert seen["events"] == ["myspd0000000000000001", "mysvd0000000000000002"]
+    assert seen["draft_ids"] == seen["events"]
+    assert seen["kecamatan"] == ""
+    assert seen["provider"] == "Telkomsel"
+    run_id = result["url"].rsplit("/", 1)[-1]
+    status, page = result_page(ledger, run_id)
+    text = page.decode("utf-8")
+    assert status == 200
+    assert "myspd0000000000000001" in text
+    assert "mysvd0000000000000002" in text
+    assert "3.5" in text
+    assert "360p" in text
+    assert "Menteng" not in text
+    assert "Gambir" not in text
+    assert "-6.2" not in text
+    assert "203.0.113.9" not in text
+    assert "<strong>Provider</strong><span>Telkomsel</span>" in text
+    assert "<h2>Speed</h2>" not in text
 
 
 def test_abbreviated_district_matches_the_map_name():

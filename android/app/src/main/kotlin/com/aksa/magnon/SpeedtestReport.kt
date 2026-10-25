@@ -23,12 +23,15 @@ object SpeedtestReport {
         longitude: Double? = null,
     ) {
         RumReporter.noteSpeed(result)
-        ComplaintStore.saveSpeed(context, result, kecamatan, transport, kelurahan, kabupaten, provinsi, latitude, longitude)
+        val eventId = "myspd" + UUID.randomUUID().toString().replace("-", "").take(16)
+        ComplaintStore.saveSpeed(
+            context, result, kecamatan, transport, kelurahan, kabupaten, provinsi, latitude, longitude, eventId,
+        )
         if (!CollectorClient.measureEnabled) return
         val app = context.applicationContext
         thread(name = "mysignal-speed-upload", start = true) {
             val test = JSONObject()
-                .put("event_id", "myspd" + UUID.randomUUID().toString().replace("-", "").take(16))
+                .put("event_id", eventId)
                 .put("ts_ms", System.currentTimeMillis())
                 .put("source", "network_fallback")
                 .put("test_type", "combined")
@@ -72,13 +75,16 @@ object SpeedtestReport {
         latitude: Double? = null,
         longitude: Double? = null,
     ) {
-        ComplaintStore.saveVideo(context, result, kecamatan, transport, kelurahan, kabupaten, provinsi, latitude, longitude)
+        val eventId = "mysvd" + UUID.randomUUID().toString().replace("-", "").take(16)
+        ComplaintStore.saveVideo(
+            context, result, kecamatan, transport, kelurahan, kabupaten, provinsi, latitude, longitude, eventId,
+        )
         if (!CollectorClient.measureEnabled) return
         val app = context.applicationContext
         thread(name = "mysignal-video-upload", start = true) {
             val summary = "mysignal-video load_ms=${result.loadTimeMs} res=${result.maxResolution} buf=${"%.1f".format(result.bufferingPct)}"
             val test = JSONObject()
-                .put("event_id", "mysvd" + UUID.randomUUID().toString().replace("-", "").take(16))
+                .put("event_id", eventId)
                 .put("ts_ms", System.currentTimeMillis())
                 .put("source", "network_fallback")
                 .put("test_type", "combined")

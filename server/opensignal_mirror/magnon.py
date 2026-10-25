@@ -2005,8 +2005,16 @@ def compose_post(
     if not isinstance(raw, dict):
         raise ValueError("bad_brief")
     brief = _compose_brief(raw)
-    _use_stored_fix(brief, fixes)
-    _fill_place(brief, geocode or reverse_geocode)
+    events = _compose_events(raw)
+    if events:
+        brief["events"] = events
+        for key in ("kelurahan", "kecamatan", "kabupaten", "provinsi", "transport", "provider", "carrier"):
+            brief[key] = _agreed(events, key)
+        brief["latitude"] = None
+        brief["longitude"] = None
+    else:
+        _use_stored_fix(brief, fixes)
+        _fill_place(brief, geocode or reverse_geocode)
     if not _compose_has_result(brief):
         return {
             "eligible": False,
@@ -2044,11 +2052,57 @@ def compose_post(
 
 
 def _compose_has_result(brief: dict) -> bool:
+    if brief.get("events"):
+        return True
     speed = brief.get("speed") or {}
     video = brief.get("video") or {}
     if speed.get("download_mbps") is not None or speed.get("upload_mbps") is not None:
         return True
     return bool(str(video.get("resolution") or "").strip())
+
+
+def _agreed(events: list[dict], key: str) -> str:
+    values = [str(event.get(key) or "").strip() for event in events]
+    if not values or any(not value for value in values):
+        return ""
+    return values[0] if all(value == values[0] for value in values) else ""
+
+
+def _compose_events(raw: dict) -> list[dict]:
+    rows = raw.get("events")
+    if not isinstance(rows, list):
+        return []
+    chosen = []
+    for row in rows[:20]:
+        if not isinstance(row, dict):
+            continue
+        kind = "video" if str(row.get("kind") or "") == "video" else "speed"
+        item = {
+            "id": _clip(row.get("id"), 40),
+            "kind": kind,
+            "when": _clip(row.get("when"), 40),
+            "kelurahan": _clip(row.get("kelurahan"), 80),
+            "kecamatan": _clip(row.get("kecamatan"), 80),
+            "kabupaten": _clip(row.get("kabupaten"), 80),
+            "provinsi": _clip(row.get("provinsi"), 80),
+            "transport": _clip(row.get("transport"), 16),
+            "provider": _clip(row.get("provider"), 64),
+        }
+        if kind == "video":
+            item["load_ms"] = _number(row.get("load_ms"))
+            item["resolution"] = _clip(row.get("resolution"), 16)
+            item["buffering_pct"] = _number(row.get("buffering_pct"))
+            if not item["resolution"] and item["load_ms"] is None:
+                continue
+        else:
+            item["download_mbps"] = _number(row.get("download_mbps"))
+            item["upload_mbps"] = _number(row.get("upload_mbps"))
+            item["ping_ms"] = _number(row.get("ping_ms"))
+            item["jitter_ms"] = _number(row.get("jitter_ms"))
+            if item["download_mbps"] is None and item["upload_mbps"] is None:
+                continue
+        chosen.append(item)
+    return chosen
 
 
 def _clip(value: object, limit: int) -> str:
@@ -2174,21 +2228,26 @@ def _model_brief(brief: dict) -> dict:
         "style": brief.get("style") or "biasa",
         "kelurahan": brief.get("kelurahan") or "",
         "kecamatan": brief.get("kecamatan") or "",
+        "kabupaten": brief.get("kabupaten") or "",
+        "provinsi": brief.get("provinsi") or "",
         "transport": brief.get("transport") or "",
         "provider": brief.get("provider") or "",
         "mention": brief.get("mention") or "",
-        "speed": {
+    }
+    if brief.get("events"):
+        compact["events"] = brief.get("events")
+    else:
+        compact["speed"] = {
             "download_mbps": speed.get("download_mbps"),
             "upload_mbps": speed.get("upload_mbps"),
             "ping_ms": speed.get("ping_ms"),
             "jitter_ms": speed.get("jitter_ms"),
-        },
-        "video": {
+        }
+        compact["video"] = {
             "resolution": video.get("resolution") or "",
             "load_ms": video.get("load_ms"),
             "buffering_pct": video.get("buffering_pct"),
-        },
-    }
+        }
     return {key: value for key, value in compact.items() if value not in ("", None)}
 
 
@@ -2225,6 +2284,7 @@ def publish_run(ledger: MemoryLedger, brief: dict) -> str:
                 "buffering_pct": video.get("buffering_pct"),
                 "stages": video.get("stages") or [],
             },
+            "events": brief.get("events") or [],
         }
     )
     host = os.environ.get("MAGNON_PUBLIC_HOST", "magnon.site").strip() or "magnon.site"
@@ -2280,16 +2340,56 @@ def _result_html(row: dict) -> bytes:
         labeled.append("<div><strong>Kelurahan</strong><span>%s</span></div>" % village)
     if place:
         labeled.append("<div><strong>Kecamatan</strong><span>%s</span></div>" % place)
-    facts = labeled + facts
+    events = row.get("events") if isinstance(row.get("events"), list) else []
+    if events:
+        facts = labeled
+    else:
+        facts = labeled + facts
     when = html.escape(str(row.get("when") or ""))
     transport = html.escape(str(row.get("transport") or ""))
     meta = " · ".join(part for part in (transport, when) if part)
     charts = []
-    speed_chart = _speed_chart(speed.get("download") or [], speed.get("upload") or [])
-    if speed_chart:
-        charts.append("<h2>Speed</h2>" + speed_chart)
-    body = "<p class=\"meta\">%s</p><div class=\"facts\">%s</div>%s" % (meta, "".join(facts), "".join(charts))
+    if not events:
+        speed_chart = _speed_chart(speed.get("download") or [], speed.get("upload") or [])
+        if speed_chart:
+            charts.append("<h2>Speed</h2>" + speed_chart)
+    body = "<p class=\"meta\">%s</p><div class=\"facts\">%s</div>%s%s" % (
+        meta,
+        "".join(facts),
+        _events_html(events),
+        "".join(charts),
+    )
     return _result_document("Magnon result", body).encode("utf-8")
+
+
+def _events_html(events: list) -> str:
+    if not events:
+        return ""
+    rows = ["<h2>Events</h2><ul>"]
+    for event in events:
+        if not isinstance(event, dict):
+            continue
+        when = html.escape(str(event.get("when") or ""))
+        event_id = html.escape(str(event.get("id") or ""))
+        if event.get("kind") == "video":
+            line = "%s · Video · %s · %s · load %s ms · buf %s%%" % (
+                when,
+                event_id,
+                html.escape(str(event.get("resolution") or "")),
+                html.escape(str(event.get("load_ms") if event.get("load_ms") is not None else "")),
+                html.escape(str(event.get("buffering_pct") if event.get("buffering_pct") is not None else "")),
+            )
+        else:
+            line = "%s · Speed · %s · ↓ %s · ↑ %s · ping %s ms" % (
+                when,
+                event_id,
+                html.escape(str(event.get("download_mbps") if event.get("download_mbps") is not None else "")),
+                html.escape(str(event.get("upload_mbps") if event.get("upload_mbps") is not None else "")),
+                html.escape(str(event.get("ping_ms") if event.get("ping_ms") is not None else "")),
+            )
+        rows.append("<li>%s</li>" % line)
+    rows.append("</ul>")
+    return "".join(rows)
 
 
 def _result_document(title: str, body: str) -> str:
@@ -2425,7 +2525,7 @@ def classify_with_jev(brief: dict) -> dict:
         "questions": {
             "quality_band": {
                 "type": "choice",
-                "instructions": "Overall quality of the measured speed and/or video experience in `brief`. Use the numbers present. Cellular and Wi-Fi tests both count.",
+                "instructions": "Overall quality of the measured speed and/or video experience in `brief`. Use the numbers present. Cellular and Wi-Fi tests both count. When brief.events is present, judge that whole set.",
                 "criteria": {
                     "poor": "Clearly bad experience",
                     "fair": "Usable but modest / annoying",
@@ -2480,7 +2580,9 @@ def draft_with_deepseek(brief: dict, classification: dict) -> dict:
         "Include an @mention only when mention is present. "
         "If kelurahan is present, the sentence must include that kelurahan. "
         "If kecamatan is present, the sentence must include that kecamatan. Do not invent a place. Do not include coordinates. "
-        "Use only numbers present in the brief. Do not invent measurements."
+        "Use only numbers present in the brief. Do not invent measurements. "
+        "When events is present, that list is the only set of measurements and the sentence stays one post. "
+        "Name a place or provider only when that field is present."
     ) % (language, tone)
     payload = {
         "model": os.environ.get("MAGNON_DEEPSEEK_MODEL", "deepseek-flash").strip() or "deepseek-flash",

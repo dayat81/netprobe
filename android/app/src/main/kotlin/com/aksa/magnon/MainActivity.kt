@@ -7,6 +7,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.AdapterView
 import android.widget.ArrayAdapter
+import android.widget.CheckBox
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.activity.result.contract.ActivityResultContracts
@@ -35,6 +36,8 @@ class MainActivity : AppCompatActivity() {
     private var speedJob: Job? = null
     private var videoJob: Job? = null
     private var complaintJob: Job? = null
+    private val selectedEventKeys = linkedSetOf<String>()
+    private var draftCache: DraftCache? = null
     private var running = false
     private var videoRunning = false
     private var currentTab = Tab.SPEED
@@ -65,6 +68,7 @@ class MainActivity : AppCompatActivity() {
         binding.tabSpeed.setOnClickListener { showTab(Tab.SPEED) }
         binding.tabVideo.setOnClickListener { showTab(Tab.VIDEO) }
         binding.tabComplaint.setOnClickListener { showTab(Tab.COMPLAINT) }
+        binding.complaintDraft.setOnClickListener { draftSelected() }
         binding.complaintShare.setOnClickListener {
             val preview = binding.complaintPreview.text?.toString().orEmpty()
             if (!binding.complaintShare.isEnabled || preview.isBlank()) return@setOnClickListener
@@ -117,7 +121,7 @@ class MainActivity : AppCompatActivity() {
         }
         if (tab == Tab.COMPLAINT) {
             binding.complaintPane.setCurrentItem(1, false)
-            showComplaint()
+            showPost()
         }
     }
 
@@ -383,21 +387,21 @@ class MainActivity : AppCompatActivity() {
             if (code != ComplaintStore.postLanguage(this)) {
                 ComplaintStore.rememberLanguage(this, code)
                 bindPostChoices()
-                if (currentTab == Tab.COMPLAINT) showComplaint()
+                refreshDraftActions()
             }
         }
         binding.complaintStyle.onItemSelectedListener = spinnerListener { position ->
             val code = styles.getOrElse(position) { "biasa" }
             if (code != ComplaintStore.postStyle(this)) {
                 ComplaintStore.rememberStyle(this, code)
-                if (currentTab == Tab.COMPLAINT) showComplaint()
+                refreshDraftActions()
             }
         }
         binding.complaintAutoTag.onItemSelectedListener = spinnerListener { position ->
             val enabled = autos.getOrElse(position) { "yes" } == "yes"
             if (enabled != ComplaintStore.autoTag(this)) {
                 ComplaintStore.rememberAutoTag(this, enabled)
-                if (currentTab == Tab.COMPLAINT) showComplaint()
+                refreshDraftActions()
             }
         }
         bindPostChoices()
@@ -465,23 +469,106 @@ class MainActivity : AppCompatActivity() {
         spinner.setSelection(selection)
     }
 
-    private fun showComplaint() {
-        complaintJob?.cancel()
-        binding.complaintVerdict.text = "Drafting post…"
-        binding.complaintPreview.text = ""
-        binding.complaintShare.isEnabled = false
-        complaintJob = lifecycleScope.launch(Dispatchers.IO) {
-            val review = ComplaintDraft.review(this@MainActivity)
-            if (review.reviewed) ComplaintStore.remember(this@MainActivity, review)
-            withContext(Dispatchers.Main) {
-                if (currentTab != Tab.COMPLAINT) return@withContext
-                binding.complaintVerdict.text = review.verdict
-                binding.complaintPreview.text = review.draft
-                binding.complaintShare.isEnabled = review.eligible
-                renderHistory()
+    private fun showPost() {
+        renderEventPicker()
+        refreshDraftActions()
+    }
+
+    private fun renderEventPicker() {
+        val list = binding.complaintEvents
+        list.removeAllViews()
+        val events = ComplaintStore.postEvents(this)
+        val known = events.map { it.key }.toSet()
+        selectedEventKeys.retainAll(known)
+        if (events.isEmpty()) {
+            list.addView(historyText(getString(R.string.complaint_events_empty), 14f, false))
+            return
+        }
+        events.forEach { event ->
+            list.addView(eventCheck(event))
+        }
+    }
+
+    private fun eventCheck(event: ComplaintStore.PostEvent): CheckBox {
+        val whenText = historyClock.format(Date(event.tsMs))
+        val metrics = if (event.kind == "video") {
+            val load = event.loadMs?.let { SpeedtestMath.formatMs(it) } ?: "—"
+            val buffer = event.bufferingPct?.let { "%.1f".format(it) } ?: "—"
+            "$whenText · Video\n${event.resolution.ifBlank { "—" }} · load $load ms · buf $buffer%"
+        } else {
+            val down = event.downloadMbps?.let { SpeedtestMath.formatMbps(it) } ?: "—"
+            val up = event.uploadMbps?.let { SpeedtestMath.formatMbps(it) } ?: "—"
+            val ping = event.pingMs?.let { SpeedtestMath.formatMs(it) } ?: "—"
+            "$whenText · Speed\n↓ $down  ↑ $up  ping $ping ms"
+        }
+        val label = if (event.eventId.isBlank()) metrics else "$metrics\n${event.eventId}"
+        return CheckBox(this).apply {
+            text = label
+            setTextColor(ContextCompat.getColor(this@MainActivity, R.color.text_primary))
+            isChecked = selectedEventKeys.contains(event.key)
+            setOnCheckedChangeListener { _, checked ->
+                if (checked && selectedEventKeys.size >= 20 && !selectedEventKeys.contains(event.key)) {
+                    isChecked = false
+                    return@setOnCheckedChangeListener
+                }
+                if (checked) selectedEventKeys.add(event.key) else selectedEventKeys.remove(event.key)
+                refreshDraftActions()
             }
         }
     }
+
+    private fun selectionKey(): String {
+        val ids = selectedEventKeys.sorted().joinToString(",")
+        return listOf(
+            ids,
+            ComplaintStore.postLanguage(this),
+            ComplaintStore.postStyle(this),
+            ComplaintStore.autoTag(this).toString(),
+        ).joinToString("|")
+    }
+
+    private fun refreshDraftActions() {
+        binding.complaintDraft.isEnabled = selectedEventKeys.isNotEmpty() && complaintJob?.isActive != true
+        val cache = draftCache
+        val matches = cache != null && cache.key == selectionKey()
+        binding.complaintShare.isEnabled = matches && cache.eligible
+    }
+
+    private fun draftSelected() {
+        val key = selectionKey()
+        val cached = draftCache
+        if (cached != null && cached.key == key) {
+            binding.complaintVerdict.text = cached.verdict
+            binding.complaintPreview.text = cached.sentence
+            refreshDraftActions()
+            return
+        }
+        val chosen = ComplaintStore.postEvents(this).filter { it.key in selectedEventKeys }
+        complaintJob?.cancel()
+        binding.complaintDraft.isEnabled = false
+        binding.complaintShare.isEnabled = false
+        binding.complaintVerdict.text = "Drafting post…"
+        complaintJob = lifecycleScope.launch(Dispatchers.IO) {
+            val review = ComplaintDraft.review(this@MainActivity, chosen)
+            withContext(Dispatchers.Main) {
+                draftCache = DraftCache(key, review.verdict, review.draft, review.eligible)
+                if (selectionKey() == key) {
+                    binding.complaintVerdict.text = review.verdict
+                    binding.complaintPreview.text = review.draft
+                }
+                if (review.reviewed) ComplaintStore.remember(this@MainActivity, review)
+                renderHistory()
+                refreshDraftActions()
+            }
+        }
+    }
+
+    private data class DraftCache(
+        val key: String,
+        val verdict: String,
+        val sentence: String,
+        val eligible: Boolean,
+    )
 
     private val historyClock = SimpleDateFormat("dd/MM HH:mm", Locale("id", "ID")).apply {
         timeZone = TimeZone.getTimeZone("Asia/Jakarta")

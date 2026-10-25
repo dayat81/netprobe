@@ -37,6 +37,7 @@ object ComplaintStore {
         val provinsi: String = "",
         val latitude: Double? = null,
         val longitude: Double? = null,
+        val eventId: String = "",
     )
     data class Stage(
         val resolution: String,
@@ -57,6 +58,27 @@ object ComplaintStore {
         val provinsi: String = "",
         val latitude: Double? = null,
         val longitude: Double? = null,
+        val eventId: String = "",
+    )
+
+    data class PostEvent(
+        val key: String,
+        val eventId: String,
+        val kind: String,
+        val tsMs: Long,
+        val transport: String,
+        val provider: String,
+        val kelurahan: String,
+        val kecamatan: String,
+        val kabupaten: String,
+        val provinsi: String,
+        val downloadMbps: Double? = null,
+        val uploadMbps: Double? = null,
+        val pingMs: Long? = null,
+        val jitterMs: Long? = null,
+        val loadMs: Long? = null,
+        val resolution: String = "",
+        val bufferingPct: Double? = null,
     )
 
     @Volatile
@@ -115,6 +137,7 @@ object ComplaintStore {
         provinsi: String = "",
         latitude: Double? = null,
         longitude: Double? = null,
+        eventId: String = "",
     ) {
         val stack = result.ipFamily.label
         val public = ClientNetworkInfo.lastPublic
@@ -147,6 +170,7 @@ object ComplaintStore {
             province,
             latitude = latitude?.takeIf { it.isFinite() },
             longitude = longitude?.takeIf { it.isFinite() },
+            eventId = eventId.trim().take(40),
         )
         shownSpeed = saved
         val prefs = context.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
@@ -195,7 +219,8 @@ object ComplaintStore {
                 .put("kabupaten", entry.kabupaten.take(80))
                 .put("provinsi", entry.provinsi.take(80))
                 .put("lat", entry.latitude ?: JSONObject.NULL)
-                .put("lon", entry.longitude ?: JSONObject.NULL),
+                .put("lon", entry.longitude ?: JSONObject.NULL)
+                .put("id", entry.eventId),
         )
         for (index in 0 until minOf(existing.length(), SPEED_HISTORY_MAX - 1)) {
             next.put(existing.getJSONObject(index))
@@ -226,6 +251,7 @@ object ComplaintStore {
                 provinsi = item.optString("provinsi"),
                 latitude = jsonCoord(item, "lat"),
                 longitude = jsonCoord(item, "lon"),
+                eventId = item.optString("id"),
             )
         }
     }
@@ -240,6 +266,7 @@ object ComplaintStore {
         provinsi: String = "",
         latitude: Double? = null,
         longitude: Double? = null,
+        eventId: String = "",
     ) {
         val stages = result.stages.map { Stage(it.resolution, it.loadMs, it.playedMs, it.bufferMs) }
         val place = kecamatan.trim().take(80)
@@ -261,6 +288,7 @@ object ComplaintStore {
             province,
             latitude = latitude?.takeIf { it.isFinite() },
             longitude = longitude?.takeIf { it.isFinite() },
+            eventId = eventId.trim().take(40),
         )
         shownVideo = saved
         context.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
@@ -298,7 +326,8 @@ object ComplaintStore {
                 .put("kabupaten", entry.kabupaten.take(80))
                 .put("provinsi", entry.provinsi.take(80))
                 .put("lat", entry.latitude ?: JSONObject.NULL)
-                .put("lon", entry.longitude ?: JSONObject.NULL),
+                .put("lon", entry.longitude ?: JSONObject.NULL)
+                .put("id", entry.eventId),
         )
         for (index in 0 until minOf(existing.length(), VIDEO_HISTORY_MAX - 1)) {
             next.put(existing.getJSONObject(index))
@@ -324,8 +353,48 @@ object ComplaintStore {
                 provinsi = item.optString("provinsi"),
                 latitude = jsonCoord(item, "lat"),
                 longitude = jsonCoord(item, "lon"),
+                eventId = item.optString("id"),
             )
         }
+    }
+
+    fun postEvents(context: Context): List<PostEvent> {
+        val speeds = speedHistory(context).map { speed ->
+            PostEvent(
+                key = speed.eventId.ifBlank { "speed:${speed.tsMs}" },
+                eventId = speed.eventId,
+                kind = "speed",
+                tsMs = speed.tsMs,
+                transport = speed.transport,
+                provider = speed.provider,
+                kelurahan = speed.kelurahan,
+                kecamatan = speed.kecamatan,
+                kabupaten = speed.kabupaten,
+                provinsi = speed.provinsi,
+                downloadMbps = speed.downloadMbps,
+                uploadMbps = speed.uploadMbps,
+                pingMs = speed.pingMs,
+                jitterMs = speed.jitterMs,
+            )
+        }
+        val videos = videoHistory(context).map { video ->
+            PostEvent(
+                key = video.eventId.ifBlank { "video:${video.tsMs}" },
+                eventId = video.eventId,
+                kind = "video",
+                tsMs = video.tsMs,
+                transport = video.transport,
+                provider = "",
+                kelurahan = video.kelurahan,
+                kecamatan = video.kecamatan,
+                kabupaten = video.kabupaten,
+                provinsi = video.provinsi,
+                loadMs = video.loadMs,
+                resolution = video.resolution,
+                bufferingPct = video.bufferingPct,
+            )
+        }
+        return (speeds + videos).sortedByDescending { it.tsMs }
     }
 
     private fun samplesJson(samples: List<Sample>): String {
@@ -472,20 +541,13 @@ object ComplaintDraft {
         timeZone = TimeZone.getTimeZone("Asia/Jakarta")
     }
 
-    fun review(context: Context): Review {
-        val speed = ComplaintStore.currentSpeed() ?: ComplaintStore.speed(context)
-        val video = ComplaintStore.currentVideo() ?: ComplaintStore.video(context)
-        if (speed == null && video == null) {
-            return Review(
-                false,
-                "Run a Speed or Video test first.\nJev will classify the result; you decide whether to share.",
-                "",
-            )
+    fun review(context: Context, events: List<ComplaintStore.PostEvent>): Review {
+        val chosen = events.take(20)
+        if (chosen.isEmpty()) {
+            return Review(false, "Select at least one event, then press Draft.", "")
         }
-        val provider = resolveProvider(speed)
-        val transport = testTransport(speed, video)
         return try {
-            val response = postComplaint(brief(context, speed, video, provider, transport))
+            val response = postComplaint(eventsBrief(context, chosen))
             val sentence = response.optString("sentence").trim()
             val summary = response.optString("summary")
             val url = normalizeCrowdUrl(response.optString("url"))
@@ -501,16 +563,52 @@ object ComplaintDraft {
             val tip = if (draftReady) "\nShare is optional — you choose." else ""
             val tweet = when {
                 !draftReady -> ""
-                else -> listOf(sentence, url)
-                    .filter { it.isNotBlank() }
-                    .joinToString("\n")
+                else -> listOf(sentence, url).filter { it.isNotBlank() }.joinToString("\n")
             }
-            // eligible = share button enabled; user decides whether to actually post.
             Review(draftReady, "$headline$tip\n$summary", tweet, reviewed = true)
         } catch (error: Exception) {
             AppLog.w("MagnonPost", "compose failed", error)
             Review(false, "Compose failed\n${error.message?.take(160) ?: "network"}", "")
         }
+    }
+
+    private fun eventsBrief(context: Context, events: List<ComplaintStore.PostEvent>): JSONObject {
+        val names = events.map { it.provider.trim() }
+        val agreed = names.firstOrNull()?.takeIf { name -> name.isNotEmpty() && names.all { it == name } }
+        val mention = if (ComplaintStore.autoTag(context) && agreed != null) {
+            mentionForProvider(agreed).ifEmpty { agreed }
+        } else {
+            ""
+        }
+        val rows = JSONArray()
+        for (event in events) {
+            val row = JSONObject()
+                .put("id", event.eventId)
+                .put("kind", event.kind)
+                .put("when", clock.format(Date(event.tsMs)))
+                .put("kelurahan", event.kelurahan)
+                .put("kecamatan", event.kecamatan)
+                .put("kabupaten", event.kabupaten)
+                .put("provinsi", event.provinsi)
+                .put("transport", draftTransport(event.transport))
+                .put("provider", event.provider)
+            if (event.kind == "video") {
+                row.put("load_ms", event.loadMs ?: JSONObject.NULL)
+                    .put("resolution", event.resolution)
+                    .put("buffering_pct", event.bufferingPct ?: JSONObject.NULL)
+            } else {
+                row.put("download_mbps", event.downloadMbps ?: JSONObject.NULL)
+                    .put("upload_mbps", event.uploadMbps ?: JSONObject.NULL)
+                    .put("ping_ms", event.pingMs ?: JSONObject.NULL)
+                    .put("jitter_ms", event.jitterMs ?: JSONObject.NULL)
+            }
+            rows.put(row)
+        }
+        return JSONObject()
+            .put("language", ComplaintStore.postLanguage(context))
+            .put("style", ComplaintStore.postStyle(context))
+            .put("mention", mention)
+            .put("events", rows)
     }
 
     private fun testTransport(
