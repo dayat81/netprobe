@@ -1324,7 +1324,7 @@ footer{padding:36px 24px}
 <section class="hero">
 <div>
 <h1 data-i18n-html="heroTitle">Share a real test.<br>Compare the district.</h1>
-<p data-i18n="heroBody">Magnon Lite measures speed and video on the phone you already use. A test does not need Google. Sign in only to post the result. Anyone can open the link, and shared results are compared by district.</p>
+<p data-i18n="heroBody">Magnon Lite measures speed and video on the phone you already use. A test does not need Google. Posting the draft does not need Google either. Anyone can open the link, and shared results are compared by district.</p>
 <a class="btn" href="/magnon-lite.apk" data-i18n="downloadApk">Download APK</a>
 </div>
 <div class="rings" aria-hidden="true"></div>
@@ -1334,7 +1334,7 @@ footer{padding:36px 24px}
 <p class="sub" data-i18n="howSub">Magnon Lite is for sharing what the network felt like, not for a private score.</p>
 <div class="steps">
 <div><strong data-i18n="step1">01 &nbsp;Test</strong><span data-i18n="step1Body">Run Speed or Video. Google is not required.</span></div>
-<div><strong data-i18n="step2">02 &nbsp;Share</strong><span data-i18n="step2Body">Sign in to post the draft. The sentence names the district.</span></div>
+<div><strong data-i18n="step2">02 &nbsp;Share</strong><span data-i18n="step2Body">Share the draft. Google is not required. The sentence names the district.</span></div>
 <div><strong data-i18n="step3">03 &nbsp;Compare</strong><span data-i18n="step3Body">Anyone can see how districts compare. The list has no email and no exact place.</span></div>
 </div>
 </section>
@@ -1362,8 +1362,8 @@ var copy = {
   en: {
     ribbon: "Crowdsourced network quality",
     heroTitle: "Share a real test.<br>Compare the district.",
-    heroBody: "Magnon Lite measures speed and video on the phone you already use. A test does not need Google. Sign in only to post the result. Anyone can open the link, and shared results are compared by district.",
-    signIn: "Sign in to post",
+    heroBody: "Magnon Lite measures speed and video on the phone you already use. A test does not need Google. Posting the draft does not need Google either. Anyone can open the link, and shared results are compared by district.",
+    signIn: "Share the draft",
     downloadApk: "Download APK",
     navHow: "How it works",
     navPlaces: "Compare",
@@ -1372,7 +1372,7 @@ var copy = {
     step1: "01  Test",
     step1Body: "Run Speed or Video. Google is not required.",
     step2: "02  Share",
-    step2Body: "Sign in to post the draft. The sentence names the district.",
+    step2Body: "Share the draft. Google is not required. The sentence names the district.",
     step3: "03  Compare",
     step3Body: "Anyone can see how districts compare. The list has no email and no exact place.",
     placesTitle: "Best tests by district",
@@ -1399,8 +1399,8 @@ var copy = {
   id: {
     ribbon: "Kualitas jaringan dari banyak orang",
     heroTitle: "Bagikan hasil uji.<br>Bandingkan kecamatannya.",
-    heroBody: "Magnon Lite mengukur kecepatan dan video di ponsel yang sedang dipakai. Tes tidak perlu Google. Masuk hanya untuk membagikan hasil. Siapa pun bisa membuka tautannya, dan hasil yang dibagikan dibandingkan per kecamatan.",
-    signIn: "Masuk untuk membagikan",
+    heroBody: "Magnon Lite mengukur kecepatan dan video di ponsel yang sedang dipakai. Tes dan membagikan hasil tidak perlu Google. Siapa pun bisa membuka tautannya, dan hasil yang dibagikan dibandingkan per kecamatan.",
+    signIn: "Bagikan draf",
     downloadApk: "Unduh APK",
     navHow: "Cara kerja",
     navPlaces: "Bandingkan",
@@ -1409,7 +1409,7 @@ var copy = {
     step1: "01  Uji",
     step1Body: "Jalankan Speed atau Video. Google tidak wajib.",
     step2: "02  Bagikan",
-    step2Body: "Masuk untuk mengirim draf. Kalimatnya menyebut kecamatan.",
+    step2Body: "Bagikan drafnya. Google tidak wajib. Kalimatnya menyebut kecamatan.",
     step3: "03  Bandingkan",
     step3Body: "Siapa pun bisa melihat perbandingan kecamatan. Daftar ini tidak memuat email atau titik lokasi.",
     placesTitle: "Hasil terbaik per kecamatan",

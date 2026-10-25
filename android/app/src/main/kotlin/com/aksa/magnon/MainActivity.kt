@@ -68,10 +68,6 @@ class MainActivity : AppCompatActivity() {
         binding.complaintShare.setOnClickListener {
             val preview = binding.complaintPreview.text?.toString().orEmpty()
             if (!binding.complaintShare.isEnabled || preview.isBlank()) return@setOnClickListener
-            if (!MagnonAccount.hasSession(this)) {
-                signInMagnon { shareComplaint(preview) }
-                return@setOnClickListener
-            }
             shareComplaint(preview)
         }
         binding.speedCenter.setOnClickListener { toggleSpeedtest() }
@@ -813,46 +809,7 @@ class MainActivity : AppCompatActivity() {
     }
 
 
-    private fun signInMagnon(after: (() -> Unit)? = null) {
-        if (!MagnonAccount.configured()) {
-            binding.complaintVerdict.text = getString(R.string.magnon_login_unconfigured)
-            return
-        }
-        lifecycleScope.launch {
-            val google = runCatching { MagnonAccount.requestGoogle(this@MainActivity) }.getOrElse {
-                if (it is CancellationException) throw it
-                binding.complaintVerdict.text = signInFailure(it)
-                return@launch
-            }
-            val profile = runCatching { MagnonAccount.completeSignIn(this@MainActivity, google) }.getOrElse {
-                if (it is CancellationException) throw it
-                binding.complaintVerdict.text = signInFailure(it)
-                return@launch
-            }
-            if (profile.stayOnLite) {
-                binding.complaintVerdict.append("\n" + getString(R.string.magnon_stay_lite))
-            }
-            after?.invoke()
-        }
-    }
-
     private fun shareComplaint(preview: String) {
         ComplaintDraft.share(this, preview)
     }
-
-
-
-
-    private fun signInFailure(error: Throwable): String = when (val message = error.message) {
-        "sign_in_cancelled" -> getString(R.string.magnon_sign_in_cancelled)
-        "no_google_account" -> getString(R.string.magnon_no_google_account)
-        "login_not_configured" -> getString(R.string.magnon_login_unconfigured)
-        null, "" -> error.javaClass.simpleName
-        else -> message
-    }
-
-
-
-
-
 }
