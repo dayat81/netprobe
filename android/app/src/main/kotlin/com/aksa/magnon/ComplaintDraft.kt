@@ -542,7 +542,16 @@ object ComplaintStore {
 
 /** Complaint text for the active SIM, ready to read before it is sent to X. */
 object ComplaintDraft {
-    data class Review(val eligible: Boolean, val verdict: String, val draft: String, val reviewed: Boolean = false)
+    data class Review(
+        val eligible: Boolean,
+        val verdict: String,
+        val draft: String,
+        val reviewed: Boolean = false,
+        val freeUsed: Int? = null,
+        val balance: Int? = null,
+    )
+
+    data class Quota(val freeUsed: Int, val balance: Int)
 
     private val clock = SimpleDateFormat("dd/MM HH:mm", Locale("id", "ID")).apply {
         timeZone = TimeZone.getTimeZone("Asia/Jakarta")
@@ -555,6 +564,11 @@ object ComplaintDraft {
         }
         return try {
             val response = postComplaint(eventsBrief(context, chosen))
+            val freeUsed = if (response.has("free_used")) response.optInt("free_used") else null
+            val balance = if (response.has("balance")) response.optInt("balance") else null
+            if (response.optString("quota") == "exhausted") {
+                return Review(false, response.optString("summary"), "", freeUsed = freeUsed, balance = balance)
+            }
             val sentence = response.optString("sentence").trim()
             val summary = response.optString("summary")
             val url = normalizeCrowdUrl(response.optString("url"))
@@ -572,7 +586,7 @@ object ComplaintDraft {
                 !draftReady -> ""
                 else -> listOf(sentence, url).filter { it.isNotBlank() }.joinToString("\n")
             }
-            Review(draftReady, "$headline$tip\n$summary", tweet, reviewed = true)
+            Review(draftReady, "$headline$tip\n$summary", tweet, reviewed = true, freeUsed = freeUsed, balance = balance)
         } catch (error: Exception) {
             AppLog.w("MagnonPost", "compose failed", error)
             Review(false, "Compose failed\n${error.message?.take(160) ?: "network"}", "")
@@ -590,7 +604,7 @@ object ComplaintDraft {
         val rows = JSONArray()
         for (event in events) {
             val row = JSONObject()
-                .put("id", event.eventId)
+                .put("id", event.eventId.ifBlank { event.key })
                 .put("kind", event.kind)
                 .put("when", clock.format(Date(event.tsMs)))
                 .put("kelurahan", event.kelurahan)
@@ -611,11 +625,21 @@ object ComplaintDraft {
             }
             rows.put(row)
         }
-        return JSONObject()
+        val body = JSONObject()
             .put("language", ComplaintStore.postLanguage(context))
             .put("style", ComplaintStore.postStyle(context))
             .put("mention", mention)
             .put("events", rows)
+        val device = CollectorClient.quotaDeviceId(context)
+        if (device.isNotBlank()) body.put("device_id", device)
+        return body
+    }
+
+    fun quota(context: Context): Quota {
+        val device = CollectorClient.quotaDeviceId(context)
+        if (device.isBlank()) return Quota(0, 0)
+        val response = postCrowd("/crowd/quota", JSONObject().put("device_id", device))
+        return Quota(response.optInt("free_used"), response.optInt("balance"))
     }
 
     private fun testTransport(
@@ -743,9 +767,10 @@ object ComplaintDraft {
         else -> ""
     }
 
-    private fun postComplaint(body: JSONObject): JSONObject {
+    private fun postComplaint(body: JSONObject): JSONObject = postCrowd("/crowd/compose", body)
+
+    private fun postCrowd(path: String, body: JSONObject): JSONObject {
         val bytes = body.toString().toByteArray(Charsets.UTF_8)
-        val path = "/crowd/compose"
         val now = System.currentTimeMillis()
         val timestamp = (now / 1000L).toString()
         val nonce = "n" + CollectorClient.randomHex(16)

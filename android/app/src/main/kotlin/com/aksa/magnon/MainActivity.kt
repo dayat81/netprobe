@@ -1,6 +1,8 @@
 package com.aksa.magnon
 
 import android.Manifest
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.content.pm.PackageManager
 import android.os.Bundle
 import android.view.View
@@ -39,6 +41,7 @@ class MainActivity : AppCompatActivity() {
     private val selectedEventKeys = linkedSetOf<String>()
     private val pickableEventLimit = 10
     private var draftCache: DraftCache? = null
+    private var quotaDeviceId: String = ""
     private var running = false
     private var videoRunning = false
     private var currentTab = Tab.SPEED
@@ -70,6 +73,12 @@ class MainActivity : AppCompatActivity() {
         binding.tabVideo.setOnClickListener { showTab(Tab.VIDEO) }
         binding.tabComplaint.setOnClickListener { showTab(Tab.COMPLAINT) }
         binding.complaintDraft.setOnClickListener { draftSelected() }
+        binding.complaintCopy.setOnClickListener {
+            val ident = quotaDeviceId
+            if (ident.isBlank()) return@setOnClickListener
+            val clipboard = getSystemService(ClipboardManager::class.java)
+            clipboard.setPrimaryClip(ClipData.newPlainText("device", ident))
+        }
         binding.complaintShare.setOnClickListener {
             val preview = binding.complaintPreview.text?.toString().orEmpty()
             if (!binding.complaintShare.isEnabled || preview.isBlank()) return@setOnClickListener
@@ -473,6 +482,26 @@ class MainActivity : AppCompatActivity() {
     private fun showPost() {
         renderEventPicker()
         refreshDraftActions()
+        loadQuota()
+    }
+
+    private fun showQuota(freeUsed: Int, balance: Int) {
+        binding.complaintQuota.text = getString(R.string.complaint_quota, freeUsed, balance)
+    }
+
+    private fun loadQuota() {
+        val ident = CollectorClient.quotaDeviceId(this)
+        quotaDeviceId = ident
+        binding.complaintDevice.text = ident.ifBlank { "—" }
+        binding.complaintCopy.isEnabled = ident.isNotBlank()
+        if (ident.isBlank()) return
+        lifecycleScope.launch(Dispatchers.IO) {
+            val snapshot = runCatching { ComplaintDraft.quota(this@MainActivity) }.getOrNull() ?: return@launch
+            withContext(Dispatchers.Main) {
+                if (currentTab != Tab.COMPLAINT) return@withContext
+                showQuota(snapshot.freeUsed, snapshot.balance)
+            }
+        }
     }
 
     private fun renderEventPicker() {
@@ -598,10 +627,15 @@ class MainActivity : AppCompatActivity() {
         complaintJob = lifecycleScope.launch(Dispatchers.IO) {
             val review = ComplaintDraft.review(this@MainActivity, chosen)
             withContext(Dispatchers.Main) {
-                draftCache = DraftCache(key, review.verdict, review.draft, review.eligible)
+                if (review.reviewed) {
+                    draftCache = DraftCache(key, review.verdict, review.draft, review.eligible)
+                }
+                val freeUsed = review.freeUsed
+                val balance = review.balance
+                if (freeUsed != null && balance != null) showQuota(freeUsed, balance)
                 if (selectionKey() == key) {
                     binding.complaintVerdict.text = review.verdict
-                    binding.complaintPreview.text = review.draft
+                    if (review.reviewed) binding.complaintPreview.text = review.draft
                 }
                 if (review.reviewed) ComplaintStore.remember(this@MainActivity, review)
                 renderHistory()

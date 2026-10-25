@@ -62,6 +62,9 @@
     <string name="post_auto_yes_id">Ya</string>
     <string name="post_auto_no_id">Tidak</string>
     <string name="complaint_share">Share to X</string>
+    <string name="complaint_quota">Usage %1$d/10 · credit %2$d</string>
+    <string name="complaint_quota_placeholder">Usage 0/10 · credit 0</string>
+    <string name="complaint_copy">Copy</string>
     <string name="complaint_draft">Draft</string>
     <string name="complaint_events">Events</string>
     <string name="complaint_events_empty">No tests yet. Run Speed or Video, then select the loops to include.</string>

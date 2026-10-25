@@ -94,6 +94,14 @@ object CollectorClient {
             .put("ciphertext_b64", encoder.encodeToString(encrypted))
     }
 
+    /** ANDROID_ID only. A file id would reset on reinstall and grant another daily quota. */
+    fun quotaDeviceId(context: Context): String {
+        val androidId = runCatching {
+            Settings.Secure.getString(context.contentResolver, Settings.Secure.ANDROID_ID)
+        }.getOrNull()?.replace(Regex("[^A-Za-z0-9_-]"), "").orEmpty()
+        return if (androidId.length >= 8 && androidId != "9774d56d682e549c") androidId.take(64) else ""
+    }
+
     /** ANDROID_ID when usable, otherwise a random id persisted in app storage. */
     fun deviceId(context: Context): String {
         cachedDeviceId?.let { return it }

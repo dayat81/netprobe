@@ -26,6 +26,7 @@ from zoneinfo import ZoneInfo
 JAKARTA = ZoneInfo("Asia/Jakarta")
 SESSION_TTL = 30 * 24 * 3600
 POST_LIMIT = 3
+FREE_POSTS_PER_DAY = 10
 TEST_LIMIT = 20
 RADIO_POINT_CAP = 30
 POINT_VALUES = {"speed": 10, "video": 8, "radio": 1}
@@ -252,6 +253,7 @@ class MemoryLedger:
         self.contracts: list[dict] = []
         self.events: list[dict] = []
         self.runs: dict[str, dict] = {}
+        self.post_quotas: dict[str, dict] = {}
 
     def save_user(self, user: dict) -> None:
         with self.lock:
@@ -382,6 +384,15 @@ class MemoryLedger:
         rows.sort(key=lambda item: item.get("created_at") or 0, reverse=True)
         return rows[:limit]
 
+    def post_quota(self, key: str) -> dict | None:
+        with self.lock:
+            row = self.post_quotas.get(key)
+            return dict(row) if row else None
+
+    def save_post_quota(self, key: str, row: dict) -> None:
+        with self.lock:
+            self.post_quotas[key] = dict(row)
+
 
 class FirestoreLedger(MemoryLedger):
     """Same calls as MemoryLedger, stored in Firestore collections prefixed magnon_."""
@@ -498,6 +509,13 @@ class FirestoreLedger(MemoryLedger):
 
     def save_run(self, row: dict) -> None:
         self.client.collection("magnon_runs").document(row["id"]).set(row)
+
+    def post_quota(self, key: str) -> dict | None:
+        snap = self.client.collection("magnon_post_quota").document(key).get()
+        return snap.to_dict() if snap.exists else None
+
+    def save_post_quota(self, key: str, row: dict) -> None:
+        self.client.collection("magnon_post_quota").document(key).set(row)
 
     def run(self, run_id: str) -> dict | None:
         snap = self.client.collection("magnon_runs").document(run_id).get()
@@ -912,6 +930,23 @@ class Portal:
         user["test_limit"] = test_value
         self.ledger.save_user(user)
         return self._admin_row(user, self.ledger.credit_row(user["sub"], day_key(self.now())))
+
+    def post_credit(self, token: str, device_id: str, amount: object = None) -> dict:
+        actor = self._need(token)
+        if "admin" not in account_roles(actor):
+            raise PermissionError("admin_only")
+        ident = str(device_id or "").strip()
+        if len(ident) < 8 or len(ident) > 64:
+            raise ValueError("bad_device")
+        if amount in (None, ""):
+            return read_post_quota(self.ledger, ident, self.now())
+        try:
+            added = int(amount)
+        except (TypeError, ValueError):
+            raise ValueError("bad_credit")
+        if added < 1 or added > 1000:
+            raise ValueError("bad_credit")
+        return add_post_balance(self.ledger, ident, added, self.now())
 
     def _admin_row(self, user: dict, credit: dict) -> dict:
         return {
@@ -1704,6 +1739,14 @@ dt{color:#555} dd{margin:0}
 <section id="app" hidden>
 <p id="balance"></p>
 <section id="adminWrap" hidden>
+<h2>Post balance</h2>
+<form id="quotaForm">
+<input id="quotaDevice" placeholder="device id" size="28">
+<input id="quotaAdd" type="number" min="1" max="1000" placeholder="add" size="6">
+<button type="submit">Add</button>
+<button type="button" id="quotaLookup">Look up</button>
+</form>
+<p id="quotaStatus" class="muted"></p>
 <h2>Accounts</h2>
 <p id="adminStatus" class="muted"></p>
 <div id="users"></div>
@@ -1783,6 +1826,20 @@ async function api(path, body) {
   if (!res.ok) throw data;
   return data;
 }
+async function readQuota(adding) {
+  const status = document.getElementById("quotaStatus");
+  status.textContent = "";
+  const body = {device_id: document.getElementById("quotaDevice").value.trim()};
+  if (adding) body.add = Number(document.getElementById("quotaAdd").value);
+  try {
+    const data = await api("/api/magnon/post-credit", body);
+    status.textContent = "Usage " + data.free_used + "/" + data.free_limit + " · credit " + data.balance;
+  } catch (err) {
+    status.textContent = (err && err.error) || "Lookup failed";
+  }
+}
+document.getElementById("quotaLookup").onclick = function(){ readQuota(false); };
+document.getElementById("quotaForm").onsubmit = function(ev){ ev.preventDefault(); readQuota(true); };
 async function loadUsers(){
   const data = await api("/api/magnon/users");
   const rows = data.users || [];
@@ -1993,6 +2050,82 @@ def _fill_place(brief: dict, geocode: Callable) -> None:
             brief[key] = name
 
 
+def _quota_key(device_id: str) -> str:
+    return hashlib.sha256(device_id.strip().encode("utf-8")).hexdigest()
+
+
+def _quota_state(row: dict | None, today: str) -> tuple[list[str], int, int]:
+    balance = int((row or {}).get("balance") or 0)
+    if not row or row.get("day") != today:
+        return [], 0, balance
+    used = []
+    for item in row.get("used_ids") or []:
+        ident = str(item or "").strip()
+        if ident and ident not in used:
+            used.append(ident)
+    return used, int(row.get("free_used") or 0), balance
+
+
+def _quota_public(free_used: int, balance: int) -> dict:
+    return {
+        "free_used": free_used,
+        "free_limit": FREE_POSTS_PER_DAY,
+        "free_left": max(0, FREE_POSTS_PER_DAY - free_used),
+        "balance": balance,
+    }
+
+
+def read_post_quota(ledger: MemoryLedger, device_id: str, now: float | None = None) -> dict:
+    today = day_key(now if now is not None else time.time())
+    used, free_used, balance = _quota_state(ledger.post_quota(_quota_key(device_id)), today)
+    del used
+    return _quota_public(free_used, balance)
+
+
+def charge_post_quota(ledger: MemoryLedger, device_id: str, event_ids: list[str], now: float | None = None) -> dict:
+    """Count new event ids. The first 10 today are free. The rest spend balance. A short balance writes nothing."""
+    today = day_key(now if now is not None else time.time())
+    key = _quota_key(device_id)
+    used, free_used, balance = _quota_state(ledger.post_quota(key), today)
+    seen = set(used)
+    fresh = []
+    for event_id in event_ids:
+        ident = str(event_id or "").strip()[:80]
+        if not ident or ident in seen:
+            continue
+        seen.add(ident)
+        fresh.append(ident)
+    free_left = max(0, FREE_POSTS_PER_DAY - free_used)
+    take_free = min(len(fresh), free_left)
+    take_paid = len(fresh) - take_free
+    if take_paid > balance:
+        refused = _quota_public(free_used, balance)
+        refused["ok"] = False
+        return refused
+    free_used += take_free
+    balance -= take_paid
+    used.extend(fresh)
+    ledger.save_post_quota(
+        key,
+        {"day": today, "used_ids": used[-200:], "free_used": free_used, "balance": balance},
+    )
+    charged = _quota_public(free_used, balance)
+    charged["ok"] = True
+    return charged
+
+
+def add_post_balance(ledger: MemoryLedger, device_id: str, amount: int, now: float | None = None) -> dict:
+    today = day_key(now if now is not None else time.time())
+    key = _quota_key(device_id)
+    used, free_used, balance = _quota_state(ledger.post_quota(key), today)
+    balance += amount
+    ledger.save_post_quota(
+        key,
+        {"day": today, "used_ids": used[-200:], "free_used": free_used, "balance": balance},
+    )
+    return _quota_public(free_used, balance)
+
+
 def compose_post(
     raw: dict,
     classify: Callable | None = None,
@@ -2027,6 +2160,28 @@ def compose_post(
             "classifier": "local",
             "composer": "",
         }
+    device_id = str(raw.get("device_id") or "").strip()
+    ledger = store or MemoryLedger()
+    quota = None
+    if device_id and events:
+        quota = charge_post_quota(ledger, device_id, [str(event.get("id") or "") for event in events])
+        if not quota["ok"]:
+            return {
+                "eligible": False,
+                "sentence": "",
+                "summary": "Daily post limit reached.\nCopy the device id at the top and DM @MagnonTest on X.",
+                "url": "",
+                "post_intent": "skip",
+                "quality_band": "",
+                "topic": "",
+                "classifier": "local",
+                "composer": "",
+                "quota": "exhausted",
+                "free_used": quota["free_used"],
+                "free_limit": quota["free_limit"],
+                "free_left": quota["free_left"],
+                "balance": quota["balance"],
+            }
     model_brief = _model_brief(brief)
     classification = (classify or classify_with_jev)(model_brief)
     intent = str(classification.get("post_intent") or "")
@@ -2043,12 +2198,18 @@ def compose_post(
         "eligible": True,
         "sentence": sentence[:180],
         "summary": str(written.get("summary") or "").strip()[:800],
-        "url": publish_run(store or MemoryLedger(), brief, sentence[:180]),
+        "url": publish_run(ledger, brief, sentence[:180]),
         "post_intent": intent,
         "quality_band": str(classification.get("quality_band") or "unknown"),
         "topic": str(classification.get("topic") or ""),
         "classifier": "jev",
         "composer": "deepseek",
+        **({
+            "free_used": quota["free_used"],
+            "free_limit": quota["free_limit"],
+            "free_left": quota["free_left"],
+            "balance": quota["balance"],
+        } if quota else {}),
     }
 
 
@@ -2761,6 +2922,8 @@ def handle(portal: Portal, method: str, path: str, token: str, body: dict, staff
             return 200, portal.sponsor_view(token), None
         if method == "GET" and path == "/api/magnon/users":
             return 200, portal.list_users(token), None
+        if method == "POST" and path == "/api/magnon/post-credit":
+            return 200, portal.post_credit(token, str(body.get("device_id") or ""), body.get("add")), None
         if method == "POST" and path == "/api/magnon/users":
             return 200, portal.update_user(
                 token,

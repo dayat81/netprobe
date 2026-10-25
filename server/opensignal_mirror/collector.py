@@ -1507,6 +1507,9 @@ def make_handler(config: Config):
             if config.magnon is not None and path == "/crowd/compose":
                 self._crowd_compose()
                 return
+            if config.magnon is not None and path == "/crowd/quota":
+                self._crowd_quota()
+                return
             if config.magnon is not None and (
                 path == "/v1/auth/google" or path.startswith("/v1/magnon") or path.startswith("/api/magnon")
             ):
@@ -1602,6 +1605,34 @@ def make_handler(config: Config):
                 self._send(400, {"error": "invalid_json"})
             except RuntimeError as exc:
                 self._send(503, {"error": str(exc)[:160]})
+
+        def _crowd_quota(self) -> None:
+            from opensignal_mirror.magnon import read_post_quota
+
+            try:
+                length = int(self.headers.get("Content-Length", ""))
+            except ValueError:
+                self._send(411, {"error": "length_required"})
+                return
+            if length < 2 or length > 4096:
+                self._send(413, {"error": "body_too_large"})
+                return
+            raw = self.rfile.read(length)
+            if len(raw) != length:
+                self._send(400, {"error": "short_body"})
+                return
+            try:
+                self._authenticate("/crowd/quota", raw)
+                parsed = json.loads(raw.decode("utf-8"))
+                device_id = str((parsed or {}).get("device_id") or "").strip()
+                if len(device_id) < 8:
+                    self._send(400, {"error": "bad_device"})
+                    return
+                self._send(200, read_post_quota(config.magnon.ledger, device_id))
+            except PermissionError as exc:
+                self._send(401, {"error": str(exc)})
+            except (json.JSONDecodeError, UnicodeError, ValueError):
+                self._send(400, {"error": "invalid_json"})
 
         def _stored_fixes(self, parsed: dict) -> list[dict]:
             """Lat/lon already saved with this device's tests. Names are resolved later."""

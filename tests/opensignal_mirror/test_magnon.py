@@ -701,3 +701,121 @@ def test_public_portal_compares_districts_without_the_old_pitch():
     assert "/magnon-lite.apk" in visible
     assert "unduh apk" in visible
     assert "download apk" in visible
+
+
+def _quota_events(ids, device):
+    return {
+        "device_id": device,
+        "language": "en",
+        "events": [
+            {
+                "id": ident,
+                "kind": "speed",
+                "download_mbps": 4,
+                "provider": "Telkomsel",
+                "transport": "cellular",
+                "kecamatan": "Menteng",
+            }
+            for ident in ids
+        ],
+    }
+
+
+def _quota_classify(_brief):
+    return {"post_intent": "complaint", "quality_band": "poor"}
+
+
+def _quota_draft(_brief, _classification):
+    return {"sentence": "Slow today.", "summary": "Slow."}
+
+
+def test_post_quota_counts_ten_distinct_tests_and_allows_a_repeat():
+    ledger = MemoryLedger()
+    ids = ["e%02d" % index for index in range(10)]
+    result = compose_post(
+        _quota_events(ids, "deviceaaa1"),
+        classify=_quota_classify,
+        draft=_quota_draft,
+        store=ledger,
+    )
+    assert result["eligible"]
+    assert result["free_used"] == 10
+    assert result["balance"] == 0
+    again = compose_post(
+        _quota_events(ids, "deviceaaa1"),
+        classify=_quota_classify,
+        draft=_quota_draft,
+        store=ledger,
+    )
+    assert again["eligible"]
+    assert again["free_used"] == 10
+    run_id = result["url"].rsplit("/", 1)[-1]
+    assert "deviceaaa1" not in result_page(ledger, run_id)[1].decode("utf-8")
+    assert "device_id" not in ledger.run(run_id)
+
+
+def test_eleventh_test_needs_admin_credit_and_another_device_is_separate():
+    ledger = MemoryLedger()
+    ids = ["e%02d" % index for index in range(10)]
+    compose_post(_quota_events(ids, "deviceaaa1"), classify=_quota_classify, draft=_quota_draft, store=ledger)
+    blocked = compose_post(
+        _quota_events(ids + ["e10"], "deviceaaa1"),
+        classify=_quota_classify,
+        draft=_quota_draft,
+        store=ledger,
+    )
+    assert blocked["eligible"] is False
+    assert blocked["quota"] == "exhausted"
+    assert blocked["url"] == ""
+    other = compose_post(
+        _quota_events(["e00"], "devicebbb2"),
+        classify=_quota_classify,
+        draft=_quota_draft,
+        store=ledger,
+    )
+    assert other["eligible"]
+    assert other["free_used"] == 1
+
+    def verify(token, _client_id):
+        email, _sep, name = token.partition("|")
+        return {"sub": "sub-" + email, "email": email, "name": name, "email_verified": True}
+
+    import time
+
+    from opensignal_mirror.magnon import parse_emails
+
+    portal = Portal(ledger, "client", {}, parse_emails("root@gmail.com"), verify=verify, clock=time.time)
+    guest = portal.login("ada@gmail.com|Ada", "device1234", "lite")["session"]
+    try:
+        portal.post_credit(guest, "deviceaaa1", 1)
+        raise AssertionError("guest added credit")
+    except PermissionError:
+        pass
+    token = portal.login("root@gmail.com|Root", "", "lite")["session"]
+    added = portal.post_credit(token, "deviceaaa1", 1)
+    assert added["balance"] == 1
+    assert added["free_used"] == 10
+    allowed = compose_post(
+        _quota_events(ids + ["e10"], "deviceaaa1"),
+        classify=_quota_classify,
+        draft=_quota_draft,
+        store=ledger,
+    )
+    assert allowed["eligible"]
+    assert allowed["free_used"] == 10
+    assert allowed["balance"] == 0
+
+
+def test_free_allowance_resets_the_next_day_and_balance_stays(monkeypatch):
+    from opensignal_mirror.magnon import add_post_balance, charge_post_quota
+
+    ledger = MemoryLedger()
+    start = 1_700_000_000.0
+    charged = charge_post_quota(ledger, "deviceaaa1", ["e%02d" % index for index in range(10)], now=start)
+    assert charged["free_used"] == 10
+    added = add_post_balance(ledger, "deviceaaa1", 3, now=start)
+    assert added["balance"] == 3
+    nxt = charge_post_quota(ledger, "deviceaaa1", ["n0"], now=start + 2 * 86400)
+    assert nxt["ok"]
+    assert nxt["free_used"] == 1
+    assert nxt["balance"] == 3
