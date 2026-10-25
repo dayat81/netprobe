@@ -860,3 +860,37 @@ def test_free_allowance_resets_the_next_day_and_balance_stays(monkeypatch):
     assert nxt["ok"]
     assert nxt["free_used"] == 1
     assert nxt["balance"] == 3
+
+
+def test_admin_lists_devices_that_checked_quota_and_hides_a_bare_hash():
+    import time
+
+    from opensignal_mirror.magnon import parse_emails, portal_html, read_post_quota
+
+    ledger = MemoryLedger()
+    ledger.save_post_quota("barehash", {"day": "2026-10-25", "free_used": 2, "balance": 4, "used_ids": []})
+    read_post_quota(ledger, "deviceaaa1")
+    compose_post(_quota_events(["e00"], "devicebbb2"), classify=_quota_classify, draft=_quota_draft, store=ledger)
+
+    def verify(token, _client_id):
+        email, _sep, name = token.partition("|")
+        return {"sub": "sub-" + email, "email": email, "name": name, "email_verified": True}
+
+    portal = Portal(ledger, "client", {}, parse_emails("root@gmail.com"), verify=verify, clock=time.time)
+    guest = portal.login("ada@gmail.com|Ada", "", "lite")["session"]
+    try:
+        portal.list_devices(guest)
+        raise AssertionError("guest listed devices")
+    except PermissionError:
+        pass
+    token = portal.login("root@gmail.com|Root", "", "lite")["session"]
+    listed = portal.list_devices(token)["devices"]
+    assert [row["device_id"] for row in listed] == ["deviceaaa1", "devicebbb2"]
+    assert listed[1]["free_used"] == 1
+    added = portal.post_credit(token, "deviceaaa1", 2)
+    assert added["balance"] == 2
+    again = portal.list_devices(token)["devices"]
+    assert again[0]["balance"] == 2
+    page = portal_html("client", "admin").decode("utf-8")
+    assert "Device id" in page
+    assert "/api/magnon/devices" in page

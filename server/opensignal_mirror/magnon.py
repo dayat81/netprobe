@@ -393,6 +393,11 @@ class MemoryLedger:
         with self.lock:
             self.post_quotas[key] = dict(row)
 
+    def list_post_quotas(self, limit: int = 200) -> list[dict]:
+        with self.lock:
+            rows = [dict(row) for row in self.post_quotas.values()]
+        return rows[:limit]
+
 
 class FirestoreLedger(MemoryLedger):
     """Same calls as MemoryLedger, stored in Firestore collections prefixed magnon_."""
@@ -516,6 +521,16 @@ class FirestoreLedger(MemoryLedger):
 
     def save_post_quota(self, key: str, row: dict) -> None:
         self.client.collection("magnon_post_quota").document(key).set(row)
+
+    def list_post_quotas(self, limit: int = 200) -> list[dict]:
+        rows = []
+        for snap in self.client.collection("magnon_post_quota").stream():
+            data = snap.to_dict()
+            if data:
+                rows.append(data)
+            if len(rows) >= limit:
+                break
+        return rows
 
     def run(self, run_id: str) -> dict | None:
         snap = self.client.collection("magnon_runs").document(run_id).get()
@@ -947,6 +962,26 @@ class Portal:
         if added < 1 or added > 1000:
             raise ValueError("bad_credit")
         return add_post_balance(self.ledger, ident, added, self.now())
+
+    def list_devices(self, token: str) -> dict:
+        actor = self._need(token)
+        if "admin" not in account_roles(actor):
+            raise PermissionError("admin_only")
+        today = day_key(self.now())
+        rows = []
+        for stored in self.ledger.list_post_quotas():
+            ident = str(stored.get("device_id") or "").strip()
+            if len(ident) < 8:
+                continue
+            _used, free_used, balance = _quota_state(stored, today)
+            rows.append({
+                "device_id": ident,
+                "free_used": free_used,
+                "free_limit": FREE_POSTS_PER_DAY,
+                "balance": balance,
+            })
+        rows.sort(key=lambda row: row["device_id"])
+        return {"devices": rows}
 
     def _admin_row(self, user: dict, credit: dict) -> dict:
         return {
@@ -1750,6 +1785,7 @@ dt{color:#555} dd{margin:0}
 <button type="button" id="quotaLookup">Look up</button>
 </form>
 <p id="quotaStatus" class="muted"></p>
+<div id="devices"></div>
 <h2>Accounts</h2>
 <p id="adminStatus" class="muted"></p>
 <div id="users"></div>
@@ -1843,6 +1879,33 @@ async function readQuota(adding) {
 }
 document.getElementById("quotaLookup").onclick = function(){ readQuota(false); };
 document.getElementById("quotaForm").onsubmit = function(ev){ ev.preventDefault(); readQuota(true); };
+async function loadDevices(){
+  const data = await api("/api/magnon/devices");
+  const rows = data.devices || [];
+  const box = document.getElementById("devices");
+  if (!rows.length) {
+    box.innerHTML = "<p class='muted'>No device has checked in yet.</p>";
+    return;
+  }
+  box.innerHTML = "<table><thead><tr><th>Device id</th><th>Usage</th><th>Credit</th><th></th></tr></thead><tbody>"+
+    rows.map(function(row){
+      return "<tr><td>"+esc(row.device_id)+"</td><td>"+esc(row.free_used)+"/"+esc(row.free_limit)+"</td><td>"+esc(row.balance)+"</td><td><input data-add type='number' min='1' max='1000' placeholder='add' size='6'><button type='button' data-device='"+esc(row.device_id)+"'>Add</button></td></tr>";
+    }).join("")+"</tbody></table>";
+  box.querySelectorAll("[data-device]").forEach(function(button){
+    button.onclick = async function(){
+      const status = document.getElementById("quotaStatus");
+      const amount = Number(button.parentElement.querySelector("[data-add]").value);
+      status.textContent = "";
+      try {
+        const saved = await api("/api/magnon/post-credit", {device_id: button.getAttribute("data-device"), add: amount});
+        status.textContent = "Usage " + saved.free_used + "/" + saved.free_limit + " · credit " + saved.balance;
+        loadDevices();
+      } catch (err) {
+        status.textContent = (err && err.error) || "Add failed";
+      }
+    };
+  });
+}
 async function loadUsers(){
   const data = await api("/api/magnon/users");
   const rows = data.users || [];
@@ -1894,7 +1957,7 @@ async function refresh() {
   document.getElementById("sponsorWrap").hidden = page !== "sponsor";
   document.getElementById("mineWrap").hidden = !premium;
   document.getElementById("liteWrap").hidden = page !== "contrib" || me.level === "premium";
-  if (page === "admin") await loadUsers();
+  if (page === "admin") { await loadDevices(); await loadUsers(); }
   if (page === "sponsor") {
     const view = await api("/api/magnon/sponsor");
     document.getElementById("sponsor").innerHTML = campaignCards(view.campaigns || []);
@@ -2078,10 +2141,24 @@ def _quota_public(free_used: int, balance: int) -> dict:
     }
 
 
+def _quota_record(device_id: str, today: str, used: list[str], free_used: int, balance: int) -> dict:
+    return {
+        "day": today,
+        "used_ids": used[-200:],
+        "free_used": free_used,
+        "balance": balance,
+        "device_id": device_id.strip()[:64],
+    }
+
+
 def read_post_quota(ledger: MemoryLedger, device_id: str, now: float | None = None) -> dict:
+    ident = device_id.strip()[:64]
     today = day_key(now if now is not None else time.time())
-    used, free_used, balance = _quota_state(ledger.post_quota(_quota_key(device_id)), today)
-    del used
+    key = _quota_key(ident)
+    stored = ledger.post_quota(key)
+    used, free_used, balance = _quota_state(stored, today)
+    if not stored or stored.get("device_id") != ident or stored.get("day") != today:
+        ledger.save_post_quota(key, _quota_record(ident, today, used, free_used, balance))
     return _quota_public(free_used, balance)
 
 
@@ -2108,10 +2185,7 @@ def charge_post_quota(ledger: MemoryLedger, device_id: str, event_ids: list[str]
     free_used += take_free
     balance -= take_paid
     used.extend(fresh)
-    ledger.save_post_quota(
-        key,
-        {"day": today, "used_ids": used[-200:], "free_used": free_used, "balance": balance},
-    )
+    ledger.save_post_quota(key, _quota_record(device_id, today, used, free_used, balance))
     charged = _quota_public(free_used, balance)
     charged["ok"] = True
     return charged
@@ -2122,10 +2196,7 @@ def add_post_balance(ledger: MemoryLedger, device_id: str, amount: int, now: flo
     key = _quota_key(device_id)
     used, free_used, balance = _quota_state(ledger.post_quota(key), today)
     balance += amount
-    ledger.save_post_quota(
-        key,
-        {"day": today, "used_ids": used[-200:], "free_used": free_used, "balance": balance},
-    )
+    ledger.save_post_quota(key, _quota_record(device_id, today, used, free_used, balance))
     return _quota_public(free_used, balance)
 
 
@@ -3042,6 +3113,8 @@ def handle(portal: Portal, method: str, path: str, token: str, body: dict, staff
             return 200, portal.own_detail(token), None
         if method == "GET" and path == "/api/magnon/sponsor":
             return 200, portal.sponsor_view(token), None
+        if method == "GET" and path == "/api/magnon/devices":
+            return 200, portal.list_devices(token), None
         if method == "GET" and path == "/api/magnon/users":
             return 200, portal.list_users(token), None
         if method == "POST" and path == "/api/magnon/post-credit":
