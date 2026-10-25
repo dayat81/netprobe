@@ -894,3 +894,89 @@ def test_admin_lists_devices_that_checked_quota_and_hides_a_bare_hash():
     page = portal_html("client", "admin").decode("utf-8")
     assert "Device id" in page
     assert "/api/magnon/devices" in page
+
+
+def test_stored_band_is_reused_and_other_kecamatan_stays_out():
+    ledger = MemoryLedger()
+    calls = []
+    seen = {}
+
+    def classify_event(event):
+        calls.append(event["id"])
+        return "poor"
+
+    def classify_context(selected, nearby):
+        seen["selected"] = [row["id"] for row in selected]
+        seen["nearby"] = [row["id"] for row in nearby]
+        assert all("download_mbps" not in row for row in nearby)
+        return {"post_intent": "complaint", "quality_band": "poor"}
+
+    def draft(brief, classification):
+        seen["context"] = [row["id"] for row in brief["context"]["nearby"]]
+        seen["intent"] = classification["post_intent"]
+        return {"sentence": "Telkomsel is slow in Menteng.", "summary": "Slow nearby."}
+
+    ledger.save_classification({
+        "id": "oldmenteng",
+        "quality_band": "fair",
+        "kecamatan": "Menteng",
+        "provider": "XL",
+        "transport": "cellular",
+        "kind": "speed",
+        "created_at": 10,
+    })
+    ledger.save_classification({
+        "id": "oldgambir",
+        "quality_band": "excellent",
+        "kecamatan": "Gambir",
+        "provider": "XL",
+        "transport": "wifi",
+        "kind": "speed",
+        "created_at": 11,
+    })
+    body = {
+        "language": "en",
+        "device_id": "deviceaaa1",
+        "events": [{
+            "id": "speed1",
+            "kind": "speed",
+            "kecamatan": "Menteng",
+            "kelurahan": "Gondangdia",
+            "provider": "Telkomsel",
+            "transport": "cellular",
+            "download_mbps": 3.5,
+            "upload_mbps": 1,
+            "ping_ms": 200,
+        }],
+    }
+    result = compose_post(
+        body,
+        draft=draft,
+        store=ledger,
+        classify_event=classify_event,
+        classify_context=classify_context,
+    )
+    assert result["eligible"]
+    assert calls == ["speed1"]
+    assert seen["selected"] == ["speed1"]
+    assert "oldmenteng" in seen["nearby"]
+    assert "speed1" in seen["nearby"]
+    assert "oldgambir" not in seen["nearby"]
+    assert seen["context"] == seen["nearby"]
+    assert seen["intent"] == "complaint"
+    stored = ledger.classification("speed1")
+    assert stored["quality_band"] == "poor"
+    assert stored["kecamatan"] == "Menteng"
+    for hidden in ("device_id", "latitude", "longitude", "download_mbps"):
+        assert hidden not in stored
+    page = result_page(ledger, result["url"].rsplit("/", 1)[-1])[1].decode("utf-8")
+    assert "deviceaaa1" not in page
+    assert "3.5" in page
+    compose_post(
+        body,
+        draft=draft,
+        store=ledger,
+        classify_event=classify_event,
+        classify_context=classify_context,
+    )
+    assert calls == ["speed1"]

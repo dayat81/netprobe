@@ -61,6 +61,10 @@ class MainActivity : AppCompatActivity() {
     private var watchedKind = ""
     private var postOnline = false
     private var placeJob: Job? = null
+    private var gateJob: Job? = null
+    private var heldPlace = PlaceCapture.Place()
+    private var providerKind = ""
+    private var placeKind = ""
 
     private val permissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions(),
@@ -107,6 +111,7 @@ class MainActivity : AppCompatActivity() {
         wirePostChoices()
         updatePermissionUi()
         requestPermissions()
+        refreshStartButtons()
         showTab(Tab.SPEED)
     }
 
@@ -118,6 +123,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onStop() {
+        gateJob?.cancel()
         unwatchDefaultNetwork()
         super.onStop()
     }
@@ -196,6 +202,8 @@ class MainActivity : AppCompatActivity() {
         shownProvider = name.trim().takeIf { it.isNotEmpty() && it != "—" }?.uppercase(Locale.US).orEmpty()
         binding.speedPublic.text = shownProvider.ifBlank { "—" }
         renderVideoHeader()
+        providerKind = if (shownProvider.isBlank()) "" else watchedKind
+        refreshStartButtons()
     }
 
     private fun watchDefaultNetwork() {
@@ -239,8 +247,15 @@ class MainActivity : AppCompatActivity() {
     private fun applyPath(network: Network?) {
         showLink(network)
         val kind = network?.let { kindOf(it) }.orEmpty()
+        val changed = kind != watchedKind || network != watchedNetwork
         watchedNetwork = network
         watchedKind = kind
+        if (changed) {
+            heldPlace = PlaceCapture.Place()
+            placeKind = ""
+            providerKind = ""
+            gateJob?.cancel()
+        }
         if (running || videoRunning) {
             pathDirty = true
             return
@@ -264,7 +279,11 @@ class MainActivity : AppCompatActivity() {
 
     private fun requestProvider(network: Network) {
         val generation = pathGeneration.next()
+        providerKind = ""
+        shownProvider = ""
         binding.speedPublic.text = "…"
+        renderVideoHeader()
+        refreshStartButtons()
         pathJob?.cancel()
         pathJob = lifecycleScope.launch {
             val target = withContext(Dispatchers.IO) {
@@ -833,11 +852,127 @@ class MainActivity : AppCompatActivity() {
     private fun tabColor(active: Boolean): Int =
         ContextCompat.getColor(this, if (active) R.color.accent else R.color.text_secondary)
 
+    private fun placeNamed(place: PlaceCapture.Place): Boolean =
+        PlaceFill.named(place.kelurahan, place.kecamatan, place.kabupaten, place.provinsi)
+
+    private fun roundReady(): Boolean =
+        watchedKind.isNotEmpty() &&
+            providerKind == watchedKind &&
+            placeKind == watchedKind &&
+            TestGate.ready(
+                shownProvider,
+                heldPlace.kelurahan,
+                heldPlace.kecamatan,
+                heldPlace.kabupaten,
+                heldPlace.provinsi,
+            )
+
+    private fun waitStatus(): String {
+        val waitingProvider = watchedKind.isEmpty() || providerKind != watchedKind || shownProvider.isBlank()
+        return getString(if (waitingProvider) R.string.speed_wait_provider else R.string.speed_wait_place)
+    }
+
+    private fun isWaitStatus(text: String): Boolean =
+        text == getString(R.string.speed_wait_provider) || text == getString(R.string.speed_wait_place)
+
+    private fun refreshStartButtons() {
+        if (!::binding.isInitialized) return
+        val ready = roundReady()
+        val busy = running || videoRunning
+        binding.speedCenter.isEnabled = busy || ready
+        binding.videoGo.isEnabled = busy || ready
+        if (busy) return
+        binding.speedCenter.alpha = if (ready) 1f else 0.45f
+        binding.videoGo.alpha = if (ready) 1f else 0.45f
+        val waiting = if (ready) "" else waitStatus()
+        if (waiting.isNotEmpty() || isWaitStatus(binding.speedStatus.text?.toString().orEmpty())) {
+            binding.speedStatus.text = waiting
+        }
+        if (waiting.isNotEmpty() || isWaitStatus(binding.videoStatus.text?.toString().orEmpty())) {
+            binding.videoStatus.text = waiting
+        }
+        if (!ready) ensurePlace()
+    }
+
+    private fun ensurePlace() {
+        if (running || videoRunning || watchedKind.isEmpty()) return
+        if (placeKind == watchedKind && placeNamed(heldPlace)) return
+        if (gateJob?.isActive == true) return
+        val kind = watchedKind
+        gateJob = lifecycleScope.launch {
+            val found = withContext(Dispatchers.IO) { PlaceCapture.district(applicationContext) }
+            if (running || videoRunning || watchedKind != kind) return@launch
+            if (placeNamed(found)) {
+                heldPlace = found
+                placeKind = kind
+                refreshStartButtons()
+                return@launch
+            }
+            delay(2_000)
+            if (!running && !videoRunning && watchedKind == kind) refreshStartButtons()
+        }
+    }
+
+    private suspend fun awaitRoundReady(): Boolean {
+        while (running || videoRunning) {
+            val kind = watchedKind
+            if (kind.isNotEmpty() && providerKind == kind && placeKind == kind && placeNamed(heldPlace) &&
+                TestGate.ready(shownProvider, heldPlace.kelurahan, heldPlace.kecamatan, heldPlace.kabupaten, heldPlace.provinsi)
+            ) {
+                return true
+            }
+            val message = waitStatus()
+            if (running) binding.speedStatus.text = message
+            if (videoRunning) binding.videoStatus.text = message
+            if (kind.isEmpty()) {
+                delay(1_000)
+                continue
+            }
+            val network = watchedNetwork ?: activeNetwork()
+            val needProvider = providerKind != kind || shownProvider.isBlank()
+            val needPlace = placeKind != kind || !placeNamed(heldPlace)
+            val providerJob = if (needProvider && network != null) {
+                async(Dispatchers.IO) {
+                    val target = runCatching { SpeedtestTarget.resolve(family = IpFamily.IPV4) }.getOrNull()
+                        ?: return@async null
+                    ClientNetworkInfo.publicClientFromHello(target, network, publish = false)
+                }
+            } else {
+                null
+            }
+            val placeRead = if (needPlace) {
+                async(Dispatchers.IO) { PlaceCapture.district(applicationContext) }
+            } else {
+                null
+            }
+            val info = providerJob?.await()
+            val found = placeRead?.await()
+            if (!(running || videoRunning) || watchedKind != kind) continue
+            if (info != null) {
+                ClientNetworkInfo.remember(info)
+                providerKind = kind
+                showProvider(info.provider)
+            }
+            if (found != null && placeNamed(found)) {
+                heldPlace = found
+                placeKind = kind
+            }
+            if (providerKind == kind && placeKind == kind && placeNamed(heldPlace) &&
+                TestGate.ready(shownProvider, heldPlace.kelurahan, heldPlace.kecamatan, heldPlace.kabupaten, heldPlace.provinsi)
+            ) {
+                return true
+            }
+            delay(1_000)
+        }
+        return false
+    }
+
     private fun toggleVideo() {
         if (videoRunning) {
             stopVideo()
             return
         }
+        if (!roundReady()) return
         videoRunning = true
         clearVideoMetrics()
         binding.videoGo.text = getString(R.string.speed_stop)
@@ -849,30 +984,16 @@ class MainActivity : AppCompatActivity() {
             var round = 0
             try {
                 while (videoRunning) {
+                    if (!awaitRoundReady()) break
                     round += 1
+                    val found = heldPlace
+                    val named = shownProvider
                     binding.videoGo.text = getString(R.string.speed_stop)
                     binding.videoGo.alpha = 0.55f
                     binding.videoHudProgress.visibility = View.VISIBLE
                     binding.videoStatus.text = getString(R.string.speed_loop, round)
                     clearVideoMetrics()
-                    val place = async(Dispatchers.IO) { PlaceCapture.district(applicationContext) }
                     val path = async(Dispatchers.IO) { NetworkPath.kind(applicationContext) }
-                    val network = watchedNetwork ?: activeNetwork()
-                    val generation = pathGeneration.next()
-                    pathJob?.cancel()
-                    val providerName = lifecycleScope.async {
-                        val info = withContext(Dispatchers.IO) {
-                            val target = runCatching { SpeedtestTarget.resolve(family = IpFamily.IPV4) }.getOrNull()
-                                ?: return@withContext null
-                            ClientNetworkInfo.publicClientFromHello(target, network, publish = false)
-                        } ?: return@async ""
-                        if (pathGeneration.accept(generation)) {
-                            ClientNetworkInfo.remember(info)
-                            showProvider(info.provider)
-                        }
-                        info.provider
-                    }
-                    pathJob = providerName
                     try {
                         val transport = path.await()
                         showTransport(transport)
@@ -887,8 +1008,6 @@ class MainActivity : AppCompatActivity() {
                         }
                         if (!videoRunning) break
                         renderVideoResult(result)
-                        val named = providerName.await()
-                        val found = place.await()
                         SpeedtestReport.uploadVideo(
                             applicationContext,
                             result,
@@ -908,11 +1027,9 @@ class MainActivity : AppCompatActivity() {
                             delay(1_000)
                         }
                     } catch (cancelled: CancellationException) {
-                        place.cancel()
                         path.cancel()
                         throw cancelled
                     } catch (error: Exception) {
-                        place.cancel()
                         path.cancel()
                         if (!videoRunning) break
                         val kind = classifyReachFailure(error)
@@ -930,7 +1047,6 @@ class MainActivity : AppCompatActivity() {
                         )
                         delay(2_000)
                     } finally {
-                        place.cancel()
                         path.cancel()
                     }
                 }
@@ -949,6 +1065,7 @@ class MainActivity : AppCompatActivity() {
                 ) {
                     binding.videoStatus.text = ""
                 }
+                refreshStartButtons()
             }
         }
     }
@@ -993,8 +1110,10 @@ class MainActivity : AppCompatActivity() {
             binding.speedCenter.text = getString(R.string.speed_go)
             binding.speedStatus.text = ""
             binding.gauge.setReading(0.0, "", "")
+            refreshStartButtons()
             return
         }
+        if (!roundReady()) return
         running = true
         binding.pingValue.text = "—"
         binding.downloadValue.text = "—"
@@ -1009,7 +1128,9 @@ class MainActivity : AppCompatActivity() {
             val triedSinceSuccess = mutableSetOf<IpFamily>()
             try {
                 while (running) {
+                    if (!awaitRoundReady()) break
                     if (triedSinceSuccess.isEmpty()) round += 1
+                    val found = heldPlace
                     binding.speedStatus.text = getString(R.string.speed_loop, round)
                     binding.speedCenter.text = getString(R.string.speed_stop)
                     binding.pingValue.text = "—"
@@ -1017,7 +1138,6 @@ class MainActivity : AppCompatActivity() {
                     binding.uploadValue.text = "—"
                     binding.jitterValue.text = getString(R.string.speed_jitter_idle)
                     binding.gauge.setReading(0.0, "PING", family.label)
-                    val place = async(Dispatchers.IO) { PlaceCapture.district(applicationContext) }
                     val path = async(Dispatchers.IO) { NetworkPath.kind(applicationContext) }
                     try {
                         val transport = path.await()
@@ -1033,7 +1153,6 @@ class MainActivity : AppCompatActivity() {
                             runOnUiThread { renderProgress(progress) }
                         }
                         triedSinceSuccess.clear()
-                        val found = place.await()
                         SpeedtestReport.upload(
                             applicationContext,
                             result,
@@ -1061,11 +1180,9 @@ class MainActivity : AppCompatActivity() {
                         }
                         if (!running) break
                     } catch (cancelled: CancellationException) {
-                        place.cancel()
                         path.cancel()
                         throw cancelled
                     } catch (error: Exception) {
-                        place.cancel()
                         path.cancel()
                         if (!running) break
                         AppLog.w(
@@ -1093,7 +1210,6 @@ class MainActivity : AppCompatActivity() {
                         )
                         delay(2_000)
                     } finally {
-                        place.cancel()
                         path.cancel()
                     }
                 }
@@ -1111,6 +1227,7 @@ class MainActivity : AppCompatActivity() {
                 ) {
                     binding.speedStatus.text = ""
                 }
+                refreshStartButtons()
             }
         }
     }
@@ -1153,7 +1270,10 @@ class MainActivity : AppCompatActivity() {
     private fun granted(permission: String): Boolean =
         ContextCompat.checkSelfPermission(this, permission) == PackageManager.PERMISSION_GRANTED
 
-    private fun updatePermissionUi() = Unit
+    private fun updatePermissionUi() {
+        if (integrityStopped || !::binding.isInitialized) return
+        refreshStartButtons()
+    }
 
     private fun requestPermissions() {
         val wanted = listOf(

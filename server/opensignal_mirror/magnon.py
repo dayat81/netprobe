@@ -254,6 +254,7 @@ class MemoryLedger:
         self.events: list[dict] = []
         self.runs: dict[str, dict] = {}
         self.post_quotas: dict[str, dict] = {}
+        self.classifications: dict[str, dict] = {}
 
     def save_user(self, user: dict) -> None:
         with self.lock:
@@ -398,6 +399,31 @@ class MemoryLedger:
             rows = [dict(row) for row in self.post_quotas.values()]
         return rows[:limit]
 
+    def classification(self, event_id: str) -> dict | None:
+        with self.lock:
+            row = self.classifications.get(str(event_id or "").strip())
+            return dict(row) if row else None
+
+    def save_classification(self, row: dict) -> None:
+        event_id = str(row.get("id") or "").strip()
+        if not event_id:
+            return
+        with self.lock:
+            self.classifications[event_id] = dict(row)
+
+    def nearby_classifications(self, kecamatan: str, limit: int = 20) -> list[dict]:
+        place = str(kecamatan or "").strip()
+        if not place:
+            return []
+        with self.lock:
+            rows = [
+                dict(row)
+                for row in self.classifications.values()
+                if str(row.get("kecamatan") or "") == place
+            ]
+        rows.sort(key=lambda item: item.get("created_at") or 0, reverse=True)
+        return rows[:limit]
+
 
 class FirestoreLedger(MemoryLedger):
     """Same calls as MemoryLedger, stored in Firestore collections prefixed magnon_."""
@@ -531,6 +557,39 @@ class FirestoreLedger(MemoryLedger):
             if len(rows) >= limit:
                 break
         return rows
+
+    def classification(self, event_id: str) -> dict | None:
+        event_id = str(event_id or "").strip()
+        if not event_id:
+            return None
+        snap = self.client.collection("magnon_classifications").document(event_id).get()
+        return snap.to_dict() if snap.exists else None
+
+    def save_classification(self, row: dict) -> None:
+        event_id = str(row.get("id") or "").strip()
+        if not event_id:
+            return
+        self.client.collection("magnon_classifications").document(event_id).set(dict(row))
+
+    def nearby_classifications(self, kecamatan: str, limit: int = 20) -> list[dict]:
+        place = str(kecamatan or "").strip()
+        if not place:
+            return []
+        from google.cloud import firestore
+
+        collection = self.client.collection("magnon_classifications")
+        try:
+            query = (
+                collection.where("kecamatan", "==", place)
+                .order_by("created_at", direction=firestore.Query.DESCENDING)
+                .limit(limit)
+            )
+            return [snap.to_dict() for snap in query.stream() if snap.to_dict()]
+        except Exception:
+            rows = [snap.to_dict() for snap in collection.where("kecamatan", "==", place).limit(50).stream()]
+            rows = [row for row in rows if row]
+            rows.sort(key=lambda item: item.get("created_at") or 0, reverse=True)
+            return rows[:limit]
 
     def run(self, run_id: str) -> dict | None:
         snap = self.client.collection("magnon_runs").document(run_id).get()
@@ -1402,9 +1461,9 @@ footer{padding:36px 24px}
 </section>
 <section id="measure">
 <h2 data-i18n="howTitle">From a phone test to a public comparison</h2>
-<p class="sub" data-i18n="howSub">Each phone can post ten new tests a day. For more, copy the device id on the Post tab and send it to @MagnonTest on X.</p>
+<p class="sub" data-i18n="howSub">Each phone can post ten new tests a day. For more, copy the device id on the AI tab and send it to @MagnonTest on X.</p>
 <div class="steps">
-<div><strong data-i18n="step1">01 &nbsp;Test</strong><span data-i18n="step1Body">Run Speed or Video. Post lists only the ten newest loops.</span></div>
+<div><strong data-i18n="step1">01 &nbsp;Test</strong><span data-i18n="step1Body">Run Speed or Video. The AI tab lists only the ten newest loops.</span></div>
 <div><strong data-i18n="step2">02 &nbsp;Draft</strong><span data-i18n="step2Body">Select loops that share a provider and a transport. One draft is one link, and the page lists every selected test.</span></div>
 <div><strong data-i18n="step3">03 &nbsp;Compare</strong><span data-i18n="step3Body">Anyone can open the link. The district map compares shared results and shows no email and no exact place.</span></div>
 </div>
@@ -1440,9 +1499,9 @@ var copy = {
     navPlaces: "Compare",
     navPosts: "Posts",
     howTitle: "From a phone test to a public comparison",
-    howSub: "Each phone can post ten new tests a day. For more, copy the device id on the Post tab and send it to @MagnonTest on X.",
+    howSub: "Each phone can post ten new tests a day. For more, copy the device id on the AI tab and send it to @MagnonTest on X.",
     step1: "01  Test",
-    step1Body: "Run Speed or Video. Post lists only the ten newest loops.",
+    step1Body: "Run Speed or Video. The AI tab lists only the ten newest loops.",
     step2: "02  Draft",
     step2Body: "Select loops that share a provider and a transport. One draft is one link, and the page lists every selected test.",
     step3: "03  Compare",
@@ -1478,9 +1537,9 @@ var copy = {
     navPlaces: "Bandingkan",
     navPosts: "Postingan",
     howTitle: "Dari uji di ponsel ke perbandingan publik",
-    howSub: "Setiap ponsel bisa memposting sepuluh uji baru sehari. Untuk menambahnya, salin device id di tab Post dan kirim ke @MagnonTest di X.",
+    howSub: "Setiap ponsel bisa memposting sepuluh uji baru sehari. Untuk menambahnya, salin device id di tab AI dan kirim ke @MagnonTest di X.",
     step1: "01  Uji",
-    step1Body: "Jalankan Speed atau Video. Tab Post hanya menampilkan sepuluh loop terbaru.",
+    step1Body: "Jalankan Speed atau Video. Tab AI hanya menampilkan sepuluh loop terbaru.",
     step2: "02  Draf",
     step2Body: "Pilih loop dengan provider dan transport yang sama. Satu draf menjadi satu tautan, dan halamannya memuat setiap uji yang dipilih.",
     step3: "03  Bandingkan",
@@ -2200,6 +2259,95 @@ def add_post_balance(ledger: MemoryLedger, device_id: str, amount: int, now: flo
     return _quota_public(free_used, balance)
 
 
+def _known_band(value: object) -> str:
+    label = str(value or "").strip()
+    return label if label in _QUALITY_CRITERIA else "unknown"
+
+
+def _classification_row(event: dict, band: str) -> dict:
+    return {
+        "id": str(event.get("id") or ""),
+        "quality_band": band,
+        "kelurahan": str(event.get("kelurahan") or ""),
+        "kecamatan": str(event.get("kecamatan") or ""),
+        "kabupaten": str(event.get("kabupaten") or ""),
+        "provinsi": str(event.get("provinsi") or ""),
+        "provider": str(event.get("provider") or ""),
+        "transport": str(event.get("transport") or ""),
+        "kind": str(event.get("kind") or ""),
+        "created_at": int(time.time()),
+    }
+
+
+def _context_view(row: dict) -> dict:
+    return {
+        "id": str(row.get("id") or ""),
+        "quality_band": _known_band(row.get("quality_band")),
+        "provider": str(row.get("provider") or ""),
+        "transport": str(row.get("transport") or ""),
+        "kind": str(row.get("kind") or ""),
+        "kecamatan": str(row.get("kecamatan") or ""),
+    }
+
+
+def _store_event_bands(ledger: MemoryLedger, events: list[dict], classify_event: Callable) -> None:
+    for event in events:
+        event_id = str(event.get("id") or "").strip()
+        stored = ledger.classification(event_id) if event_id else None
+        saved = str((stored or {}).get("quality_band") or "")
+        if saved in _QUALITY_CRITERIA:
+            band = saved
+        else:
+            result = classify_event(event)
+            if isinstance(result, str):
+                band = _known_band(result)
+            else:
+                band = _known_band((result or {}).get("quality_band") if isinstance(result, dict) else "")
+            if event_id:
+                ledger.save_classification(_classification_row(event, band))
+        event["quality_band"] = band
+
+
+def _classify_saved_then_context(
+    ledger: MemoryLedger,
+    events: list[dict],
+    kecamatan: str,
+    classify_event: Callable,
+    classify_context: Callable,
+    model_brief: dict,
+) -> dict:
+    _store_event_bands(ledger, events, classify_event)
+    nearby = ledger.nearby_classifications(kecamatan, 20) if kecamatan else []
+    selected = [_context_view(event) for event in events]
+    around = [_context_view(row) for row in nearby]
+    classification = classify_context(selected, around)
+    if not isinstance(classification, dict):
+        classification = {}
+    model_brief["context"] = {"kecamatan": kecamatan, "selected": selected, "nearby": around}
+    labels = [item["quality_band"] for item in selected]
+    quality = _known_band(classification.get("quality_band"))
+    if quality == "unknown" and labels:
+        quality = labels[0]
+    intent = str(classification.get("post_intent") or "")
+    if intent not in ("complaint", "praise"):
+        if quality in ("poor", "fair"):
+            intent = "complaint"
+        elif quality in ("good", "excellent"):
+            intent = "praise"
+        elif any(label in ("poor", "fair") for label in labels):
+            intent = "complaint"
+        elif labels and all(label in ("good", "excellent") for label in labels):
+            intent = "praise"
+        else:
+            intent = "complaint"
+    return {
+        "post_intent": intent,
+        "quality_band": quality,
+        "topic": str(classification.get("topic") or "none"),
+        "model": classification.get("model") or "jev-latest",
+    }
+
+
 def compose_post(
     raw: dict,
     classify: Callable | None = None,
@@ -2207,6 +2355,8 @@ def compose_post(
     store: MemoryLedger | None = None,
     fixes: list[dict] | None = None,
     geocode: Callable | None = None,
+    classify_event: Callable | None = None,
+    classify_context: Callable | None = None,
 ) -> dict:
     """Jev chooses complaint or praise. DeepSeek writes the sentence and does not change that choice."""
     if not isinstance(raw, dict):
@@ -2257,13 +2407,23 @@ def compose_post(
                 "balance": quota["balance"],
             }
     model_brief = _model_brief(brief)
-    classification = (classify or classify_with_jev)(model_brief)
+    if events and classify is None:
+        classification = _classify_saved_then_context(
+            ledger,
+            events,
+            str(brief.get("kecamatan") or ""),
+            classify_event or classify_event_with_jev,
+            classify_context or classify_context_with_jev,
+            model_brief,
+        )
+    else:
+        classification = (classify or classify_with_jev)(model_brief)
+        _attach_event_bands(brief.get("events") or [], classification.get("event_bands") or [])
     intent = str(classification.get("post_intent") or "")
     if intent not in ("complaint", "praise"):
         intent = "complaint"
     classification = dict(classification)
     classification["post_intent"] = intent
-    _attach_event_bands(brief.get("events") or [], classification.get("event_bands") or [])
     written = (draft or draft_with_deepseek)(model_brief, classification)
     sentence = str(written.get("sentence") or "").strip()
     if not sentence:
@@ -2991,6 +3151,87 @@ def classify_with_jev(brief: dict) -> dict:
     }
 
 
+def _jev_state(brief: dict) -> dict:
+    return {
+        "brief": brief,
+        "policy": {
+            "language": "id-ID mobile network experience",
+            "role": "classifier only — do not decide whether the user may share",
+            "wifi_ok": True,
+            "poor_guide": {
+                "download_mbps_under": 10,
+                "ping_ms_over": 120,
+                "video_resolution_at_most": "360p",
+                "video_load_ms_over": 2000,
+                "buffering_pct_over": 5,
+            },
+            "good_guide": {
+                "download_mbps_over": 50,
+                "ping_ms_under": 80,
+                "video_resolution_at_least": "720p",
+                "buffering_pct_under": 3,
+            },
+        },
+    }
+
+
+def classify_event_with_jev(event: dict) -> str:
+    key = os.environ.get("TYPESAFE_API_KEY", "").strip()
+    if not key:
+        raise RuntimeError("jev_not_configured")
+    body = {
+        "model": os.environ.get("TYPESAFE_MODEL", "jev-latest").strip() or "jev-latest",
+        "state": _jev_state({"events": [event]}),
+        "questions": {
+            "quality_band": {
+                "type": "choice",
+                "instructions": "Quality of this one test. Use only its numbers.",
+                "criteria": dict(_QUALITY_CRITERIA),
+            }
+        },
+    }
+    parsed = _post_json("https://api.typesafe.ai/v1/systemone", body, key, 8)
+    return _known_band(((parsed.get("answers") or {}).get("quality_band") or {}).get("choice"))
+
+
+def classify_context_with_jev(selected: list, nearby: list) -> dict:
+    key = os.environ.get("TYPESAFE_API_KEY", "").strip()
+    if not key:
+        raise RuntimeError("jev_not_configured")
+    body = {
+        "model": os.environ.get("TYPESAFE_MODEL", "jev-latest").strip() or "jev-latest",
+        "state": _jev_state({
+            "selected": selected,
+            "nearby": nearby,
+            "note": "nearby lists stored quality bands from the same kecamatan, including other phones. It has no speeds.",
+        }),
+        "questions": {
+            "quality_band": {
+                "type": "choice",
+                "instructions": (
+                    "Overall quality of the selected tests. Use nearby bands from the same kecamatan as wider context. "
+                    "Do not invent measurements."
+                ),
+                "criteria": dict(_QUALITY_CRITERIA),
+            }
+        },
+    }
+    parsed = _post_json("https://api.typesafe.ai/v1/systemone", body, key, 12)
+    quality = _known_band(((parsed.get("answers") or {}).get("quality_band") or {}).get("choice"))
+    if quality in ("poor", "fair"):
+        intent = "complaint"
+    elif quality in ("good", "excellent"):
+        intent = "praise"
+    else:
+        intent = ""
+    return {
+        "post_intent": intent,
+        "quality_band": quality,
+        "topic": "none",
+        "model": parsed.get("model") or "jev-latest",
+    }
+
+
 def draft_with_deepseek(brief: dict, classification: dict) -> dict:
     key = os.environ.get("MAGNON_DEEPSEEK_API_KEY", "").strip()
     if not key:
@@ -3020,6 +3261,8 @@ def draft_with_deepseek(brief: dict, classification: dict) -> dict:
         "Use only numbers present in the brief. Do not invent measurements. "
         "When events is present, that list is the only set of measurements. "
         "Each event.quality_band was already classified. Do not change those labels. "
+        "If context.nearby is present, those rows are quality bands from the same kecamatan. "
+        "The sentence may mention that wider pattern. Do not quote a speed, ping, or video figure that is not in events. "
         "The sentence stays one post about the whole set. "
         "Name a place, provider, or transport only when that field is present."
     ) % (language, tone)
