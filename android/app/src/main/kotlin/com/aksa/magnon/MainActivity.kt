@@ -2,13 +2,11 @@ package com.aksa.magnon
 
 import android.Manifest
 import android.content.pm.PackageManager
-import android.os.Build
 import android.os.Bundle
-import android.text.SpannableStringBuilder
-import android.text.Spanned
-import android.text.style.ForegroundColorSpan
 import android.view.View
 import android.view.ViewGroup
+import android.widget.AdapterView
+import android.widget.ArrayAdapter
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.activity.result.contract.ActivityResultContracts
@@ -17,116 +15,75 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.RecyclerView
 import com.aksa.magnon.databinding.ActivityMainBinding
-import com.google.android.material.button.MaterialButton
-import org.json.JSONObject
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runInterruptible
 import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import java.util.TimeZone
 
-/** Radio chart, speedtest, and video tabs. Sampling stays in [RadioService]. */
+/** Speed, video, and post. */
 class MainActivity : AppCompatActivity() {
-    private enum class Tab { RADIO, SPEED, VIDEO, COMPLAINT, NETWORK, POINTS }
+    private enum class Tab { SPEED, VIDEO, COMPLAINT }
 
     private lateinit var binding: ActivityMainBinding
-    private var windowMin = 10
-    private var plmnFilter: String? = null
-    private var ratFilter: String? = null
-    private var plmnChoices: List<String> = emptyList()
     private var speedJob: Job? = null
-    private var tracerouteJob: Job? = null
     private var videoJob: Job? = null
     private var complaintJob: Job? = null
-    private var nextSpeedFamily: IpFamily = IpFamily.IPV4
     private var running = false
     private var videoRunning = false
     private var currentTab = Tab.SPEED
-    private var serverIpv4: String? = null
-    private var serverIpv6: String? = null
-    private val onPathChanged: () -> Unit = {
-        if (BuildConfig.IS_PREMIUM && currentTab == Tab.NETWORK && !running) startServerTraceroute(force = true)
-    }
+    private var postChromeArmed = false
+    private var rebindingPost = false
+    private var shownProvider = ""
+    private var shownTransport = ""
+    private var integrityStopped = false
 
     private val permissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions(),
-    ) {
-        updatePermissionUi()
-        if (hasCorePermissions() && BuildConfig.IS_PREMIUM) syncPremiumSampling()
-    }
-
-    private val onSnapshot: (RadioSnapshot) -> Unit = {
-        runOnUiThread {
-            showChart()
-            showWifiDetail(it.wifi)
-        }
-    }
+    ) { updatePermissionUi() }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        if (BuildConfig.INTEGRITY_GATE && DeviceIntegrity.blocked(this)) {
+            integrityStopped = true
+            setContentView(R.layout.activity_integrity)
+            window.decorView.postDelayed({
+                finishAffinity()
+                android.os.Process.killProcess(android.os.Process.myPid())
+            }, 1_500)
+            return
+        }
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
-        listOf(binding.win5 to 5, binding.win10 to 10, binding.win30 to 30).forEach { (button, minutes) ->
-            button.setOnClickListener {
-                windowMin = minutes
-                showChart()
-            }
-        }
-        listOf(binding.ratAll to null, binding.ratLte to "LTE", binding.ratNr to "NR").forEach { (button, rat) ->
-            button.setOnClickListener {
-                ratFilter = rat
-                restyleRatFilters()
-                showChart()
-            }
-        }
-        restyleRatFilters()
-        binding.grant.setOnClickListener { requestPermissions() }
-        binding.tabRadio.visibility = if (BuildConfig.IS_PREMIUM) View.VISIBLE else View.GONE
-        binding.tabNetwork.visibility = if (BuildConfig.IS_PREMIUM) View.VISIBLE else View.GONE
-        binding.tabComplaint.visibility = if (BuildConfig.IS_PREMIUM) View.GONE else View.VISIBLE
-        binding.tabRadio.setOnClickListener { showTab(Tab.RADIO) }
+        binding.speedPublicLabel.setText(R.string.speed_label_provider)
         binding.tabSpeed.setOnClickListener { showTab(Tab.SPEED) }
         binding.tabVideo.setOnClickListener { showTab(Tab.VIDEO) }
-        binding.tabNetwork.setOnClickListener { showTab(Tab.NETWORK) }
         binding.tabComplaint.setOnClickListener { showTab(Tab.COMPLAINT) }
-        binding.tabPoints.setOnClickListener { showTab(Tab.POINTS) }
-        binding.pointsSignIn.setOnClickListener {
-            if (MagnonAccount.hasSession(this)) signOutMagnon() else signInMagnon()
-        }
         binding.complaintShare.setOnClickListener {
             val preview = binding.complaintPreview.text?.toString().orEmpty()
             if (!binding.complaintShare.isEnabled || preview.isBlank()) return@setOnClickListener
-            lifecycleScope.launch {
-                val reserved = withContext(Dispatchers.IO) { MagnonAccount.reserve(this@MainActivity, "post") }
-                if (!reserved.ok) {
-                    binding.complaintVerdict.text = reserved.message
-                    return@launch
-                }
-                ComplaintDraft.share(this@MainActivity, preview)
+            if (!MagnonAccount.hasSession(this)) {
+                signInMagnon { shareComplaint(preview) }
+                return@setOnClickListener
             }
+            shareComplaint(preview)
         }
         binding.speedCenter.setOnClickListener { toggleSpeedtest() }
         binding.videoGo.setOnClickListener { toggleVideo() }
         binding.speedServer.text = BuildConfig.COLLECTOR_HOST
-        binding.speedLocal.text = "—"
         binding.speedPublic.text = "—"
-        binding.speedGateway.text = "—"
-        binding.videoServer.text = getString(
-            R.string.speed_server,
-            "${BuildConfig.COLLECTOR_HOST}/video",
-        )
-        nextSpeedFamily = IpFamily.IPV4
-        wireRadioPager()
+        binding.speedTransport.text = "—"
+        binding.videoServer.text = BuildConfig.COLLECTOR_HOST
         wireSpeedPager()
+        wireVideoPager()
         wireComplaintPager()
+        wirePostChoices()
         updatePermissionUi()
         requestPermissions()
         showTab(Tab.SPEED)
@@ -134,328 +91,113 @@ class MainActivity : AppCompatActivity() {
 
     override fun onStart() {
         super.onStart()
+        if (integrityStopped) return
         RumReporter.onFirstFrame()
-        RadioState.addListener(onSnapshot)
-        GatewayMonitor.addPathListener(onPathChanged)
-        if (BuildConfig.IS_PREMIUM && hasCorePermissions()) syncPremiumSampling()
-        showChart()
-        showWifiDetail(RadioState.latest?.wifi)
     }
 
     override fun onStop() {
-        stopServerTraceroute()
-        GatewayMonitor.removePathListener(onPathChanged)
-        RadioState.removeListener(onSnapshot)
         super.onStop()
     }
 
     private fun showTab(tab: Tab) {
         currentTab = tab
-        binding.radioPane.visibility = if (tab == Tab.RADIO) View.VISIBLE else View.GONE
         binding.speedPane.visibility = if (tab == Tab.SPEED) View.VISIBLE else View.GONE
         binding.videoPane.visibility = if (tab == Tab.VIDEO) View.VISIBLE else View.GONE
         binding.complaintPane.visibility = if (tab == Tab.COMPLAINT) View.VISIBLE else View.GONE
-        binding.networkPane.visibility = if (tab == Tab.NETWORK) View.VISIBLE else View.GONE
-        binding.pointsPane.visibility = if (tab == Tab.POINTS) View.VISIBLE else View.GONE
-        binding.tabRadio.setTextColor(tabColor(tab == Tab.RADIO))
         binding.tabSpeed.setTextColor(tabColor(tab == Tab.SPEED))
         binding.tabVideo.setTextColor(tabColor(tab == Tab.VIDEO))
-        binding.tabNetwork.setTextColor(tabColor(tab == Tab.NETWORK))
         binding.tabComplaint.setTextColor(tabColor(tab == Tab.COMPLAINT))
-        binding.tabPoints.setTextColor(tabColor(tab == Tab.POINTS))
         if (tab != Tab.VIDEO && videoRunning) stopVideo()
-        if (tab == Tab.RADIO) {
-            binding.radioPane.setCurrentItem(1, false)
-        }
         if (tab == Tab.SPEED) {
             binding.speedPane.setCurrentItem(1, false)
             refreshSpeedClientIps()
+            if (!running) refreshTransport()
             renderSpeedHistory()
         }
-        if (tab == Tab.NETWORK && BuildConfig.IS_PREMIUM) {
-            startServerTraceroute()
-            showJobs()
-        } else if (tab != Tab.SPEED || !running) {
-            stopServerTraceroute()
+        if (tab == Tab.VIDEO) {
+            binding.videoPane.setCurrentItem(1, false)
+            if (!videoRunning) refreshTransport()
+            renderVideoHistory()
         }
-        if (tab == Tab.POINTS) showPoints()
         if (tab == Tab.COMPLAINT) {
             binding.complaintPane.setCurrentItem(1, false)
             showComplaint()
         }
     }
 
-    private fun startServerTraceroute(force: Boolean = false) {
-        if (!force && tracerouteJob?.isActive == true) return
-        tracerouteJob?.cancel()
-        GatewayMonitor.start(applicationContext)
-        binding.tracerouteHops.setLoading()
-        tracerouteJob = lifecycleScope.launch {
-            val bundle = traceServer()
-            if (currentTab != Tab.NETWORK && (currentTab != Tab.SPEED || running)) return@launch
-            applyTrace(bundle)
-        }
-    }
 
-    private suspend fun traceServer(): TraceBundle = coroutineScope {
-        val host = BuildConfig.COLLECTOR_HOST
-        val (target4, target6) = withContext(Dispatchers.IO) {
-            val v4 = runCatching {
-                SpeedtestTarget.resolve(hostname = host, family = IpFamily.IPV4).serverIp
-            }.getOrNull()
-            val v6 = runCatching {
-                SpeedtestTarget.resolve(hostname = host, family = IpFamily.IPV6).serverIp
-            }.getOrNull()
-            v4 to v6
-        }
-        val v4 = async(Dispatchers.IO) {
-            runInterruptible {
-                NativeTraceroute.run(
-                    this@MainActivity,
-                    target4 ?: host,
-                    ipv6 = false,
-                    maxHops = 30,
-                    timeoutSec = 25,
-                )
-            }
-        }
-        val v6 = async(Dispatchers.IO) {
-            runInterruptible {
-                if (target6 == null) {
-                    emptyList()
-                } else {
-                    NativeTraceroute.run(
-                        this@MainActivity,
-                        target6,
-                        ipv6 = true,
-                        maxHops = 30,
-                        timeoutSec = 25,
-                    )
-                }
-            }
-        }
-        TraceBundle(v4.await(), v6.await(), target4, target6)
-    }
 
-    /** Local address and public address. Lite stops here: no gateway ping and no traceroute. */
+
+    /** Local address and public address. Lite shows the server name and the provider only. */
+    /** Server name and provider. Lite does not resolve a gateway. */
     private suspend fun refreshPublic(target: SpeedtestTarget) {
-        val locals = withContext(Dispatchers.IO) {
-            ClientNetworkInfo.localAddressesPair(this@MainActivity)
-        }
-        binding.speedLocal.text = formatLocalIps(locals)
-        binding.speedPublic.text = "…"
+        binding.speedServer.text = BuildConfig.COLLECTOR_HOST
         val public = withContext(Dispatchers.IO) {
             ClientNetworkInfo.publicClientFromHello(target)
         }
         if (!running) return
-        binding.speedPublic.text = formatPublic(public.ip, public.provider)
+        showProvider(public.provider)
     }
 
     /** Gateway ping and traceroute, concurrent with the speed or video round. Premium only. */
-    private suspend fun premiumPath(): TraceBundle {
-        RadioService.enable(this)
-        val route = withContext(Dispatchers.IO) {
-            val found = ClientNetworkInfo.freshGateways(this@MainActivity)
-            runCatching { GatewayMonitor.sample(this@MainActivity) }
-            found
-        }
-        val gateway = formatGateway(
-            route.first.takeIf { it != "—" },
-            route.second.takeIf { it != "—" },
-        )
-        withContext(Dispatchers.Main) {
-            binding.speedGateway.text = gateway
-            binding.networkGateway.text = gateway
-            binding.tracerouteHops.setLoading()
-            binding.networkHops.setLoading()
-        }
-        val bundle = traceServer()
-        withContext(Dispatchers.Main) { applyTrace(bundle, keepRouteGateway = true) }
-        return bundle
-    }
 
-    private fun applyTrace(bundle: TraceBundle, keepRouteGateway: Boolean = false) {
-        if (bundle.ip4 != null) serverIpv4 = bundle.ip4
-        if (bundle.ip6 != null) serverIpv6 = bundle.ip6
-        binding.speedServer.text = formatServerIps()
-        val gw4 = bundle.hops4.firstOrNull { !it.host.isNullOrBlank() }?.host
-        val gw6 = bundle.hops6.firstOrNull { !it.host.isNullOrBlank() }?.host
-        val route4 = ClientNetworkInfo.lastGateway
-        val route6 = ClientNetworkInfo.lastGatewayV6
-        ClientNetworkInfo.noteFirstHops(gw4, gw6)
-        val shown4 = gw4 ?: if (keepRouteGateway) route4 else null
-        val shown6 = gw6 ?: if (keepRouteGateway) route6 else null
-        binding.speedGateway.text = formatGateway(shown4, shown6)
-        binding.tracerouteHops.setHops(
-            TracerouteHopView.fromRaw(bundle.hops4),
-            TracerouteHopView.fromRaw(bundle.hops6),
-            statusText = null,
-        )
-        binding.networkGateway.text = binding.speedGateway.text
-        binding.networkHops.setHops(
-            TracerouteHopView.fromRaw(bundle.hops4),
-            TracerouteHopView.fromRaw(bundle.hops6),
-            statusText = null,
-        )
-    }
 
-    private fun stopServerTraceroute() {
-        tracerouteJob?.cancel()
-        tracerouteJob = null
-    }
 
-    private fun refreshSpeedClientIps(family: IpFamily = nextSpeedFamily) {
-        val locals = ClientNetworkInfo.localAddressesPair(this)
-        binding.speedLocal.text = formatLocalIps(locals)
+    private fun refreshSpeedClientIps() {
+        binding.speedServer.text = BuildConfig.COLLECTOR_HOST
         binding.speedPublic.text = "…"
-        binding.speedServer.text = formatServerIps(loading = true)
         lifecycleScope.launch {
-            val (v4, v6) = withContext(Dispatchers.IO) {
-                val a = runCatching {
-                    SpeedtestTarget.resolve(family = IpFamily.IPV4).serverIp
-                }.getOrNull()
-                val b = runCatching {
-                    SpeedtestTarget.resolve(family = IpFamily.IPV6).serverIp
-                }.getOrNull()
-                a to b
-            }
-            if (currentTab != Tab.SPEED) return@launch
-            serverIpv4 = v4
-            serverIpv6 = v6
-            binding.speedServer.text = formatServerIps()
             val target = withContext(Dispatchers.IO) {
-                runCatching { SpeedtestTarget.resolve(family = family) }.getOrNull()
+                runCatching { SpeedtestTarget.resolve(family = IpFamily.IPV4) }.getOrNull()
             }
             if (currentTab != Tab.SPEED) return@launch
             if (target == null) {
-                binding.speedLocal.text = formatLocalIps(locals)
-                binding.speedPublic.text = "—"
+                showProvider("")
                 return@launch
             }
             val public = withContext(Dispatchers.IO) {
                 ClientNetworkInfo.publicClientFromHello(target)
             }
-            if (currentTab == Tab.SPEED) {
-                binding.speedLocal.text = formatLocalIps(locals)
-                binding.speedPublic.text = formatPublic(public.ip, public.provider)
-            }
+            if (currentTab == Tab.SPEED) showProvider(public.provider)
         }
     }
 
-    private fun formatLocalIps(locals: ClientNetworkInfo.LocalAddresses): CharSequence {
-        val secondary = ContextCompat.getColor(this, R.color.text_secondary)
-        val v4Color = ContextCompat.getColor(this, R.color.gateway_v4)
-        val v6Color = ContextCompat.getColor(this, R.color.gateway_v6)
-        val sb = SpannableStringBuilder()
-        fun appendColored(text: String, color: Int) {
-            val start = sb.length
-            sb.append(text)
-            sb.setSpan(ForegroundColorSpan(color), start, sb.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
-        }
-        val v4 = locals.ipv4
-        val v6 = locals.ipv6
-        when {
-            v4 != null && v6 != null -> {
-                appendColored(v4, v4Color)
-                appendColored("\n", secondary)
-                appendColored(v6, v6Color)
-            }
-            v4 != null -> appendColored(v4, v4Color)
-            v6 != null -> appendColored(v6, v6Color)
-            else -> appendColored("—", secondary)
-        }
-        return sb
-    }
 
-    private fun formatGateway(ipv4: String?, ipv6: String?): CharSequence {
-        val locals = ClientNetworkInfo.LocalAddresses(ipv4, ipv6)
-        return formatLocalIps(locals)
-    }
 
-    private fun formatPublic(ip: String, provider: String): String {
-        val cleanIp = ip.ifBlank { "—" }
-        val cleanProvider = provider.trim().takeIf { it.isNotEmpty() && it != "—" }
-        return if (cleanProvider != null) {
-            getString(R.string.speed_public, cleanIp, cleanProvider)
-        } else {
-            cleanIp
-        }
-    }
 
-    private fun formatServerIps(loading: Boolean = false): CharSequence {
-        val secondary = ContextCompat.getColor(this, R.color.text_secondary)
-        val v4Color = ContextCompat.getColor(this, R.color.gateway_v4)
-        val v6Color = ContextCompat.getColor(this, R.color.gateway_v6)
-        val sb = SpannableStringBuilder()
-        fun appendColored(text: String, color: Int) {
-            val start = sb.length
-            sb.append(text)
-            sb.setSpan(ForegroundColorSpan(color), start, sb.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
-        }
-        appendColored(BuildConfig.COLLECTOR_HOST, secondary)
-        if (loading && serverIpv4 == null && serverIpv6 == null) {
-            appendColored("\n…", secondary)
-            return sb
-        }
-        val v4 = serverIpv4
-        val v6 = serverIpv6
-        when {
-            v4 != null && v6 != null -> {
-                appendColored("\n", secondary)
-                appendColored(v4, v4Color)
-                appendColored("\n", secondary)
-                appendColored(v6, v6Color)
-            }
-            v4 != null -> {
-                appendColored("\n", secondary)
-                appendColored(v4, v4Color)
-            }
-            v6 != null -> {
-                appendColored("\n", secondary)
-                appendColored(v6, v6Color)
-            }
-            else -> {
-                appendColored("\n—", secondary)
-            }
-        }
-        return sb
-    }
 
     private fun showSpeedTarget(target: SpeedtestTarget) {
-        when (target.family) {
-            IpFamily.IPV4 -> serverIpv4 = target.serverIp
-            IpFamily.IPV6 -> serverIpv6 = target.serverIp
-        }
-        binding.speedServer.text = formatServerIps()
+        binding.speedServer.text = target.root().let { BuildConfig.COLLECTOR_HOST }
     }
 
-    private fun wireRadioPager() {
-        val wifi = binding.radioWifi
-        val chart = binding.radioChart
-        wifi.visibility = View.VISIBLE
-        chart.visibility = View.VISIBLE
-        (wifi.parent as ViewGroup).removeView(wifi)
-        (chart.parent as ViewGroup).removeView(chart)
-        binding.radioPane.adapter = object : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
-            override fun getItemCount(): Int = 2
-
-            override fun getItemViewType(position: Int): Int = position
-
-            override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
-                val page = if (viewType == 0) wifi else chart
-                (page.parent as? ViewGroup)?.removeView(page)
-                page.layoutParams = RecyclerView.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT,
-                    ViewGroup.LayoutParams.MATCH_PARENT,
-                )
-                return object : RecyclerView.ViewHolder(page) {}
-            }
-
-            override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) = Unit
-        }
-        binding.radioPane.setCurrentItem(1, false)
-        showWifiDetail(RadioState.latest?.wifi)
+    private fun showProvider(name: String) {
+        shownProvider = name.trim().takeIf { it.isNotEmpty() && it != "—" }?.uppercase(Locale.US).orEmpty()
+        binding.speedPublic.text = shownProvider.ifBlank { "—" }
+        renderVideoHeader()
     }
+
+    private fun refreshTransport() {
+        binding.speedTransport.text = "…"
+        lifecycleScope.launch {
+            val kind = withContext(Dispatchers.IO) { NetworkPath.kind(applicationContext) }
+            if (running || videoRunning) return@launch
+            if (currentTab != Tab.SPEED && currentTab != Tab.VIDEO) return@launch
+            showTransport(kind)
+        }
+    }
+
+    private fun showTransport(kind: String) {
+        shownTransport = NetworkPath.label(kind)
+        binding.speedTransport.text = shownTransport.ifBlank { "—" }
+        renderVideoHeader()
+    }
+
+    private fun renderVideoHeader() {
+        binding.videoServer.text = listOf(BuildConfig.COLLECTOR_HOST, shownProvider, shownTransport)
+            .filter { it.isNotBlank() }
+            .joinToString("\n")
+    }
+
 
     private fun wireSpeedPager() {
         val history = binding.speedHistory
@@ -500,9 +242,10 @@ class MainActivity : AppCompatActivity() {
             val stack = entry.ipStack.ifBlank { "—" }
             val server = entry.server.ifBlank { "—" }
             val meta = buildString {
-                append(entry.transport.ifBlank { "—" })
-                if (entry.provider.isNotBlank()) append(" · ").append(entry.provider)
-                if (entry.publicIp.isNotBlank()) append(" · ").append(entry.publicIp)
+                append(NetworkPath.label(entry.transport).ifBlank { "—" })
+                if (entry.provider.isNotBlank()) {
+                    append(" · ").append(entry.provider.uppercase(Locale.US))
+                }
             }
             list.addView(
                 historyText(
@@ -523,82 +266,64 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun showWifiDetail(wifi: WifiSignal?) {
-        val list = binding.radioWifiList
+    private fun wireVideoPager() {
+        val history = binding.videoHistory
+        val current = binding.videoCurrent
+        history.visibility = View.VISIBLE
+        current.visibility = View.VISIBLE
+        (history.parent as ViewGroup).removeView(history)
+        (current.parent as ViewGroup).removeView(current)
+        binding.videoPane.adapter = object : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
+            override fun getItemCount(): Int = 2
+
+            override fun getItemViewType(position: Int): Int = position
+
+            override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
+                val page = if (viewType == 0) history else current
+                (page.parent as? ViewGroup)?.removeView(page)
+                page.layoutParams = RecyclerView.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                )
+                return object : RecyclerView.ViewHolder(page) {}
+            }
+
+            override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) = Unit
+        }
+        binding.videoPane.setCurrentItem(1, false)
+        renderVideoHistory()
+    }
+
+    private fun renderVideoHistory() {
+        val list = binding.videoHistoryList
         list.removeAllViews()
-        list.addView(wifiText(getString(R.string.radio_wifi_title), 18f, true))
-        list.addView(wifiText(getString(R.string.radio_wifi_back), 11f, false, secondary = true))
-        if (wifi == null) {
-            list.addView(wifiText(getString(R.string.radio_wifi_empty), 14f, false))
+        list.addView(historyText(getString(R.string.video_history_title), 18f, true))
+        list.addView(historyText(getString(R.string.video_history_back), 11f, false))
+        val items = ComplaintStore.videoHistory(this)
+        if (items.isEmpty()) {
+            list.addView(historyText(getString(R.string.video_history_empty), 14f, false))
             return
         }
-        list.addView(wifiText(getString(R.string.radio_wifi_associated), 13f, true, secondary = true))
-        list.addView(
-            wifiText(
-                buildString {
-                    appendLine("status  ${wifi.status}")
-                    appendLine("ssid    ${wifi.ssid.ifBlank { "—" }}")
-                    appendLine("bssid   ${wifi.bssid.ifBlank { "—" }}")
-                    appendLine("rssi    ${wifi.rssiDbm?.let { "$it dBm" } ?: "—"}")
-                    appendLine("freq    ${wifi.frequencyMhz?.let { "$it MHz" } ?: "—"}")
-                    appendLine("channel ${wifi.channel ?: "—"}")
-                    appendLine("link    ${wifi.linkSpeedMbps?.let { "$it Mbps" } ?: "—"}")
-                    append("std     ${wifi.standard.ifBlank { "—" }}")
-                },
-                14f,
-                false,
-            ),
-        )
-        val congestion = wifi.congestion
-        list.addView(wifiText(getString(R.string.radio_wifi_congestion), 13f, true, secondary = true))
-        if (congestion == null) {
-            list.addView(wifiText("score   —", 14f, false))
-        } else {
+        items.forEach { entry ->
+            val whenText = historyClock.format(Date(entry.tsMs))
             list.addView(
-                wifiText(
-                    buildString {
-                        appendLine("score      ${congestion.score}")
-                        appendLine("same ch    ${congestion.sameChannel}")
-                        appendLine("adjacent   ${congestion.adjacentChannel}")
-                        appendLine("band APs   ${congestion.neighbors}")
-                        appendLine("strongest  ${congestion.strongestNeighborRssiDbm?.let { "$it dBm" } ?: "—"}")
-                        append("scan age   ${congestion.scanAgeMs?.let { "${it} ms" } ?: "—"}")
-                    },
+                historyText(
+                    getString(
+                        R.string.video_history_row,
+                        whenText,
+                        entry.resolution.ifBlank { "—" },
+                        "${entry.loadMs} ms",
+                        String.format(Locale.US, "%.1f%%", entry.bufferingPct),
+                        NetworkPath.label(entry.transport).ifBlank { "—" },
+                    ),
                     14f,
                     false,
                 ),
             )
-            list.addView(wifiText(getString(R.string.radio_wifi_neighbors), 13f, true, secondary = true))
-            if (congestion.neighborsTop.isEmpty()) {
-                list.addView(wifiText("No nearby APs in the last scan.", 14f, false))
-            } else {
-                congestion.neighborsTop.forEach { neighbor ->
-                    val label = neighbor.ssid.ifBlank { neighbor.bssid.ifBlank { "AP" } }
-                    val detail = listOfNotNull(
-                        neighbor.rssiDbm?.let { "$it dBm" },
-                        neighbor.channel?.let { "ch $it" },
-                        neighbor.frequencyMhz?.let { "$it MHz" },
-                        neighbor.channelWidthMhz?.let { "${it} MHz wide" },
-                    ).joinToString(" · ")
-                    list.addView(wifiText("$label\n$detail", 14f, false))
-                }
-            }
         }
     }
 
-    private fun wifiText(value: String, size: Float, bold: Boolean, secondary: Boolean = false): TextView =
-        TextView(this).apply {
-            text = value
-            textSize = size
-            setTextColor(
-                ContextCompat.getColor(
-                    this@MainActivity,
-                    if (secondary) R.color.text_secondary else R.color.text_primary,
-                ),
-            )
-            if (bold) setTypeface(typeface, android.graphics.Typeface.BOLD)
-            setPadding(0, 0, 0, (10 * resources.displayMetrics.density).toInt())
-        }
+
 
     private fun wireComplaintPager() {
         val history = binding.complaintHistory
@@ -653,6 +378,97 @@ class MainActivity : AppCompatActivity() {
             if (bold) setTypeface(typeface, android.graphics.Typeface.BOLD)
         }
 
+    private fun wirePostChoices() {
+        val languages = listOf("en", "id")
+        val styles = listOf("biasa", "santai", "serius", "gaul")
+        val autos = listOf("yes", "no")
+        binding.complaintLanguage.onItemSelectedListener = spinnerListener { position ->
+            val code = languages.getOrElse(position) { "en" }
+            if (code != ComplaintStore.postLanguage(this)) {
+                ComplaintStore.rememberLanguage(this, code)
+                bindPostChoices()
+                if (currentTab == Tab.COMPLAINT) showComplaint()
+            }
+        }
+        binding.complaintStyle.onItemSelectedListener = spinnerListener { position ->
+            val code = styles.getOrElse(position) { "biasa" }
+            if (code != ComplaintStore.postStyle(this)) {
+                ComplaintStore.rememberStyle(this, code)
+                if (currentTab == Tab.COMPLAINT) showComplaint()
+            }
+        }
+        binding.complaintAutoTag.onItemSelectedListener = spinnerListener { position ->
+            val enabled = autos.getOrElse(position) { "yes" } == "yes"
+            if (enabled != ComplaintStore.autoTag(this)) {
+                ComplaintStore.rememberAutoTag(this, enabled)
+                if (currentTab == Tab.COMPLAINT) showComplaint()
+            }
+        }
+        bindPostChoices()
+        postChromeArmed = true
+    }
+
+    private fun spinnerListener(onPick: (Int) -> Unit) = object : AdapterView.OnItemSelectedListener {
+        override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
+            if (!postChromeArmed || rebindingPost) return
+            onPick(position)
+        }
+
+        override fun onNothingSelected(parent: AdapterView<*>?) = Unit
+    }
+
+    private fun bindPostChoices() {
+        val english = ComplaintStore.postLanguage(this) != "id"
+        rebindingPost = true
+        try {
+            binding.complaintAutoLabel.setText(
+                if (english) R.string.post_auto_label_en else R.string.post_auto_label_id,
+            )
+            bindSpinner(
+                binding.complaintLanguage,
+                listOf(getString(R.string.post_language_en), getString(R.string.post_language_id)),
+                if (english) 0 else 1,
+            )
+            bindSpinner(
+                binding.complaintStyle,
+                if (english) {
+                    listOf(
+                        getString(R.string.post_style_plain),
+                        getString(R.string.post_style_casual),
+                        getString(R.string.post_style_serious),
+                        getString(R.string.post_style_slang),
+                    )
+                } else {
+                    listOf(
+                        getString(R.string.post_style_biasa),
+                        getString(R.string.post_style_santai),
+                        getString(R.string.post_style_serius),
+                        getString(R.string.post_style_gaul),
+                    )
+                },
+                listOf("biasa", "santai", "serius", "gaul").indexOf(ComplaintStore.postStyle(this)).coerceAtLeast(0),
+            )
+            bindSpinner(
+                binding.complaintAutoTag,
+                if (english) {
+                    listOf(getString(R.string.post_auto_yes), getString(R.string.post_auto_no))
+                } else {
+                    listOf(getString(R.string.post_auto_yes_id), getString(R.string.post_auto_no_id))
+                },
+                if (ComplaintStore.autoTag(this)) 0 else 1,
+            )
+        } finally {
+            rebindingPost = false
+        }
+    }
+
+    private fun bindSpinner(spinner: android.widget.Spinner, labels: List<String>, selection: Int) {
+        val adapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, labels)
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        spinner.adapter = adapter
+        spinner.setSelection(selection)
+    }
+
     private fun showComplaint() {
         complaintJob?.cancel()
         binding.complaintVerdict.text = "Drafting post…"
@@ -700,18 +516,16 @@ class MainActivity : AppCompatActivity() {
                     binding.videoHudProgress.visibility = View.VISIBLE
                     binding.videoStatus.text = getString(R.string.speed_loop, round)
                     clearVideoMetrics()
+                    val place = async(Dispatchers.IO) { PlaceCapture.district(applicationContext) }
+                    val path = async(Dispatchers.IO) { NetworkPath.kind(applicationContext) }
+                    val providerName = async(Dispatchers.IO) {
+                        val target = runCatching { SpeedtestTarget.resolve(family = IpFamily.IPV4) }.getOrNull()
+                            ?: return@async ""
+                        ClientNetworkInfo.publicClientFromHello(target).provider
+                    }
                     try {
-                        if (BuildConfig.IS_PREMIUM) {
-                            val reserved = withContext(Dispatchers.IO) {
-                                MagnonAccount.reserve(this@MainActivity, "test")
-                            }
-                            if (!reserved.ok) {
-                                binding.videoStatus.text = reserved.message
-                                videoRunning = false
-                                break
-                            }
-                        }
-                        val side = if (BuildConfig.IS_PREMIUM) async { premiumPath() } else null
+                        val transport = path.await()
+                        showTransport(transport)
                         val result = engine.run(VideoTestEngine.defaultBaseUrl()) { phase ->
                             if (!videoRunning) return@run
                             runOnUiThread {
@@ -722,9 +536,20 @@ class MainActivity : AppCompatActivity() {
                             }
                         }
                         if (!videoRunning) break
-                        side?.await()
                         renderVideoResult(result)
-                        SpeedtestReport.uploadVideo(applicationContext, result)
+                        showProvider(providerName.await())
+                        val found = place.await()
+                        SpeedtestReport.uploadVideo(
+                            applicationContext,
+                            result,
+                            found.kecamatan,
+                            transport,
+                            found.kelurahan,
+                            found.kabupaten,
+                            found.provinsi,
+                            found.latitude,
+                            found.longitude,
+                        )
                         binding.videoGo.alpha = 1f
                         for (left in 10 downTo 1) {
                             if (!videoRunning) break
@@ -732,8 +557,12 @@ class MainActivity : AppCompatActivity() {
                             delay(1_000)
                         }
                     } catch (cancelled: CancellationException) {
+                        place.cancel()
+                        path.cancel()
                         throw cancelled
                     } catch (error: Exception) {
+                        place.cancel()
+                        path.cancel()
                         if (!videoRunning) break
                         val kind = classifyReachFailure(error)
                         if (kind == ReachFailure.UNREACHABLE || kind == ReachFailure.NO_ROUTE) {
@@ -749,6 +578,10 @@ class MainActivity : AppCompatActivity() {
                             error.message?.take(80) ?: error.javaClass.simpleName,
                         )
                         delay(2_000)
+                    } finally {
+                        place.cancel()
+                        path.cancel()
+                        providerName.cancel()
                     }
                 }
             } catch (_: CancellationException) {
@@ -820,10 +653,9 @@ class MainActivity : AppCompatActivity() {
         binding.speedStatus.text = getString(R.string.speed_running)
         speedJob = lifecycleScope.launch {
             var round = 0
-            var family = nextSpeedFamily
+            var family = IpFamily.IPV4
             var holdOffline = false
             val triedSinceSuccess = mutableSetOf<IpFamily>()
-            var sawUnreachable = false
             try {
                 while (running) {
                     if (triedSinceSuccess.isEmpty()) round += 1
@@ -834,33 +666,34 @@ class MainActivity : AppCompatActivity() {
                     binding.uploadValue.text = "—"
                     binding.jitterValue.text = getString(R.string.speed_jitter_idle)
                     binding.gauge.setReading(0.0, "PING", family.label)
+                    val place = async(Dispatchers.IO) { PlaceCapture.district(applicationContext) }
+                    val path = async(Dispatchers.IO) { NetworkPath.kind(applicationContext) }
                     try {
-                        if (BuildConfig.IS_PREMIUM) {
-                            val reserved = withContext(Dispatchers.IO) {
-                                MagnonAccount.reserve(this@MainActivity, "test")
-                            }
-                            if (!reserved.ok) {
-                                binding.speedStatus.text = reserved.message
-                                running = false
-                                break
-                            }
-                        }
+                        val transport = path.await()
+                        showTransport(transport)
                         val target = withContext(Dispatchers.IO) {
                             SpeedtestTarget.resolve(family = family)
                         }
-                        nextSpeedFamily = family
                         showSpeedTarget(target)
                         refreshPublic(target)
                         if (!running) break
                         binding.speedStatus.text = getString(R.string.speed_loop, round)
-                        val side = if (BuildConfig.IS_PREMIUM) async { premiumPath() } else null
                         val result = SpeedtestEngine(target).run { progress ->
                             runOnUiThread { renderProgress(progress) }
                         }
-                        val trace = side?.await() ?: TraceBundle(emptyList(), emptyList(), null, null)
                         triedSinceSuccess.clear()
-                        sawUnreachable = false
-                        SpeedtestReport.upload(applicationContext, result, trace.hops4, trace.hops6)
+                        val found = place.await()
+                        SpeedtestReport.upload(
+                            applicationContext,
+                            result,
+                            found.kecamatan,
+                            transport,
+                            found.kelurahan,
+                            found.kabupaten,
+                            found.provinsi,
+                            found.latitude,
+                            found.longitude,
+                        )
                         renderSpeedHistory()
                         if (!running) break
                         // Hold final DL/UL on screen so the user can stop before the next round.
@@ -876,11 +709,13 @@ class MainActivity : AppCompatActivity() {
                             delay(1_000)
                         }
                         if (!running) break
-                        family = family.next()
-                        nextSpeedFamily = family
                     } catch (cancelled: CancellationException) {
+                        place.cancel()
+                        path.cancel()
                         throw cancelled
                     } catch (error: Exception) {
+                        place.cancel()
+                        path.cancel()
                         if (!running) break
                         AppLog.w(
                             "MySignalSpeed",
@@ -889,37 +724,26 @@ class MainActivity : AppCompatActivity() {
                         )
                         val kind = classifyReachFailure(error)
                         val reach = kind == ReachFailure.UNREACHABLE || kind == ReachFailure.NO_ROUTE
-                        if (kind == ReachFailure.UNREACHABLE) sawUnreachable = true
                         triedSinceSuccess += family
-                        val other = family.next()
-                        if (reach && other !in triedSinceSuccess) {
-                            binding.speedStatus.text = getString(
-                                R.string.speed_family_unavailable,
-                                family.label,
-                                error.message?.take(48) ?: error.javaClass.simpleName,
-                            )
-                            family = other
-                            nextSpeedFamily = family
-                            delay(800)
-                        } else if (reach) {
+                        if (reach) {
                             holdOffline = true
-                            binding.speedStatus.text = if (sawUnreachable) {
+                            binding.speedStatus.text = if (kind == ReachFailure.UNREACHABLE) {
                                 getString(R.string.speed_server_unreachable, BuildConfig.COLLECTOR_HOST)
                             } else {
                                 getString(R.string.speed_no_route, BuildConfig.COLLECTOR_HOST)
                             }
                             binding.gauge.setReading(0.0, "", "")
                             break
-                        } else {
-                            binding.speedStatus.text = getString(
-                                R.string.speed_family_unavailable,
-                                family.label,
-                                error.message?.take(48) ?: error.javaClass.simpleName,
-                            )
-                            family = other
-                            nextSpeedFamily = family
-                            delay(2_000)
                         }
+                        binding.speedStatus.text = getString(
+                            R.string.speed_family_unavailable,
+                            family.label,
+                            error.message?.take(48) ?: error.javaClass.simpleName,
+                        )
+                        delay(2_000)
+                    } finally {
+                        place.cancel()
+                        path.cancel()
                     }
                 }
             } catch (_: CancellationException) {
@@ -967,140 +791,57 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun showChart() {
-        val points = RadioState.chartPoints()
-        renderPlmnFilters(points.flatMap { it.cells.map { cell -> cell.plmn } }.filter { it.isNotEmpty() }.distinct().sorted())
-        binding.chart.setData(points, windowMin, plmnFilter, ratFilter)
-    }
 
-    private fun renderPlmnFilters(plmns: List<String>) {
-        val selected = plmnFilter?.takeIf { it in plmns }
-        if (selected != plmnFilter) plmnFilter = selected
-        if (plmns == plmnChoices && binding.plmnFilters.childCount == plmns.size + 1) {
-            restylePlmnFilters()
-            return
-        }
-        plmnChoices = plmns
-        binding.plmnFilters.removeAllViews()
-        binding.plmnFilters.addView(plmnButton("All", null))
-        plmns.forEach { binding.plmnFilters.addView(plmnButton(RadioChartLabels.slotLabel(it), it)) }
-    }
 
-    private fun plmnButton(text: String, value: String?): MaterialButton {
-        val height = (36 * resources.displayMetrics.density).toInt()
-        val gap = (4 * resources.displayMetrics.density).toInt()
-        return MaterialButton(this, null, com.google.android.material.R.attr.materialButtonOutlinedStyle).apply {
-            this.text = text
-            tag = value
-            textSize = 11f
-            minWidth = 0
-            minimumWidth = 0
-            layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, height).apply {
-                marginEnd = gap
-            }
-            setOnClickListener {
-                plmnFilter = value
-                restylePlmnFilters()
-                binding.chart.setData(RadioState.chartPoints(), windowMin, plmnFilter, ratFilter)
-            }
-            applyPlmnStyle(this, value)
-        }
-    }
 
-    private fun restylePlmnFilters() {
-        for (index in 0 until binding.plmnFilters.childCount) {
-            val button = binding.plmnFilters.getChildAt(index) as? MaterialButton ?: continue
-            applyPlmnStyle(button, button.tag as? String)
-        }
-    }
 
-    private fun restyleRatFilters() {
-        listOf(binding.ratAll to null, binding.ratLte to "LTE", binding.ratNr to "NR").forEach { (button, rat) ->
-            val selected = ratFilter == rat
-            button.setTextColor(ContextCompat.getColor(this, if (selected) R.color.accent else R.color.text_secondary))
-        }
-    }
 
-    private fun applyPlmnStyle(button: MaterialButton, value: String?) {
-        val selected = value == plmnFilter
-        button.setTextColor(ContextCompat.getColor(this, if (selected) R.color.accent else R.color.text_secondary))
-    }
 
-    private fun hasCorePermissions(): Boolean =
-        granted(Manifest.permission.ACCESS_FINE_LOCATION) && granted(Manifest.permission.READ_PHONE_STATE)
 
     private fun granted(permission: String): Boolean =
         ContextCompat.checkSelfPermission(this, permission) == PackageManager.PERMISSION_GRANTED
 
-    private fun updatePermissionUi() {
-        binding.grant.visibility = if (hasCorePermissions()) View.GONE else View.VISIBLE
-    }
+    private fun updatePermissionUi() = Unit
 
     private fun requestPermissions() {
-        val wanted = mutableListOf(
+        val wanted = listOf(
             Manifest.permission.ACCESS_FINE_LOCATION,
             Manifest.permission.ACCESS_COARSE_LOCATION,
-            Manifest.permission.READ_PHONE_STATE,
-            Manifest.permission.READ_PRECISE_PHONE_STATE,
         )
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) wanted += Manifest.permission.POST_NOTIFICATIONS
         val needed = wanted.filterNot { granted(it) }
         if (needed.isNotEmpty()) permissionLauncher.launch(needed.toTypedArray())
     }
 
-    private fun syncPremiumSampling() {
-        if (!BuildConfig.IS_PREMIUM) return
-        lifecycleScope.launch(Dispatchers.IO) {
-            val profile = runCatching { MagnonAccount.me(this@MainActivity) }.getOrNull()
-            if (profile?.level == "premium" && hasCorePermissions()) {
-                withContext(Dispatchers.Main) { RadioService.enable(this@MainActivity) }
-            }
-        }
-    }
 
-    private fun signInMagnon() {
+    private fun signInMagnon(after: (() -> Unit)? = null) {
         if (!MagnonAccount.configured()) {
-            binding.pointsBalance.text = getString(R.string.magnon_login_unconfigured)
+            binding.complaintVerdict.text = getString(R.string.magnon_login_unconfigured)
             return
         }
         lifecycleScope.launch {
             val google = runCatching { MagnonAccount.requestGoogle(this@MainActivity) }.getOrElse {
                 if (it is CancellationException) throw it
-                binding.pointsBalance.text = signInFailure(it)
+                binding.complaintVerdict.text = signInFailure(it)
                 return@launch
             }
-            binding.pointsBalance.text = identityLine(google.email, google.sub)
             val profile = runCatching { MagnonAccount.completeSignIn(this@MainActivity, google) }.getOrElse {
                 if (it is CancellationException) throw it
-                binding.pointsBalance.append("\n" + signInFailure(it))
+                binding.complaintVerdict.text = signInFailure(it)
                 return@launch
             }
-            renderProfile(profile)
-            refreshAuthButton()
-            if (profile.level == "premium") RadioService.enable(this@MainActivity)
+            if (profile.stayOnLite) {
+                binding.complaintVerdict.append("\n" + getString(R.string.magnon_stay_lite))
+            }
+            after?.invoke()
         }
     }
 
-    private fun signOutMagnon() {
-        lifecycleScope.launch {
-            MagnonAccount.signOut(this@MainActivity)
-            binding.pointsBalance.text = ""
-            binding.pointsHistory.text = ""
-            refreshAuthButton()
-            showPoints()
-        }
+    private fun shareComplaint(preview: String) {
+        ComplaintDraft.share(this, preview)
     }
 
-    private fun refreshAuthButton() {
-        binding.pointsSignIn.text = when {
-            !MagnonAccount.configured() -> getString(R.string.magnon_login_unconfigured)
-            MagnonAccount.hasSession(this) -> getString(R.string.magnon_sign_out)
-            else -> getString(R.string.magnon_sign_in)
-        }
-    }
 
-    private fun identityLine(email: String, sub: String): String =
-        listOf(email, sub).filter { it.isNotBlank() }.joinToString("\n")
+
 
     private fun signInFailure(error: Throwable): String = when (val message = error.message) {
         "sign_in_cancelled" -> getString(R.string.magnon_sign_in_cancelled)
@@ -1110,100 +851,8 @@ class MainActivity : AppCompatActivity() {
         else -> message
     }
 
-    private fun showPoints() {
-        refreshAuthButton()
-        lifecycleScope.launch(Dispatchers.IO) {
-            val profile = runCatching { MagnonAccount.me(this@MainActivity) }.getOrNull()
-            val board = runCatching { MagnonAccount.leaderboard(this@MainActivity) }.getOrDefault("")
-            withContext(Dispatchers.Main) {
-                if (!MagnonAccount.hasSession(this@MainActivity)) {
-                    binding.pointsBoard.text = board
-                    showJobs()
-                    return@withContext
-                }
-                val (savedEmail, savedSub) = MagnonAccount.remembered(this@MainActivity)
-                if (profile != null) {
-                    renderProfile(
-                        profile.copy(
-                            email = profile.email.ifBlank { savedEmail },
-                            sub = profile.sub.ifBlank { savedSub },
-                        ),
-                    )
-                } else if (binding.pointsBalance.text.isNullOrBlank()) {
-                    val saved = identityLine(savedEmail, savedSub)
-                    if (saved.isNotBlank()) binding.pointsBalance.text = saved
-                }
-                binding.pointsBoard.text = board
-                showJobs()
-            }
-        }
-    }
 
-    private fun renderProfile(profile: MagnonProfile) {
-        val credit = if (BuildConfig.IS_PREMIUM) {
-            getString(R.string.magnon_test_credit, profile.testUsed, profile.testLimit)
-        } else {
-            getString(R.string.magnon_post_credit, profile.postUsed, profile.postLimit)
-        }
-        binding.pointsBalance.text = identityLine(profile.email, profile.sub) + "\n" + getString(
-            R.string.magnon_points_line,
-            profile.name,
-            profile.level,
-            profile.points,
-        ) + "\n" + credit
-        if (profile.stayOnLite) {
-            binding.pointsBalance.append("\n" + getString(R.string.magnon_stay_lite))
-        }
-        binding.pointsHistory.text = profile.history
-    }
 
-    private fun showJobs() {
-        lifecycleScope.launch(Dispatchers.IO) {
-            val payload = runCatching { MagnonAccount.jobs(this@MainActivity) }.getOrDefault(JSONObject())
-            val jobs = payload.optJSONArray("jobs")
-            withContext(Dispatchers.Main) {
-                if (jobs == null || jobs.length() == 0) {
-                    val empty = getString(R.string.magnon_no_job)
-                    binding.networkJobs.text = empty
-                    binding.pointsJobs.text = empty
-                    binding.jobAccept.visibility = View.GONE
-                    binding.jobSkip.visibility = View.GONE
-                    binding.pointsAccept.visibility = View.GONE
-                    binding.pointsSkip.visibility = View.GONE
-                    return@withContext
-                }
-                val job = jobs.getJSONObject(0)
-                val jobId = job.optString("id")
-                val label = if (job.optString("level") == "lite") {
-                    getString(R.string.magnon_job_lite)
-                } else {
-                    getString(R.string.magnon_job_premium)
-                }
-                binding.networkJobs.text = label
-                binding.pointsJobs.text = label
-                binding.jobAccept.visibility = View.VISIBLE
-                binding.jobSkip.visibility = View.VISIBLE
-                binding.pointsAccept.visibility = View.VISIBLE
-                binding.pointsSkip.visibility = View.VISIBLE
-                binding.jobAccept.setOnClickListener { decideJob(jobId, true) }
-                binding.jobSkip.setOnClickListener { decideJob(jobId, false) }
-                binding.pointsAccept.setOnClickListener { decideJob(jobId, true) }
-                binding.pointsSkip.setOnClickListener { decideJob(jobId, false) }
-            }
-        }
-    }
 
-    private fun decideJob(jobId: String, accept: Boolean) {
-        lifecycleScope.launch(Dispatchers.IO) {
-            runCatching { MagnonAccount.decide(this@MainActivity, jobId, accept) }
-            withContext(Dispatchers.Main) { showJobs() }
-        }
-    }
 
-    private data class TraceBundle(
-        val hops4: List<NativeTraceroute.Hop>,
-        val hops6: List<NativeTraceroute.Hop>,
-        val ip4: String?,
-        val ip6: String?,
-    )
 }

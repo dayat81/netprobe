@@ -662,7 +662,7 @@ def _test_result(value: object) -> dict:
             "server",
             "summary",
         },
-        {"trace"},
+        {"trace", "latitude", "longitude"},
         "test",
     )
     if item["source"] not in TEST_SOURCES:
@@ -688,6 +688,13 @@ def _test_result(value: object) -> dict:
     }
     if "trace" in item and item["trace"] is not None:
         result["trace"] = _trace(item["trace"])
+    if "latitude" in item or "longitude" in item:
+        latitude = _opt_float(item.get("latitude"), -90, 90)
+        longitude = _opt_float(item.get("longitude"), -180, 180)
+        if latitude is None or longitude is None:
+            raise ValueError("location missing")
+        result["latitude"] = latitude
+        result["longitude"] = longitude
     return result
 
 

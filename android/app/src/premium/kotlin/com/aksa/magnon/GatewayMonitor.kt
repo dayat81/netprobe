@@ -264,8 +264,8 @@ object GatewayMonitor {
             val key = pathFingerprint(context)
             if (!force && key == pathKey && pathKey != null) return
 
-            val v4 = ClientNetworkInfo.gatewayIp(context).takeIf { it.isNotBlank() && it != "—" }
-            val v6 = ClientNetworkInfo.gatewayIpv6(context).takeIf { it.isNotBlank() && it != "—" }
+            val v4 = ClientTrace.gatewayIp(context).takeIf { it.isNotBlank() && it != "—" }
+            val v6 = ClientTrace.gatewayIpv6(context).takeIf { it.isNotBlank() && it != "—" }
             val mtu = GatewayPinger.activeMtu(context)
             synchronized(cacheLock) {
                 changed = pathKey != null && pathKey != key

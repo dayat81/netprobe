@@ -94,6 +94,8 @@ class SpeedtestEngine(
         val serverIp: String = "",
     )
 
+    data class Sample(val tMs: Long, val mbps: Double)
+
     data class Result(
         val pingMs: Long,
         val jitterMs: Long,
@@ -102,6 +104,8 @@ class SpeedtestEngine(
         val serverLabel: String,
         val ipFamily: IpFamily,
         val serverIp: String,
+        val downloadSamples: List<Sample> = emptyList(),
+        val uploadSamples: List<Sample> = emptyList(),
     )
 
     private fun progress(
@@ -137,7 +141,10 @@ class SpeedtestEngine(
                 "idle=${pingMs}ms jitter=${jitterMs}ms n=${pingSamples.size} samples=$pingSamples",
         )
         onProgress(progress(Phase.DOWNLOAD, pingMs = pingMs, jitterMs = jitterMs))
+        val downloadSamples = mutableListOf<Sample>()
+        val downloadStarted = System.nanoTime()
         val download = throughput(root, download = true, onMbps = { mbps ->
+            recordSample(downloadSamples, downloadStarted, mbps)
             onProgress(
                 progress(
                     Phase.DOWNLOAD,
@@ -155,7 +162,10 @@ class SpeedtestEngine(
                 downloadMbps = download,
             ),
         )
+        val uploadSamples = mutableListOf<Sample>()
+        val uploadStarted = System.nanoTime()
         val upload = throughput(root, download = false, onMbps = { mbps ->
+            recordSample(uploadSamples, uploadStarted, mbps)
             onProgress(
                 progress(
                     Phase.UPLOAD,
@@ -178,6 +188,8 @@ class SpeedtestEngine(
             serverLabel = target.serverLabel,
             ipFamily = target.family,
             serverIp = target.serverIp,
+            downloadSamples = capSamples(downloadSamples),
+            uploadSamples = capSamples(uploadSamples),
         )
         onProgress(
             progress(
@@ -189,6 +201,17 @@ class SpeedtestEngine(
             ),
         )
         result
+    }
+
+    private fun recordSample(into: MutableList<Sample>, startedNs: Long, mbps: Double) {
+        val tMs = ((System.nanoTime() - startedNs) / 1_000_000L).coerceAtLeast(0L)
+        into.add(Sample(tMs, mbps))
+    }
+
+    private fun capSamples(samples: List<Sample>): List<Sample> {
+        if (samples.size <= 120) return samples
+        val step = samples.size.toDouble() / 120.0
+        return List(120) { index -> samples[(index * step).toInt().coerceAtMost(samples.lastIndex)] }
     }
 
     /**

@@ -1,6 +1,14 @@
+import com.android.build.api.variant.BuildConfigField
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
+}
+
+fun cfg(property: String, envName: String, fallback: String): String {
+    val prop = (project.findProperty(property) as String?)?.trim()?.takeIf { it.isNotEmpty() }
+    val env = System.getenv(envName)?.trim()?.takeIf { it.isNotEmpty() }
+    return prop ?: env ?: fallback
 }
 
 android {
@@ -14,26 +22,11 @@ android {
         versionCode = 117
         versionName = "2.6.0"
 
-        val collectorHost = (project.findProperty("mysignal.collectorHost") as String?)
-            ?.trim()
-            ?.ifEmpty { null }
-            ?: "127.0.0.1"
-        val collectorPort = (project.findProperty("mysignal.collectorPort") as String?)
-            ?.trim()
-            ?.toIntOrNull()
-            ?: 8000
-        val hmacKeyId = (project.findProperty("mysignal.hmacKeyId") as String?)
-            ?.trim()
-            ?.ifEmpty { null }
-            ?: "unset"
-        val hmacKeyHex = (project.findProperty("mysignal.hmacKeyHex") as String?)
-            ?.trim()
-            ?.ifEmpty { null }
-            ?: "00"
-        val measureKeyHex = (project.findProperty("mysignal.measureKeyHex") as String?)
-            ?.trim()
-            ?.ifEmpty { null }
-            ?: "00"
+        val collectorHost = cfg("mysignal.collectorHost", "MAGNON_COLLECTOR_HOST", "127.0.0.1")
+        val collectorPort = cfg("mysignal.collectorPort", "MAGNON_COLLECTOR_PORT", "8000").toIntOrNull() ?: 8000
+        val hmacKeyId = cfg("mysignal.hmacKeyId", "MAGNON_HMAC_KEY_ID", "unset")
+        val hmacKeyHex = cfg("mysignal.hmacKeyHex", "MAGNON_HMAC_KEY_HEX", "00")
+        val measureKeyHex = cfg("mysignal.measureKeyHex", "MAGNON_MEASURE_KEY_HEX", "00")
         val reportingEnabled = hmacKeyId != "unset" && hmacKeyHex.length >= 32
         val measureEnabled = reportingEnabled && Regex("[0-9a-fA-F]{64}").matches(measureKeyHex)
 
@@ -46,10 +39,7 @@ android {
         buildConfigField("boolean", "MEASURE_ENABLED", measureEnabled.toString())
         buildConfigField("int", "SPEEDTEST_PORT", "443")
         buildConfigField("String", "SPEEDTEST_PATH", "\"/speedtest/\"")
-        val googleClientId = (project.findProperty("magnon.googleClientId") as String?)
-            ?.trim()
-            ?.ifEmpty { null }
-            ?: ""
+        val googleClientId = cfg("magnon.googleClientId", "MAGNON_GOOGLE_CLIENT_ID", "")
         buildConfigField("String", "GOOGLE_CLIENT_ID", "\"${googleClientId.replace("\"", "")}\"")
         buildConfigField("String", "FLAVOR_LEVEL", "\"lite\"")
         buildConfigField("boolean", "IS_PREMIUM", "false")
@@ -73,12 +63,41 @@ android {
         }
     }
 
+    val keystorePath = System.getenv("KEYSTORE_PATH")?.trim().orEmpty()
+    signingConfigs {
+        create("release") {
+            if (keystorePath.isNotEmpty()) {
+                storeFile = file(keystorePath)
+                storePassword = System.getenv("KEYSTORE_PASSWORD").orEmpty()
+                keyAlias = System.getenv("KEY_ALIAS").orEmpty()
+                keyPassword = System.getenv("KEY_PASSWORD").orEmpty()
+            }
+        }
+    }
+
     buildTypes {
         release {
+            if (keystorePath.isNotEmpty()) {
+                signingConfig = signingConfigs.getByName("release")
+            }
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
+            )
+        }
+    }
+
+    androidComponents {
+        onVariants { variant ->
+            val gate = variant.name == "liteRelease"
+            variant.buildConfigFields.put(
+                "INTEGRITY_GATE",
+                BuildConfigField(
+                    "boolean",
+                    if (gate) "true" else "false",
+                    "Lite release exits when the device is rooted or developer options are on.",
+                ),
             )
         }
     }
@@ -123,7 +142,7 @@ dependencies {
     implementation("androidx.viewpager2:viewpager2:1.1.0")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.7")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")
-    implementation("org.lsposed.hiddenapibypass:hiddenapibypass:6.1")
+    premiumImplementation("org.lsposed.hiddenapibypass:hiddenapibypass:6.1")
     implementation("androidx.media3:media3-exoplayer:1.5.1")
     implementation("androidx.media3:media3-ui:1.5.1")
     implementation("androidx.credentials:credentials:1.3.0")

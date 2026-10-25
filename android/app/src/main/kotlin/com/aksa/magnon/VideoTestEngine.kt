@@ -15,14 +15,22 @@ class VideoTestEngine(
     private val context: Context,
     private val playerView: PlayerView,
 ) {
+    data class Stage(
+        val resolution: String,
+        val loadMs: Long,
+        val playedMs: Long,
+        val bufferMs: Long,
+    )
+
     data class Result(
         val loadTimeMs: Long,
         val maxResolution: String,
         val bufferingPct: Double,
         val serverLabel: String,
+        val stages: List<Stage> = emptyList(),
     )
 
-    private data class Stage(
+    private data class Level(
         val loadMs: Long,
         val bufferMs: Long,
         val playedMs: Long,
@@ -38,6 +46,7 @@ class VideoTestEngine(
             var maxResolution = ""
             var bufferMs = 0L
             var playedMs = 0L
+            val stages = mutableListOf<Stage>()
             for ((index, level) in levels.withIndex()) {
                 val (file, label) = level
                 onPhase(label)
@@ -45,6 +54,7 @@ class VideoTestEngine(
                 if (index == 0) loadTime = stage.loadMs
                 bufferMs += stage.bufferMs
                 playedMs += stage.playedMs
+                stages.add(Stage(label, stage.loadMs, stage.playedMs, stage.bufferMs))
                 if (stage.stalled) {
                     if (maxResolution.isEmpty()) maxResolution = label
                     break
@@ -53,14 +63,14 @@ class VideoTestEngine(
             }
             if (maxResolution.isEmpty()) throw IllegalStateException("no video frame")
             val pct = if (playedMs <= 0L) 0.0 else (bufferMs * 100.0 / playedMs).coerceIn(0.0, 100.0)
-            return Result(loadTime, maxResolution, pct, root)
+            return Result(loadTime, maxResolution, pct, root, stages)
         } finally {
             playerView.player = null
             player.release()
         }
     }
 
-    private suspend fun playLevel(player: ExoPlayer, url: String, first: Boolean): Stage {
+    private suspend fun playLevel(player: ExoPlayer, url: String, first: Boolean): Level {
         var firstFrameAt = 0L
         var buffering = false
         var bufferAccum = 0L
@@ -106,7 +116,7 @@ class VideoTestEngine(
         val played = if (firstFrameAt == 0L) 0L else SystemClock.elapsedRealtime() - firstFrameAt
         if (first && firstFrameAt == 0L) throw IllegalStateException("video did not start")
         val load = if (firstFrameAt == 0L) SystemClock.elapsedRealtime() - started else firstFrameAt - started
-        return Stage(load, bufferAccum, max(played, 1L), stalled || firstFrameAt == 0L)
+        return Level(load, bufferAccum, max(played, 1L), stalled || firstFrameAt == 0L)
     }
 
     companion object {

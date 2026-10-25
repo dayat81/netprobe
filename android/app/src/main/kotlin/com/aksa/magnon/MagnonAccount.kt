@@ -26,13 +26,7 @@ data class MagnonProfile(
     val name: String,
     val level: String,
     val role: String,
-    val points: Int,
-    val postUsed: Int,
-    val postLimit: Int,
-    val testUsed: Int,
-    val testLimit: Int,
     val stayOnLite: Boolean,
-    val history: String,
     val email: String = "",
     val sub: String = "",
 )
@@ -44,8 +38,6 @@ data class GoogleSignIn(
     val email: String,
     val name: String,
 )
-
-data class MagnonReserve(val ok: Boolean, val message: String)
 
 /** Gmail session for Magnon. The server assigns lite or premium; the app only sends its flavor. */
 object MagnonAccount {
@@ -168,63 +160,17 @@ object MagnonAccount {
         return profile(response)
     }
 
-    fun leaderboard(context: Context): String {
-        val response = get(context, "/api/magnon/board", session(context))
-        if (response.has("error")) return response.optString("error")
-        return formatBoard(response)
-    }
 
-    fun jobs(context: Context): JSONObject = get(context, "/v1/magnon/jobs", session(context))
+: JSONObject = get(context, "/v1/magnon/jobs", session(context))
 
-    fun decide(context: Context, jobId: String, accept: Boolean): JSONObject {
-        val body = JSONObject().put("job_id", jobId).put("accept", accept)
-        return post(context, "/v1/magnon/jobs", body, session(context))
-    }
 
-    fun reserve(context: Context, kind: String): MagnonReserve {
-        val token = session(context) ?: return MagnonReserve(false, "Masuk dengan Gmail dulu.")
-        val response = post(context, "/v1/magnon/reserve", JSONObject().put("kind", kind), token)
-        val error = response.optString("error")
-        if (error.isNotBlank()) {
-            val message = when (error) {
-                "credit_exhausted" -> if (kind == "post") "Kredit post hari ini habis." else "Kredit tes hari ini habis."
-                "stay_on_lite" -> "Akun ini Magnon Lite. Tetap di aplikasi Lite."
-                "login_required" -> "Masuk dengan Gmail dulu."
-                else -> error
-            }
-            return MagnonReserve(false, message)
-        }
-        return MagnonReserve(response.optBoolean("ok"), "")
-    }
 
     private fun profile(json: JSONObject): MagnonProfile {
-        val history = json.optJSONArray("history")
-        val lines = buildString {
-            if (history == null || history.length() == 0) {
-                append("Belum ada poin.")
-            } else {
-                for (index in 0 until history.length()) {
-                    val row = history.getJSONObject(index)
-                    append(row.optString("day"))
-                    append(" · ")
-                    append(row.optString("kind"))
-                    append(" · ")
-                    append(row.optInt("points"))
-                    append('\n')
-                }
-            }
-        }
         return MagnonProfile(
             name = json.optString("name"),
             level = json.optString("level"),
             role = json.optString("role"),
-            points = json.optInt("points"),
-            postUsed = json.optInt("post_used"),
-            postLimit = json.optInt("post_limit", 3),
-            testUsed = json.optInt("test_used"),
-            testLimit = json.optInt("test_limit", 20),
             stayOnLite = json.optBoolean("stay_on_lite"),
-            history = lines.trim(),
             email = json.optString("email"),
             sub = json.optString("sub"),
         )
@@ -238,38 +184,24 @@ object MagnonAccount {
         return JSONObject(String(bytes, StandardCharsets.UTF_8))
     }
 
-    private fun formatBoard(json: JSONObject): String = buildString {
+: String = buildString {
         append("Bulan ini\n")
         append(names(json.optJSONArray("month")))
         append("\nSepanjang waktu\n")
         append(names(json.optJSONArray("all_time")))
     }
 
-    private fun names(rows: org.json.JSONArray?): String {
-        if (rows == null || rows.length() == 0) return "—"
-        return buildString {
-            for (index in 0 until rows.length()) {
-                val row = rows.getJSONObject(index)
-                append(index + 1)
-                append(". ")
-                append(row.optString("name"))
-                append(" · ")
-                append(row.optInt("points"))
-                append('\n')
-            }
-        }.trim()
-    }
 
-    private fun session(context: Context): String? =
+    internal fun session(context: Context): String? =
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(SESSION, null)?.takeIf { it.isNotBlank() }
 
-    private fun get(context: Context, path: String, token: String?): JSONObject {
+    internal fun get(context: Context, path: String, token: String?): JSONObject {
         val connection = open(path, token)
         connection.requestMethod = "GET"
         return read(connection)
     }
 
-    private fun post(context: Context, path: String, body: JSONObject, token: String?): JSONObject {
+    internal fun post(context: Context, path: String, body: JSONObject, token: String?): JSONObject {
         val bytes = body.toString().toByteArray(StandardCharsets.UTF_8)
         val connection = open(path, token)
         connection.requestMethod = "POST"

@@ -17,6 +17,6 @@ gcloud run deploy magnon-collector \
   --cpu 1 \
   --timeout 60 \
   --no-cpu-throttling \
-  --set-secrets "/secrets/hmac.key=magnon-hmac:latest" \
-  --set-env-vars "OSM_STORE=firestore,OSM_ROLE=flows,OSM_TTL_SECONDS=7776000,MAGNON_PORTAL=1,MAGNON_GOOGLE_CLIENT_ID=${MAGNON_GOOGLE_CLIENT_ID:-},MAGNON_OPERATOR_EMAILS=${MAGNON_OPERATOR_EMAILS:-}"
+  --set-secrets "/secrets/hmac.key=magnon-hmac:latest,MAGNON_XAI_API_KEY=magnon-xai:latest,TYPESAFE_API_KEY=magnon-typesafe:latest,MAGNON_DEEPSEEK_API_KEY=magnon-deepseek:latest,MAGNON_GMAP_API_KEY=magnon-gmap:latest" \
+  --set-env-vars "OSM_STORE=firestore,OSM_ROLE=flows,OSM_TTL_SECONDS=7776000,MAGNON_PORTAL=1,MAGNON_CREDITS=0,MAGNON_GOOGLE_CLIENT_ID=${MAGNON_GOOGLE_CLIENT_ID:-},MAGNON_OPERATOR_EMAILS=${MAGNON_OPERATOR_EMAILS:-},MAGNON_ADMIN_EMAILS=${MAGNON_ADMIN_EMAILS:-}"
 gcloud run services describe magnon-collector --region "${REGION}" --project "${PROJECT}" --format='value(status.url)'

@@ -1,0 +1,710 @@
+{
+  "regions": [
+    {
+      "provinsi": "Aceh",
+      "file": "aceh.json",
+      "kabupaten": [
+        "Aceh Barat",
+        "Aceh Barat Daya",
+        "Aceh Besar",
+        "Aceh Jaya",
+        "Aceh Selatan",
+        "Aceh Singkil",
+        "Aceh Tamiang",
+        "Aceh Tengah",
+        "Aceh Tenggara",
+        "Aceh Timur",
+        "Aceh Utara",
+        "Banda Aceh",
+        "Bener Meriah",
+        "Bireuen",
+        "Gayo Lues",
+        "Langsa",
+        "Lhokseumawe",
+        "Nagan Raya",
+        "Pidie",
+        "Pidie Jaya",
+        "Sabang",
+        "Simeulue",
+        "Subulussalam"
+      ]
+    },
+    {
+      "provinsi": "Bali",
+      "file": "bali.json",
+      "kabupaten": [
+        "Badung",
+        "Bangli",
+        "Buleleng",
+        "Denpasar",
+        "Gianyar",
+        "Jembrana",
+        "Karangasem",
+        "Klungkung",
+        "Tabanan"
+      ]
+    },
+    {
+      "provinsi": "Bangka Belitung",
+      "file": "bangkabelitung.json",
+      "kabupaten": [
+        "Bangka",
+        "Bangka Barat",
+        "Bangka Selatan",
+        "Bangka Tengah",
+        "Belitung",
+        "Belitung Timur",
+        "Pangkalpinang"
+      ]
+    },
+    {
+      "provinsi": "Banten",
+      "file": "banten.json",
+      "kabupaten": [
+        "Cilegon",
+        "Kota Serang",
+        "Kota Tangerang",
+        "Lebak",
+        "Pandeglang",
+        "Serang",
+        "Tangerang",
+        "Tangerang Selatan"
+      ]
+    },
+    {
+      "provinsi": "Bengkulu",
+      "file": "bengkulu.json",
+      "kabupaten": [
+        "Bengkulu",
+        "Bengkulu Selatan",
+        "Bengkulu Tengah",
+        "Bengkulu Utara",
+        "Kaur",
+        "Kepahiang",
+        "Lebong",
+        "Mukomuko",
+        "Rejang Lebong",
+        "Seluma"
+      ]
+    },
+    {
+      "provinsi": "DKI Jakarta",
+      "file": "dkijakarta.json",
+      "kabupaten": [
+        "Jakarta Barat",
+        "Jakarta Pusat",
+        "Jakarta Selatan",
+        "Jakarta Timur",
+        "Jakarta Utara",
+        "Kepulauan Seribu"
+      ]
+    },
+    {
+      "provinsi": "Gorontalo",
+      "file": "gorontalo.json",
+      "kabupaten": [
+        "Boalemo",
+        "Bone Bolango",
+        "Danau Limboto",
+        "Gorontalo",
+        "Gorontalo Utara",
+        "Kota Gorontalo",
+        "Pohuwato"
+      ]
+    },
+    {
+      "provinsi": "Jambi",
+      "file": "jambi.json",
+      "kabupaten": [
+        "Batang Hari",
+        "Bungo",
+        "Jambi",
+        "Kerinci",
+        "Merangin",
+        "Muaro Jambi",
+        "Sarolangun",
+        "Sungai Penuh",
+        "Tanjung Jabung B",
+        "Tanjung Jabung T",
+        "Tebo"
+      ]
+    },
+    {
+      "provinsi": "Jawa Barat",
+      "file": "jawabarat.json",
+      "kabupaten": [
+        "Bandung",
+        "Bandung Barat",
+        "Banjar",
+        "Bekasi",
+        "Bogor",
+        "Ciamis",
+        "Cianjur",
+        "Cimahi",
+        "Cirebon",
+        "Depok",
+        "Garut",
+        "Indramayu",
+        "Karawang",
+        "Kota Bandung",
+        "Kota Bekasi",
+        "Kota Bogor",
+        "Kota Cirebon",
+        "Kota Sukabumi",
+        "Kota Tasikmalaya",
+        "Kuningan",
+        "Majalengka",
+        "Purwakarta",
+        "Subang",
+        "Sukabumi",
+        "Sumedang",
+        "Tasikmalaya",
+        "Waduk Cirata"
+      ]
+    },
+    {
+      "provinsi": "Jawa Tengah",
+      "file": "jawatengah.json",
+      "kabupaten": [
+        "Banjarnegara",
+        "Banyumas",
+        "Batang",
+        "Blora",
+        "Boyolali",
+        "Brebes",
+        "Cilacap",
+        "Demak",
+        "Grobogan",
+        "Jepara",
+        "Karanganyar",
+        "Kebumen",
+        "Kendal",
+        "Klaten",
+        "Kota Magelang",
+        "Kota Pekalongan",
+        "Kota Semarang",
+        "Kota Tegal",
+        "Kudus",
+        "Magelang",
+        "Pati",
+        "Pekalongan",
+        "Pemalang",
+        "Purbalingga",
+        "Purworejo",
+        "Rembang",
+        "Salatiga",
+        "Semarang",
+        "Sragen",
+        "Sukoharjo",
+        "Surakarta",
+        "Tegal",
+        "Temanggung",
+        "Waduk Kedungombo",
+        "Wonogiri",
+        "Wonosobo"
+      ]
+    },
+    {
+      "provinsi": "Jawa Timur",
+      "file": "jawatimur.json",
+      "kabupaten": [
+        "Bangkalan",
+        "Banyuwangi",
+        "Batu",
+        "Blitar",
+        "Bojonegoro",
+        "Bondowoso",
+        "Gresik",
+        "Jember",
+        "Jombang",
+        "Kediri",
+        "Kota Blitar",
+        "Kota Kediri",
+        "Kota Madiun",
+        "Kota Malang",
+        "Kota Mojokerto",
+        "Kota Pasuruan",
+        "Kota Probolinggo",
+        "Lamongan",
+        "Lumajang",
+        "Madiun",
+        "Magetan",
+        "Malang",
+        "Mojokerto",
+        "Nganjuk",
+        "Ngawi",
+        "Pacitan",
+        "Pamekasan",
+        "Pasuruan",
+        "Ponorogo",
+        "Probolinggo",
+        "Sampang",
+        "Sidoarjo",
+        "Situbondo",
+        "Sumenep",
+        "Surabaya",
+        "Trenggalek",
+        "Tuban",
+        "Tulungagung"
+      ]
+    },
+    {
+      "provinsi": "Kalimantan Barat",
+      "file": "kalimantanbarat.json",
+      "kabupaten": [
+        "Bengkayang",
+        "Kapuas Hulu",
+        "Kayong Utara",
+        "Ketapang",
+        "Kota Pontianak",
+        "Kubu Raya",
+        "Landak",
+        "Melawi",
+        "Pontianak",
+        "Sambas",
+        "Sanggau",
+        "Sekadau",
+        "Singkawang",
+        "Sintang"
+      ]
+    },
+    {
+      "provinsi": "Kalimantan Selatan",
+      "file": "kalimantanselatan.json",
+      "kabupaten": [
+        "Balangan",
+        "Banjar",
+        "Banjar Baru",
+        "Banjarmasin",
+        "Barito Kuala",
+        "Hulu Sungai Selatan",
+        "Hulu Sungai Tengah",
+        "Hulu Sungai Utara",
+        "Kotabaru",
+        "Tabalong",
+        "Tanah Bumbu",
+        "Tanah Laut",
+        "Tapin"
+      ]
+    },
+    {
+      "provinsi": "Kalimantan Tengah",
+      "file": "kalimantantengah.json",
+      "kabupaten": [
+        "Barito Selatan",
+        "Barito Timur",
+        "Barito Utara",
+        "Gunung Mas",
+        "Kapuas",
+        "Katingan",
+        "Kotawaringin Barat",
+        "Kotawaringin Timur",
+        "Lamandau",
+        "Murung Raya",
+        "Palangka Raya",
+        "Pulang Pisau",
+        "Seruyan",
+        "Sukamara"
+      ]
+    },
+    {
+      "provinsi": "Kalimantan Timur",
+      "file": "kalimantantimur.json",
+      "kabupaten": [
+        "Balikpapan",
+        "Berau",
+        "Bontang",
+        "Kutai Barat",
+        "Kutai Kartanegara",
+        "Kutai Timur",
+        "Paser",
+        "Penajam Paser Utara",
+        "Samarinda"
+      ]
+    },
+    {
+      "provinsi": "Kalimantan Utara",
+      "file": "kalimantanutara.json",
+      "kabupaten": [
+        "Bulungan",
+        "Malinau",
+        "Nunukan",
+        "Tana Tidung",
+        "Tarakan"
+      ]
+    },
+    {
+      "provinsi": "Kepulauan Riau",
+      "file": "kepulauanriau.json",
+      "kabupaten": [
+        "Batam",
+        "Bintan",
+        "Karimun",
+        "Kepulauan Anambas",
+        "Lingga",
+        "Natuna",
+        "Tanjungpinang"
+      ]
+    },
+    {
+      "provinsi": "Lampung",
+      "file": "lampung.json",
+      "kabupaten": [
+        "Bandar Lampung",
+        "Lampung Barat",
+        "Lampung Selatan",
+        "Lampung Tengah",
+        "Lampung Timur",
+        "Lampung Utara",
+        "Mesuji",
+        "Metro",
+        "Pesawaran",
+        "Pringsewu",
+        "Tanggamus",
+        "Tulang Bawang Barat",
+        "Tulangbawang",
+        "Way Kanan"
+      ]
+    },
+    {
+      "provinsi": "Maluku",
+      "file": "maluku.json",
+      "kabupaten": [
+        "Ambon",
+        "Buru",
+        "Buru Selatan",
+        "Kepulauan Aru",
+        "Maluku Barat Daya",
+        "Maluku Tengah",
+        "Maluku Tenggara",
+        "Maluku Tenggara Barat",
+        "Seram Bagian Barat",
+        "Seram Bagian Timur",
+        "Tual"
+      ]
+    },
+    {
+      "provinsi": "Maluku Utara",
+      "file": "malukuutara.json",
+      "kabupaten": [
+        "Halmahera Barat",
+        "Halmahera Selatan",
+        "Halmahera Tengah",
+        "Halmahera Timur",
+        "Halmahera Utara",
+        "Kepulauan Sula",
+        "Pulau Morotai",
+        "Ternate",
+        "Tidore Kepulauan"
+      ]
+    },
+    {
+      "provinsi": "Nusa Tenggara Barat",
+      "file": "nusatenggarabarat.json",
+      "kabupaten": [
+        "Bima",
+        "Dompu",
+        "Kota Bima",
+        "Lombok Barat",
+        "Lombok Tengah",
+        "Lombok Timur",
+        "Lombok Utara",
+        "Mataram",
+        "Sumbawa",
+        "Sumbawa Barat"
+      ]
+    },
+    {
+      "provinsi": "Nusa Tenggara Timur",
+      "file": "nusatenggaratimur.json",
+      "kabupaten": [
+        "Alor",
+        "Belu",
+        "Ende",
+        "Flores Timur",
+        "Kota Kupang",
+        "Kupang",
+        "Lembata",
+        "Manggarai",
+        "Manggarai Barat",
+        "Manggarai Timur",
+        "Nagekeo",
+        "Ngada",
+        "Rote Ndao",
+        "Sabu Raijua",
+        "Sikka",
+        "Sumba Barat",
+        "Sumba Barat Daya",
+        "Sumba Tengah",
+        "Sumba Timur",
+        "Timor Tengah Selatan",
+        "Timor Tengah Utara"
+      ]
+    },
+    {
+      "provinsi": "Papua",
+      "file": "papua.json",
+      "kabupaten": [
+        "Asmat",
+        "Biak Numfor",
+        "Boven Digoel",
+        "Deiyai",
+        "Dogiyai",
+        "Intan Jaya",
+        "Jayapura",
+        "Jayawijaya",
+        "Keerom",
+        "Kepulauan Yapen",
+        "Kota Jayapura",
+        "Lanny Jaya",
+        "Mamberamo Raya",
+        "Mamberamo Tengah",
+        "Mappi",
+        "Merauke",
+        "Mimika",
+        "Nabire",
+        "Nduga",
+        "Paniai",
+        "Pegunungan Bintang",
+        "Puncak",
+        "Puncak Jaya",
+        "Sarmi",
+        "Supiori",
+        "Tolikara",
+        "Waropen",
+        "Yahukimo",
+        "Yalimo"
+      ]
+    },
+    {
+      "provinsi": "Papua Barat",
+      "file": "papuabarat.json",
+      "kabupaten": [
+        "Fakfak",
+        "Kaimana",
+        "Kota Sorong",
+        "Manokwari",
+        "Maybrat",
+        "Raja Ampat",
+        "Sorong",
+        "Sorong Selatan",
+        "Tambrauw",
+        "Teluk Bintuni",
+        "Teluk Wondama"
+      ]
+    },
+    {
+      "provinsi": "Riau",
+      "file": "riau.json",
+      "kabupaten": [
+        "Bengkalis",
+        "Dumai",
+        "Indragiri Hilir",
+        "Indragiri Hulu",
+        "Kampar",
+        "Kepulauan Meranti",
+        "Kuantan Singingi",
+        "Pekanbaru",
+        "Pelalawan",
+        "Rokan Hilir",
+        "Rokan Hulu",
+        "Siak"
+      ]
+    },
+    {
+      "provinsi": "Sulawesi Barat",
+      "file": "sulawesibarat.json",
+      "kabupaten": [
+        "Majene",
+        "Mamasa",
+        "Mamuju",
+        "Mamuju Utara",
+        "Polewali Mandar"
+      ]
+    },
+    {
+      "provinsi": "Sulawesi Selatan",
+      "file": "sulawesiselatan.json",
+      "kabupaten": [
+        "Bantaeng",
+        "Barru",
+        "Bone",
+        "Bulukumba",
+        "Enrekang",
+        "Gowa",
+        "Jeneponto",
+        "Kepulauan Selayar",
+        "Luwu",
+        "Luwu Timur",
+        "Luwu Utara",
+        "Makassar",
+        "Maros",
+        "Palopo",
+        "Pangkajene Dan Kepulauan",
+        "Parepare",
+        "Pinrang",
+        "Sidenreng Rappang",
+        "Sinjai",
+        "Soppeng",
+        "Takalar",
+        "Tana Toraja",
+        "Toraja Utara",
+        "Wajo"
+      ]
+    },
+    {
+      "provinsi": "Sulawesi Tengah",
+      "file": "sulawesitengah.json",
+      "kabupaten": [
+        "Banggai",
+        "Banggai Kepulauan",
+        "Buol",
+        "Donggala",
+        "Morowali",
+        "Palu",
+        "Parigi Moutong",
+        "Poso",
+        "Sigi",
+        "Tojo Una-Una",
+        "Toli-Toli"
+      ]
+    },
+    {
+      "provinsi": "Sulawesi Tenggara",
+      "file": "sulawesitenggara.json",
+      "kabupaten": [
+        "Bau-Bau",
+        "Bombana",
+        "Buton",
+        "Buton Utara",
+        "Kendari",
+        "Kolaka",
+        "Kolaka Utara",
+        "Konawe",
+        "Konawe Selatan",
+        "Konawe Utara",
+        "Muna",
+        "Wakatobi"
+      ]
+    },
+    {
+      "provinsi": "Sulawesi Utara",
+      "file": "sulawesiutara.json",
+      "kabupaten": [
+        "Bitung",
+        "Bolaang Mongondow",
+        "Bolaang Mongondow Selatan",
+        "Bolaang Mongondow Timur",
+        "Bolaang Mongondow Utara",
+        "Kepulauan Sangihe",
+        "Kepulauan Talaud",
+        "Kotamobagu",
+        "Manado",
+        "Minahasa",
+        "Minahasa Selatan",
+        "Minahasa Tenggara",
+        "Minahasa Utara",
+        "Siau Tagulandang Biaro",
+        "Tomohon"
+      ]
+    },
+    {
+      "provinsi": "Sumatera Barat",
+      "file": "sumaterabarat.json",
+      "kabupaten": [
+        "Agam",
+        "Bukittinggi",
+        "Danau",
+        "Dharmasraya",
+        "Kepulauan Mentawai",
+        "Kota Solok",
+        "Lima Puluh Kota",
+        "Padang",
+        "Padang Panjang",
+        "Padang Pariaman",
+        "Pariaman",
+        "Pasaman",
+        "Pasaman Barat",
+        "Payakumbuh",
+        "Pesisir Selatan",
+        "Sawahlunto",
+        "Sijunjung",
+        "Solok",
+        "Solok Selatan",
+        "Tanah Datar"
+      ]
+    },
+    {
+      "provinsi": "Sumatera Selatan",
+      "file": "sumateraselatan.json",
+      "kabupaten": [
+        "Banyu Asin",
+        "Empat Lawang",
+        "Lahat",
+        "Lubuklinggau",
+        "Muara Enim",
+        "Musi Banyuasin",
+        "Musi Rawas",
+        "Ogan Ilir",
+        "Ogan Komering Ilir",
+        "Ogan Komering Ulu",
+        "Ogan Komering Ulu Selatan",
+        "Ogan Komering Ulu Timur",
+        "Pagar Alam",
+        "Palembang",
+        "Prabumulih"
+      ]
+    },
+    {
+      "provinsi": "Sumatera Utara",
+      "file": "sumaterautara.json",
+      "kabupaten": [
+        "Asahan",
+        "Batu Bara",
+        "Dairi",
+        "Deli Serdang",
+        "Gunungsitoli",
+        "Humbang Hasundutan",
+        "Karo",
+        "Kota Binjai",
+        "Kota Medan",
+        "Kota Tanjungbalai",
+        "Labuhanbatu",
+        "Labuhanbatu Selatan",
+        "Labuhanbatu Utara",
+        "Lake Toba",
+        "Langkat",
+        "Mandailing Natal",
+        "Nias",
+        "Nias Barat",
+        "Nias Selatan",
+        "Nias Utara",
+        "Padang Lawas",
+        "Padang Lawas Utara",
+        "Padangsidimpuan",
+        "Pakpak Barat",
+        "Pematangsiantar",
+        "Samosir",
+        "Serdang Bedagai",
+        "Sibolga",
+        "Simalungun",
+        "Tapanuli Selatan",
+        "Tapanuli Tengah",
+        "Tapanuli Utara",
+        "Tebingtinggi",
+        "Toba Samosir"
+      ]
+    },
+    {
+      "provinsi": "Yogyakarta",
+      "file": "yogyakarta.json",
+      "kabupaten": [
+        "Bantul",
+        "Gunung Kidul",
+        "Kota Yogyakarta",
+        "Kulon Progo",
+        "Sleman"
+      ]
+    }
+  ]
+}

@@ -20,6 +20,7 @@ import time
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from socketserver import ThreadingMixIn
 from typing import Mapping
+from pathlib import Path
 from urllib.parse import parse_qs, urlsplit
 
 from opensignal_mirror.schema import correlation_ids, validate_measurement_envelope
@@ -1438,13 +1439,21 @@ def make_handler(config: Config):
         def do_GET(self) -> None:  # noqa: N802
             parsed_url = urlsplit(self.path)
             path = parsed_url.path
+            if config.magnon is not None and path == "/magnon-lite.apk":
+                self._magnon_apk()
+                return
+            if config.magnon is not None and path.startswith("/r/"):
+                self._magnon_run(path[3:])
+                return
             if config.magnon is not None and path == "/":
                 from opensignal_mirror.magnon import home_html
 
                 self._send_bytes(200, home_html(), "text/html; charset=utf-8")
                 return
             if config.magnon is not None and (
-                path == "/magnon" or path.startswith("/api/magnon") or path.startswith("/v1/magnon")
+                path in ("/admin", "/sponsor", "/contrib", "/magnon")
+                or path.startswith("/api/magnon")
+                or path.startswith("/v1/magnon")
             ):
                 self._magnon("GET")
                 return
@@ -1495,6 +1504,9 @@ def make_handler(config: Config):
 
         def do_POST(self) -> None:  # noqa: N802
             path = urlsplit(self.path).path
+            if config.magnon is not None and path == "/crowd/compose":
+                self._crowd_compose()
+                return
             if config.magnon is not None and (
                 path == "/v1/auth/google" or path.startswith("/v1/magnon") or path.startswith("/api/magnon")
             ):
@@ -1538,12 +1550,90 @@ def make_handler(config: Config):
                 return
             self._ingest(path, self._accept_role)
 
+        def _magnon_apk(self) -> None:
+            path = Path(__file__).resolve().parent / "static" / "magnon-lite.apk"
+            if not path.is_file():
+                self._send(404, {"error": "not_found"})
+                return
+            self.send_response(200)
+            self.send_header("Content-Type", "application/vnd.android.package-archive")
+            self.send_header("Content-Length", str(path.stat().st_size))
+            self.send_header("Content-Disposition", 'attachment; filename="magnon-lite.apk"')
+            self.send_header("Cache-Control", "public, max-age=3600")
+            self.send_header("Connection", "close")
+            self.end_headers()
+            with path.open("rb") as handle:
+                while True:
+                    chunk = handle.read(65536)
+                    if not chunk:
+                        break
+                    self.wfile.write(chunk)
+
+        def _magnon_run(self, run_id: str) -> None:
+            from opensignal_mirror.magnon import result_page
+
+            status, body = result_page(config.magnon.ledger, run_id)
+            self._send_bytes(status, body, "text/html; charset=utf-8")
+
+        def _crowd_compose(self) -> None:
+            from opensignal_mirror.magnon import compose_post
+
+            try:
+                length = int(self.headers.get("Content-Length", ""))
+            except ValueError:
+                self._send(411, {"error": "length_required"})
+                return
+            if length < 2 or length > 65536:
+                self._send(413, {"error": "body_too_large"})
+                return
+            raw = self.rfile.read(length)
+            if len(raw) != length:
+                self._send(400, {"error": "short_body"})
+                return
+            try:
+                self._authenticate("/crowd/compose", raw)
+                parsed = json.loads(raw.decode("utf-8"))
+                self._send(200, compose_post(parsed, store=config.magnon.ledger, fixes=self._stored_fixes(parsed)))
+            except PermissionError as exc:
+                self._send(401, {"error": str(exc)})
+            except RateLimitError as exc:
+                self._send(429, {"error": str(exc)})
+            except (json.JSONDecodeError, UnicodeError, ValueError):
+                self._send(400, {"error": "invalid_json"})
+            except RuntimeError as exc:
+                self._send(503, {"error": str(exc)[:160]})
+
+        def _stored_fixes(self, parsed: dict) -> list[dict]:
+            """Lat/lon already saved with this device's tests. Names are resolved later."""
+            device_id = str((parsed or {}).get("device_id") or "").strip()
+            if not device_id or not hasattr(config.store, "search"):
+                return []
+            try:
+                rows = config.store.search(device_id, limit=20)
+            except Exception:
+                return []
+            fixes = []
+            for row in rows:
+                if row.get("role") != "tests":
+                    continue
+                event = row.get("event")
+                if isinstance(event, dict):
+                    fixes.append(event)
+            return fixes
+
         def _magnon(self, method: str) -> None:
             from opensignal_mirror.magnon import handle, portal_html, token_from_headers
 
             parsed = urlsplit(self.path)
             if method == "GET" and parsed.path == "/magnon":
-                self._send_bytes(200, portal_html(config.magnon.client_id), "text/html; charset=utf-8")
+                self.send_response(302)
+                self.send_header("Location", "/contrib")
+                self.send_header("Content-Length", "0")
+                self.send_header("Connection", "close")
+                self.end_headers()
+                return
+            if method == "GET" and parsed.path in ("/admin", "/sponsor", "/contrib"):
+                self._send_bytes(200, portal_html(config.magnon.client_id, parsed.path[1:]), "text/html; charset=utf-8")
                 return
             body: dict = {}
             if method == "POST":

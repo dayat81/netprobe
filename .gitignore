@@ -8,6 +8,9 @@ keystore.properties
 tmp/magnon-hmac.key
 tmp/magnon-release.pass
 tmp/magnon-oauth-web.json
+tmp/magnon-xai.key
+tmp/magnon-typesafe.key
+tmp/magnon-deepseek.key
 /.idea/
 .DS_Store
 /build/

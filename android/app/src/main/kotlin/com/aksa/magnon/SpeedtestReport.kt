@@ -14,14 +14,18 @@ object SpeedtestReport {
     fun upload(
         context: Context,
         result: SpeedtestEngine.Result,
-        hops4: List<NativeTraceroute.Hop> = emptyList(),
-        hops6: List<NativeTraceroute.Hop> = emptyList(),
+        kecamatan: String = "",
+        transport: String = "",
+        kelurahan: String = "",
+        kabupaten: String = "",
+        provinsi: String = "",
+        latitude: Double? = null,
+        longitude: Double? = null,
     ) {
         RumReporter.noteSpeed(result)
-        ComplaintStore.saveSpeed(context, result)
+        ComplaintStore.saveSpeed(context, result, kecamatan, transport, kelurahan, kabupaten, provinsi, latitude, longitude)
         if (!CollectorClient.measureEnabled) return
         val app = context.applicationContext
-        val trace = traceJson(hops4, hops6)
         thread(name = "mysignal-speed-upload", start = true) {
             val test = JSONObject()
                 .put("event_id", "myspd" + UUID.randomUUID().toString().replace("-", "").take(16))
@@ -35,7 +39,12 @@ object SpeedtestReport {
                 .put("loss_pct", JSONObject.NULL)
                 .put("server", result.serverLabel.take(120))
                 .put("summary", "mysignal")
-            if (trace != null) test.put("trace", trace)
+                .apply {
+                    if (latitude != null && longitude != null) {
+                        put("latitude", latitude)
+                        put("longitude", longitude)
+                    }
+                }
             val plain = JSONObject()
                 .put("snapshots", JSONArray())
                 .put("tests", JSONArray().put(test))
@@ -47,13 +56,23 @@ object SpeedtestReport {
             }
             AppLog.i(
                 TAG,
-                "speedtest HTTP $code dl=${result.downloadMbps} ul=${result.uploadMbps} trace=${trace != null}",
+                "speedtest HTTP $code dl=${result.downloadMbps} ul=${result.uploadMbps}",
             )
         }
     }
 
-    fun uploadVideo(context: Context, result: VideoTestEngine.Result) {
-        ComplaintStore.saveVideo(context, result)
+    fun uploadVideo(
+        context: Context,
+        result: VideoTestEngine.Result,
+        kecamatan: String = "",
+        transport: String = "",
+        kelurahan: String = "",
+        kabupaten: String = "",
+        provinsi: String = "",
+        latitude: Double? = null,
+        longitude: Double? = null,
+    ) {
+        ComplaintStore.saveVideo(context, result, kecamatan, transport, kelurahan, kabupaten, provinsi, latitude, longitude)
         if (!CollectorClient.measureEnabled) return
         val app = context.applicationContext
         thread(name = "mysignal-video-upload", start = true) {
@@ -70,6 +89,12 @@ object SpeedtestReport {
                 .put("loss_pct", result.bufferingPct.coerceIn(0.0, 100.0))
                 .put("server", result.serverLabel.take(120))
                 .put("summary", summary.take(240))
+                .apply {
+                    if (latitude != null && longitude != null) {
+                        put("latitude", latitude)
+                        put("longitude", longitude)
+                    }
+                }
             val plain = JSONObject()
                 .put("snapshots", JSONArray())
                 .put("tests", JSONArray().put(test))
@@ -83,10 +108,7 @@ object SpeedtestReport {
         }
     }
 
-    internal fun traceJson(
-        hops4: List<NativeTraceroute.Hop>,
-        hops6: List<NativeTraceroute.Hop>,
-    ): JSONObject? {
+: JSONObject? {
         val v4 = hopArray(hops4)
         val v6 = hopArray(hops6)
         if (v4.length() == 0 && v6.length() == 0) return null
@@ -96,7 +118,7 @@ object SpeedtestReport {
         return trace
     }
 
-    private fun hopArray(hops: List<NativeTraceroute.Hop>): JSONArray {
+: JSONArray {
         val array = JSONArray()
         hops.take(30).forEach { hop ->
             val item = JSONObject().put("ttl", hop.ttl.coerceIn(1, 64))

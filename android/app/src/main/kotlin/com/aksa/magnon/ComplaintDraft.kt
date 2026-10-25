@@ -16,6 +16,8 @@ import java.util.TimeZone
 object ComplaintStore {
     private const val PREFS = "mysignal_complaint"
 
+    data class Sample(val tMs: Long, val mbps: Double)
+
     data class Speed(
         val tsMs: Long,
         val downloadMbps: Double,
@@ -27,6 +29,20 @@ object ComplaintStore {
         val ipStack: String = "",
         val provider: String = "",
         val publicIp: String = "",
+        val downloadSamples: List<Sample> = emptyList(),
+        val uploadSamples: List<Sample> = emptyList(),
+        val kecamatan: String = "",
+        val kelurahan: String = "",
+        val kabupaten: String = "",
+        val provinsi: String = "",
+        val latitude: Double? = null,
+        val longitude: Double? = null,
+    )
+    data class Stage(
+        val resolution: String,
+        val loadMs: Long,
+        val playedMs: Long,
+        val bufferMs: Long,
     )
     data class Video(
         val tsMs: Long,
@@ -34,6 +50,13 @@ object ComplaintStore {
         val resolution: String,
         val bufferingPct: Double,
         val transport: String,
+        val stages: List<Stage> = emptyList(),
+        val kecamatan: String = "",
+        val kelurahan: String = "",
+        val kabupaten: String = "",
+        val provinsi: String = "",
+        val latitude: Double? = null,
+        val longitude: Double? = null,
     )
 
     @Volatile
@@ -46,25 +69,86 @@ object ComplaintStore {
 
     fun currentVideo(): Video? = shownVideo
 
-    fun saveSpeed(context: Context, result: SpeedtestEngine.Result) {
+    fun postLanguage(context: Context): String {
+        val saved = context.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .getString("post_language", "en")
+        return if (saved == "id") "id" else "en"
+    }
+
+    fun rememberLanguage(context: Context, language: String) {
+        val value = if (language == "id") "id" else "en"
+        context.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
+            .putString("post_language", value)
+            .apply()
+    }
+
+    fun postStyle(context: Context): String {
+        val saved = context.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .getString("post_style", "biasa")
+        return if (saved in setOf("biasa", "santai", "serius", "gaul")) saved!! else "biasa"
+    }
+
+    fun rememberStyle(context: Context, style: String) {
+        val value = if (style in setOf("biasa", "santai", "serius", "gaul")) style else "biasa"
+        context.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
+            .putString("post_style", value)
+            .apply()
+    }
+
+    fun autoTag(context: Context): Boolean =
+        context.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .getBoolean("post_auto_tag", true)
+
+    fun rememberAutoTag(context: Context, enabled: Boolean) {
+        context.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
+            .putBoolean("post_auto_tag", enabled)
+            .apply()
+    }
+
+    fun saveSpeed(
+        context: Context,
+        result: SpeedtestEngine.Result,
+        kecamatan: String = "",
+        transport: String = "",
+        kelurahan: String = "",
+        kabupaten: String = "",
+        provinsi: String = "",
+        latitude: Double? = null,
+        longitude: Double? = null,
+    ) {
         val stack = result.ipFamily.label
         val public = ClientNetworkInfo.lastPublic
         val provider = public?.provider?.takeIf { it.isNotBlank() && it != "—" }.orEmpty()
         val publicIp = public?.ip?.takeIf { it.isNotBlank() && it != "—" }.orEmpty()
-        shownSpeed = Speed(
-            System.currentTimeMillis(),
+        val samplesDown = result.downloadSamples.map { Sample(it.tMs, it.mbps) }
+        val samplesUp = result.uploadSamples.map { Sample(it.tMs, it.mbps) }
+        val place = kecamatan.trim().take(80)
+        val village = kelurahan.trim().take(80)
+        val regency = kabupaten.trim().take(80)
+        val province = provinsi.trim().take(80)
+        val ts = System.currentTimeMillis()
+        val path = NetworkPath.canonical(transport)
+        val saved = Speed(
+            ts,
             result.downloadMbps,
             result.uploadMbps,
             result.pingMs,
             result.jitterMs,
-            transportNow(),
+            path,
             result.serverLabel,
             stack,
             provider,
             publicIp,
+            samplesDown,
+            samplesUp,
+            place,
+            village,
+            regency,
+            province,
+            latitude = latitude?.takeIf { it.isFinite() },
+            longitude = longitude?.takeIf { it.isFinite() },
         )
-        val ts = System.currentTimeMillis()
-        val transport = transportNow()
+        shownSpeed = saved
         val prefs = context.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         prefs.edit()
             .putLong("speed_ts", ts)
@@ -72,27 +156,21 @@ object ComplaintStore {
             .putFloat("speed_ul", result.uploadMbps.toFloat())
             .putLong("speed_ping", result.pingMs)
             .putLong("speed_jitter", result.jitterMs)
-            .putString("speed_transport", transport)
+            .putString("speed_transport", path)
             .putString("speed_server", result.serverLabel)
             .putString("speed_stack", stack)
             .putString("speed_provider", provider)
             .putString("speed_public_ip", publicIp)
+            .putString("speed_kecamatan", place)
+            .putString("speed_kelurahan", village)
+            .putString("speed_kabupaten", regency)
+            .putString("speed_provinsi", province)
+            .putString("speed_lat", coordString(saved.latitude))
+            .putString("speed_lon", coordString(saved.longitude))
+            .putString("speed_download_samples", samplesJson(samplesDown))
+            .putString("speed_upload_samples", samplesJson(samplesUp))
             .apply()
-        appendSpeedHistory(
-            prefs,
-            Speed(
-                ts,
-                result.downloadMbps,
-                result.uploadMbps,
-                result.pingMs,
-                result.jitterMs,
-                transport,
-                result.serverLabel,
-                stack,
-                provider,
-                publicIp,
-            ),
-        )
+        appendSpeedHistory(prefs, saved)
     }
 
     private const val SPEED_HISTORY_MAX = 50
@@ -111,7 +189,13 @@ object ComplaintStore {
                 .put("server", entry.server.take(120))
                 .put("stack", entry.ipStack)
                 .put("provider", entry.provider.take(80))
-                .put("public_ip", entry.publicIp.take(64)),
+                .put("public_ip", entry.publicIp.take(64))
+                .put("kecamatan", entry.kecamatan.take(80))
+                .put("kelurahan", entry.kelurahan.take(80))
+                .put("kabupaten", entry.kabupaten.take(80))
+                .put("provinsi", entry.provinsi.take(80))
+                .put("lat", entry.latitude ?: JSONObject.NULL)
+                .put("lon", entry.longitude ?: JSONObject.NULL),
         )
         for (index in 0 until minOf(existing.length(), SPEED_HISTORY_MAX - 1)) {
             next.put(existing.getJSONObject(index))
@@ -136,28 +220,156 @@ object ComplaintStore {
                 item.optString("stack"),
                 item.optString("provider"),
                 item.optString("public_ip"),
+                kecamatan = item.optString("kecamatan"),
+                kelurahan = item.optString("kelurahan"),
+                kabupaten = item.optString("kabupaten"),
+                provinsi = item.optString("provinsi"),
+                latitude = jsonCoord(item, "lat"),
+                longitude = jsonCoord(item, "lon"),
             )
         }
     }
 
-    fun saveVideo(context: Context, result: VideoTestEngine.Result) {
-        shownVideo = Video(
-            System.currentTimeMillis(),
+    fun saveVideo(
+        context: Context,
+        result: VideoTestEngine.Result,
+        kecamatan: String = "",
+        transport: String = "",
+        kelurahan: String = "",
+        kabupaten: String = "",
+        provinsi: String = "",
+        latitude: Double? = null,
+        longitude: Double? = null,
+    ) {
+        val stages = result.stages.map { Stage(it.resolution, it.loadMs, it.playedMs, it.bufferMs) }
+        val place = kecamatan.trim().take(80)
+        val village = kelurahan.trim().take(80)
+        val regency = kabupaten.trim().take(80)
+        val province = provinsi.trim().take(80)
+        val path = NetworkPath.canonical(transport)
+        val ts = System.currentTimeMillis()
+        val saved = Video(
+            ts,
             result.loadTimeMs,
             result.maxResolution,
             result.bufferingPct,
-            transportNow(),
+            path,
+            stages,
+            place,
+            village,
+            regency,
+            province,
+            latitude = latitude?.takeIf { it.isFinite() },
+            longitude = longitude?.takeIf { it.isFinite() },
         )
+        shownVideo = saved
         context.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
-            .putLong("video_ts", System.currentTimeMillis())
+            .putLong("video_ts", ts)
             .putLong("video_load", result.loadTimeMs)
             .putString("video_res", result.maxResolution)
             .putFloat("video_buf", result.bufferingPct.toFloat())
-            .putString("video_transport", transportNow())
+            .putString("video_transport", path)
+            .putString("video_kecamatan", place)
+            .putString("video_kelurahan", village)
+            .putString("video_kabupaten", regency)
+            .putString("video_provinsi", province)
+            .putString("video_lat", coordString(saved.latitude))
+            .putString("video_lon", coordString(saved.longitude))
+            .putString("video_stages", stagesJson(stages))
             .apply()
+        appendVideoHistory(context, saved)
     }
 
-    private fun transportNow(): String = RadioState.latest?.network?.transport ?: "unknown"
+    private const val VIDEO_HISTORY_MAX = 50
+
+    private fun appendVideoHistory(context: Context, entry: Video) {
+        val prefs = context.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        val existing = JSONArray(prefs.getString("video_history", "[]"))
+        val next = JSONArray()
+        next.put(
+            JSONObject()
+                .put("ts", entry.tsMs)
+                .put("load", entry.loadMs)
+                .put("res", entry.resolution)
+                .put("buf", entry.bufferingPct)
+                .put("transport", entry.transport)
+                .put("kecamatan", entry.kecamatan.take(80))
+                .put("kelurahan", entry.kelurahan.take(80))
+                .put("kabupaten", entry.kabupaten.take(80))
+                .put("provinsi", entry.provinsi.take(80))
+                .put("lat", entry.latitude ?: JSONObject.NULL)
+                .put("lon", entry.longitude ?: JSONObject.NULL),
+        )
+        for (index in 0 until minOf(existing.length(), VIDEO_HISTORY_MAX - 1)) {
+            next.put(existing.getJSONObject(index))
+        }
+        prefs.edit().putString("video_history", next.toString()).apply()
+    }
+
+    fun videoHistory(context: Context): List<Video> {
+        val raw = context.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .getString("video_history", "[]")
+        val array = JSONArray(raw)
+        return List(array.length()) { index ->
+            val item = array.getJSONObject(index)
+            Video(
+                item.optLong("ts"),
+                item.optLong("load"),
+                item.optString("res"),
+                item.optDouble("buf"),
+                item.optString("transport"),
+                kecamatan = item.optString("kecamatan"),
+                kelurahan = item.optString("kelurahan"),
+                kabupaten = item.optString("kabupaten"),
+                provinsi = item.optString("provinsi"),
+                latitude = jsonCoord(item, "lat"),
+                longitude = jsonCoord(item, "lon"),
+            )
+        }
+    }
+
+    private fun samplesJson(samples: List<Sample>): String {
+        val array = JSONArray()
+        for (sample in samples) {
+            array.put(JSONObject().put("t_ms", sample.tMs).put("mbps", sample.mbps))
+        }
+        return array.toString()
+    }
+
+    private fun stagesJson(stages: List<Stage>): String {
+        val array = JSONArray()
+        for (stage in stages) {
+            array.put(
+                JSONObject()
+                    .put("resolution", stage.resolution)
+                    .put("load_ms", stage.loadMs)
+                    .put("played_ms", stage.playedMs)
+                    .put("buffer_ms", stage.bufferMs),
+            )
+        }
+        return array.toString()
+    }
+
+    private fun parseSamples(raw: String?): List<Sample> {
+        val array = JSONArray(raw ?: "[]")
+        return List(array.length()) { index ->
+            val item = array.getJSONObject(index)
+            Sample(item.optLong("t_ms"), item.optDouble("mbps"))
+        }
+    }
+
+    private fun parseStages(raw: String?): List<Stage> {
+        val array = JSONArray(raw ?: "[]")
+        return List(array.length()) { index ->
+            val item = array.getJSONObject(index)
+            Stage(
+                item.optString("resolution"),
+                item.optLong("load_ms"),
+                item.optLong("played_ms"),
+                item.optLong("buffer_ms"),
+            )
+        }
+    }
 
     fun speed(context: Context): Speed? {
         val prefs = context.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
@@ -174,6 +386,14 @@ object ComplaintStore {
             prefs.getString("speed_stack", "").orEmpty(),
             prefs.getString("speed_provider", "").orEmpty(),
             prefs.getString("speed_public_ip", "").orEmpty(),
+            parseSamples(prefs.getString("speed_download_samples", "[]")),
+            parseSamples(prefs.getString("speed_upload_samples", "[]")),
+            prefs.getString("speed_kecamatan", "").orEmpty(),
+            prefs.getString("speed_kelurahan", "").orEmpty(),
+            prefs.getString("speed_kabupaten", "").orEmpty(),
+            prefs.getString("speed_provinsi", "").orEmpty(),
+            latitude = readCoord(prefs.getString("speed_lat", "")),
+            longitude = readCoord(prefs.getString("speed_lon", "")),
         )
     }
 
@@ -187,6 +407,13 @@ object ComplaintStore {
             prefs.getString("video_res", "").orEmpty(),
             prefs.getFloat("video_buf", 0f).toDouble(),
             prefs.getString("video_transport", "").orEmpty(),
+            parseStages(prefs.getString("video_stages", "[]")),
+            prefs.getString("video_kecamatan", "").orEmpty(),
+            prefs.getString("video_kelurahan", "").orEmpty(),
+            prefs.getString("video_kabupaten", "").orEmpty(),
+            prefs.getString("video_provinsi", "").orEmpty(),
+            latitude = readCoord(prefs.getString("video_lat", "")),
+            longitude = readCoord(prefs.getString("video_lon", "")),
         )
     }
 
@@ -226,6 +453,15 @@ object ComplaintStore {
             )
         }
     }
+
+    private fun coordString(value: Double?): String = value?.takeIf { it.isFinite() }?.toString().orEmpty()
+
+    private fun readCoord(raw: String?): Double? = raw?.toDoubleOrNull()?.takeIf { it.isFinite() }
+
+    private fun jsonCoord(item: JSONObject, key: String): Double? {
+        if (!item.has(key) || item.isNull(key)) return null
+        return item.optDouble(key).takeIf { it.isFinite() }
+    }
 }
 
 /** Complaint text for the active SIM, ready to read before it is sent to X. */
@@ -237,9 +473,8 @@ object ComplaintDraft {
     }
 
     fun review(context: Context): Review {
-        val snap = RadioState.latest
-        val speed = ComplaintStore.currentSpeed()
-        val video = ComplaintStore.currentVideo()
+        val speed = ComplaintStore.currentSpeed() ?: ComplaintStore.speed(context)
+        val video = ComplaintStore.currentVideo() ?: ComplaintStore.video(context)
         if (speed == null && video == null) {
             return Review(
                 false,
@@ -248,9 +483,9 @@ object ComplaintDraft {
             )
         }
         val provider = resolveProvider(speed)
-        val transport = testTransport(speed, video, snap)
+        val transport = testTransport(speed, video)
         return try {
-            val response = postComplaint(brief(snap, speed, video, provider, transport))
+            val response = postComplaint(brief(context, speed, video, provider, transport))
             val sentence = response.optString("sentence").trim()
             val summary = response.optString("summary")
             val url = normalizeCrowdUrl(response.optString("url"))
@@ -264,16 +499,16 @@ object ComplaintDraft {
                 else -> "Draft · quality $quality"
             }
             val tip = if (draftReady) "\nShare is optional — you choose." else ""
-            val statusLine = postStatusLine(transport, provider, snap)
             val tweet = when {
                 !draftReady -> ""
-                else -> listOf(sentence, statusLine, url)
+                else -> listOf(sentence, url)
                     .filter { it.isNotBlank() }
                     .joinToString("\n")
             }
             // eligible = share button enabled; user decides whether to actually post.
             Review(draftReady, "$headline$tip\n$summary", tweet, reviewed = true)
         } catch (error: Exception) {
+            AppLog.w("MagnonPost", "compose failed", error)
             Review(false, "Compose failed\n${error.message?.take(160) ?: "network"}", "")
         }
     }
@@ -281,14 +516,19 @@ object ComplaintDraft {
     private fun testTransport(
         speed: ComplaintStore.Speed?,
         video: ComplaintStore.Video?,
-        snap: RadioSnapshot?,
-    ): String = listOf(speed?.transport, video?.transport, snap?.network?.transport)
-        .map { it.orEmpty().trim() }
-        .firstOrNull { it.isNotEmpty() && it != "unknown" }
-        ?: "unknown"
+    ): String {
+        val ranked = listOfNotNull(
+            speed?.let { it.tsMs to NetworkPath.canonical(it.transport) },
+            video?.let { it.tsMs to NetworkPath.canonical(it.transport) },
+        ).sortedByDescending { it.first }
+        return ranked.firstOrNull { it.second.isNotEmpty() }?.second ?: "unknown"
+    }
 
-    private fun isWifi(transport: String): Boolean =
-        transport.equals("wifi", ignoreCase = true) || transport.equals("wi-fi", ignoreCase = true)
+    private fun draftTransport(transport: String): String = when (NetworkPath.canonical(transport)) {
+        "wifi" -> "wifi"
+        "cell" -> "cellular"
+        else -> transport
+    }
 
     private fun normalizeCrowdUrl(raw: String): String {
         val value = raw.trim()
@@ -300,41 +540,6 @@ object ComplaintDraft {
         }
     }
 
-    private fun postStatusLine(transport: String, provider: String, snap: RadioSnapshot?): String {
-        val via = if (isWifi(transport)) "Wi-Fi" else if (transport == "cellular") "cellular" else transport
-        val isp = provider.ifBlank {
-            snap?.primary?.carrier.orEmpty()
-        }.ifBlank { "—" }
-        val signal = signalStatus(transport, snap)
-        return listOf("via $via", isp, signal)
-            .filter { it.isNotBlank() && it != "—" }
-            .distinct()
-            .joinToString(" · ")
-    }
-
-    private fun signalStatus(transport: String, snap: RadioSnapshot?): String {
-        if (isWifi(transport)) {
-            val wifi = snap?.wifi ?: return ""
-            if (wifi.status == WifiSignal.DISABLED.status || wifi.status == WifiSignal.NOT_ASSOCIATED.status) {
-                return "Wi-Fi ${wifi.status}"
-            }
-            return listOfNotNull(
-                wifi.rssiDbm?.let { "$it dBm" },
-                wifi.linkSpeedMbps?.let { "link ${it} Mbps" },
-                wifi.channel?.let { "ch $it" },
-            ).joinToString(" · ")
-        }
-        val sub = snap?.primary ?: return ""
-        val cells = snap?.cells.orEmpty().filter { it.chartServing && (it.subId == null || it.subId == sub.subId) }
-        val lte = cells.filter { it.rat == "LTE" }.maxByOrNull { it.rsrp ?: Int.MIN_VALUE }
-        val nr = cells.filter { it.rat == "NR" }.maxByOrNull { it.rsrp ?: Int.MIN_VALUE }
-        return listOfNotNull(
-            lte?.rsrp?.let { "LTE RSRP $it" },
-            lte?.sinr?.let { "SINR $it" },
-            nr?.rsrp?.let { "NR RSRP $it" },
-            sub.nrState?.let { "nrState $it" },
-        ).joinToString(" · ")
-    }
 
     private fun resolveProvider(speed: ComplaintStore.Speed?): String {
         speed?.provider?.takeIf { it.isNotBlank() && it != "—" }?.let { return it }
@@ -345,56 +550,43 @@ object ComplaintDraft {
     fun text(context: Context): String = review(context).draft
 
     private fun brief(
-        snap: RadioSnapshot?,
+        context: Context,
         speed: ComplaintStore.Speed?,
         video: ComplaintStore.Video?,
         provider: String,
         transport: String,
     ): JSONObject {
-        val sub = snap?.primary
-        val plmn = sub?.plmn.orEmpty()
-        val wifi = isWifi(transport)
-        // On Wi-Fi tag the ISP from public IP; on cellular prefer SIM operator mention.
-        val mention = if (wifi) {
-            mentionForProvider(provider).ifEmpty { provider }
-        } else {
-            when (plmn) {
-                "510-01" -> "@indosat"
-                "510-10" -> "@Telkomsel"
-                "510-11" -> "@myXL"
-                "510-89" -> "@triindonesia"
-                "510-09" -> "@smartfren"
-                else -> mentionForProvider(provider).ifEmpty {
-                    sub?.carrier?.takeIf { it.isNotBlank() }.orEmpty()
-                }
-            }.ifEmpty { mentionForProvider(provider) }
-        }
-        val carrier = if (wifi) {
-            provider.ifBlank { sub?.carrier.orEmpty() }
-        } else {
-            sub?.carrier?.takeIf { it.isNotBlank() }.orEmpty().ifEmpty { provider }
-        }
-        val slot = if (wifi || sub == null) "" else RadioChartLabels.slotLabel(RadioChartLabels.slotId(plmn, sub.slot))
-        val signal = signalStatus(transport, snap)
-        val radio = if (wifi) {
-            wifiLine(snap?.wifi)
-        } else {
-            radioLine(snap, sub)
-        }
+        val mention = mentionForProvider(provider).ifEmpty { provider }
+        val auto = ComplaintStore.autoTag(context)
+        val namedMention = if (auto) mention else ""
+        val whenMs = speed?.tsMs ?: video?.tsMs ?: System.currentTimeMillis()
         return JSONObject()
-            .put("transport", transport)
-            .put("plmn", if (wifi) "" else plmn)
-            .put("slot", slot)
-            .put("carrier", carrier)
-            .put("provider", provider.ifBlank { carrier })
+            .put("language", ComplaintStore.postLanguage(context))
+            .put("style", ComplaintStore.postStyle(context))
+            .put("kelurahan", postedVillage(speed, video))
+            .put("kecamatan", postedDistrict(speed, video))
+            .put("kabupaten", postedRegency(speed, video))
+            .put("provinsi", postedProvince(speed, video))
+            .put("device_id", CollectorClient.deviceId(context))
+            .apply {
+                val fix = postedFix(speed, video)
+                if (fix != null) {
+                    put("latitude", fix.latitude)
+                    put("longitude", fix.longitude)
+                }
+            }
+            .put("transport", draftTransport(transport))
+            .put("plmn", "")
+            .put("slot", "")
+            .put("carrier", provider)
+            .put("provider", provider)
             .put("public_ip", speed?.publicIp.orEmpty().ifEmpty {
                 ClientNetworkInfo.lastPublic?.ip?.takeIf { it != "—" }.orEmpty()
             })
-            .put("mention", mention)
-            .put("signal", signal)
-            .put("radio", radio)
-            .put("location", location(snap))
-            .put("when", clock.format(Date(snap?.tsMs ?: System.currentTimeMillis())))
+            .put("mention", namedMention)
+            .put("signal", "")
+            .put("radio", "")
+            .put("when", clock.format(Date(whenMs)))
             .put("speed", JSONObject()
                 .put("download_mbps", speed?.downloadMbps ?: JSONObject.NULL)
                 .put("upload_mbps", speed?.uploadMbps ?: JSONObject.NULL)
@@ -403,27 +595,40 @@ object ComplaintDraft {
                 .put("transport", speed?.transport.orEmpty().ifEmpty { transport })
                 .put("server", speed?.server.orEmpty())
                 .put("ip_stack", speed?.ipStack.orEmpty())
-                .put("provider", speed?.provider.orEmpty().ifEmpty { provider }))
+                .put("provider", speed?.provider.orEmpty().ifEmpty { provider })
+                .put("samples", JSONObject()
+                    .put("download", sampleArray(speed?.downloadSamples))
+                    .put("upload", sampleArray(speed?.uploadSamples))))
             .put("video", JSONObject()
                 .put("load_ms", video?.loadMs ?: JSONObject.NULL)
                 .put("resolution", video?.resolution.orEmpty())
                 .put("buffering_pct", video?.bufferingPct ?: JSONObject.NULL)
-                .put("transport", video?.transport.orEmpty().ifEmpty { transport }))
+                .put("transport", video?.transport.orEmpty().ifEmpty { transport })
+                .put("stages", stageArray(video?.stages)))
     }
 
-    private fun wifiLine(wifi: WifiSignal?): String {
-        if (wifi == null) return "Wi-Fi"
-        if (wifi.status == WifiSignal.DISABLED.status || wifi.status == WifiSignal.NOT_ASSOCIATED.status) {
-            return "Wi-Fi ${wifi.status}"
+    private fun sampleArray(samples: List<ComplaintStore.Sample>?): JSONArray {
+        val array = JSONArray()
+        for (sample in samples.orEmpty()) {
+            array.put(JSONObject().put("t_ms", sample.tMs).put("mbps", sample.mbps))
         }
-        return listOfNotNull(
-            "Wi-Fi",
-            wifi.ssid.takeIf { it.isNotBlank() },
-            wifi.rssiDbm?.let { "RSSI $it dBm" },
-            wifi.linkSpeedMbps?.let { "link ${it} Mbps" },
-            wifi.channel?.let { "ch $it" },
-        ).joinToString(" · ")
+        return array
     }
+
+    private fun stageArray(stages: List<ComplaintStore.Stage>?): JSONArray {
+        val array = JSONArray()
+        for (stage in stages.orEmpty()) {
+            array.put(
+                JSONObject()
+                    .put("resolution", stage.resolution)
+                    .put("load_ms", stage.loadMs)
+                    .put("played_ms", stage.playedMs)
+                    .put("buffer_ms", stage.bufferMs),
+            )
+        }
+        return array
+    }
+
 
     private fun mentionForProvider(provider: String): String = when (provider.trim().lowercase()) {
         "telkomsel" -> "@Telkomsel"
@@ -484,26 +689,55 @@ object ComplaintDraft {
         context.startActivity(web)
     }
 
-    private fun radioLine(snap: RadioSnapshot?, sub: SubscriptionRadio?): String {
-        if (sub == null) return "No radio sample yet"
-        val cells = snap?.cells.orEmpty().filter { it.chartServing && (it.subId == null || it.subId == sub.subId) }
-        val lte = cells.filter { it.rat == "LTE" }.maxByOrNull { it.rsrp ?: Int.MIN_VALUE }
-        val nr = cells.filter { it.rat == "NR" }.maxByOrNull { it.rsrp ?: Int.MIN_VALUE }
-        val lteCh = sub.channel ?: lte?.earfcn
-        val bw = if (sub.cellBandwidthKhz.isEmpty()) "" else " ${RadioRules.mhzLabel(sub.cellBandwidthKhz)}"
-        val rsrp = lte?.rsrp?.let { " RSRP $it" }.orEmpty()
-        val lteSnr = lte?.sinr?.let { " SINR $it dB" }.orEmpty()
-        val nrCh = nr?.nrarfcn?.let { ", NR $it" }.orEmpty()
-        val nrRsrp = nr?.rsrp?.let { " RSRP $it" }.orEmpty()
-        val nrState = sub.nrState?.let { ", nrState $it" }.orEmpty()
-        return "LTE ${lteCh ?: "—"}$rsrp$lteSnr$nrCh$nrRsrp$nrState$bw"
+
+    private data class Fix(val tsMs: Long, val latitude: Double, val longitude: Double)
+
+    private fun postedFix(speed: ComplaintStore.Speed?, video: ComplaintStore.Video?): Fix? {
+        val found = mutableListOf<Fix>()
+        val speedLat = speed?.latitude
+        val speedLon = speed?.longitude
+        if (speed != null && speedLat != null && speedLon != null) {
+            found.add(Fix(speed.tsMs, speedLat, speedLon))
+        }
+        val videoLat = video?.latitude
+        val videoLon = video?.longitude
+        if (video != null && videoLat != null && videoLon != null) {
+            found.add(Fix(video.tsMs, videoLat, videoLon))
+        }
+        return found.maxByOrNull { it.tsMs }
     }
 
-    private fun location(snap: RadioSnapshot?): String {
-        val loc = snap?.location ?: return ""
-        val lat = loc.latitude
-        val lon = loc.longitude
-        if (loc.status != "available" || lat == null || lon == null) return ""
-        return String.format(Locale.US, "%.5f, %.5f", lat, lon)
+    private data class RankedPlace(
+        val tsMs: Long,
+        val kelurahan: String,
+        val kecamatan: String,
+        val kabupaten: String,
+        val provinsi: String,
+    )
+
+    private fun postedDistrict(speed: ComplaintStore.Speed?, video: ComplaintStore.Video?): String =
+        postedPlace(speed, video).kecamatan
+
+    private fun postedVillage(speed: ComplaintStore.Speed?, video: ComplaintStore.Video?): String =
+        postedPlace(speed, video).kelurahan
+
+    private fun postedRegency(speed: ComplaintStore.Speed?, video: ComplaintStore.Video?): String =
+        postedPlace(speed, video).kabupaten
+
+    private fun postedProvince(speed: ComplaintStore.Speed?, video: ComplaintStore.Video?): String =
+        postedPlace(speed, video).provinsi
+
+    private fun postedPlace(speed: ComplaintStore.Speed?, video: ComplaintStore.Video?): RankedPlace {
+        val ranked = listOfNotNull(
+            speed?.let {
+                RankedPlace(it.tsMs, it.kelurahan.trim(), it.kecamatan.trim(), it.kabupaten.trim(), it.provinsi.trim())
+            },
+            video?.let {
+                RankedPlace(it.tsMs, it.kelurahan.trim(), it.kecamatan.trim(), it.kabupaten.trim(), it.provinsi.trim())
+            },
+        ).sortedByDescending { it.tsMs }
+        return ranked.firstOrNull {
+            it.kelurahan.isNotEmpty() || it.kecamatan.isNotEmpty() || it.kabupaten.isNotEmpty() || it.provinsi.isNotEmpty()
+        } ?: RankedPlace(0, "", "", "", "")
     }
 }

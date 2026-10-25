@@ -51,11 +51,11 @@ bind_role() {
   return 1
 }
 for member in "${RUN_SA}" "${CB_SA}"; do
-  bind_role "${member}" roles/artifactregistry.write
+  bind_role "${member}" roles/artifactregistry.writer
   bind_role "${member}" roles/storage.admin
 done
-bind_role "${RUN_SA}" roles/datastore.use
-bind_role "${RUN_SA}" roles/secretmanager.secretAccesso
+bind_role "${RUN_SA}" roles/datastore.user
+bind_role "${RUN_SA}" roles/secretmanager.secretAccessor
 
 SECRET_FILE="${SECRET_FILE:-/mnt/d/netprobe/tmp/magnon-hmac.key}"
 if ! gcloud secrets describe magnon-hmac --project "${PROJECT}" >/dev/null 2>&1; then

@@ -226,7 +226,6 @@ object RumReporter {
     }
 
     private fun network(context: Context): String {
-        RadioState.latest?.network?.transport?.takeIf { it.isNotBlank() }?.let { return it }
         val manager = context.getSystemService(ConnectivityManager::class.java) ?: return "none"
         val caps = manager.getNetworkCapabilities(manager.activeNetwork) ?: return "none"
         return when {
@@ -237,11 +236,7 @@ object RumReporter {
         }
     }
 
-    private fun rat(): String? {
-        val snapshot = RadioState.latest ?: return null
-        return snapshot.primary?.rat?.takeIf { it.isNotBlank() }
-            ?: snapshot.cells.firstOrNull { it.registered }?.rat?.takeIf { it.isNotBlank() }
-    }
+    private fun rat(): String? = null
 
     private fun enqueue(context: Context, event: JSONObject) {
         synchronized(spoolLock) {

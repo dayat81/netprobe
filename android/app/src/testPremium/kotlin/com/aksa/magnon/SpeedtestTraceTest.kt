@@ -8,7 +8,7 @@ import org.junit.Test
 class SpeedtestTraceTest {
     @Test
     fun traceKeepsStarHopAndDropsEmptyFamily() {
-        val json = SpeedtestReport.traceJson(
+        val json = SpeedtestTrace.traceJson(
             listOf(
                 NativeTraceroute.Hop(1, "10.1.1.1", 4.2),
                 NativeTraceroute.Hop(2, null, null),
@@ -25,6 +25,6 @@ class SpeedtestTraceTest {
 
     @Test
     fun traceOmitsWhenBothPathsAreEmpty() {
-        assertNull(SpeedtestReport.traceJson(emptyList(), emptyList()))
+        assertNull(SpeedtestTrace.traceJson(emptyList(), emptyList()))
     }
 }
