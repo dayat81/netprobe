@@ -645,8 +645,6 @@ object ComplaintDraft {
         return ""
     }
 
-    fun text(context: Context): String = review(context).draft
-
     private fun brief(
         context: Context,
         speed: ComplaintStore.Speed?,
