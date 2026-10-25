@@ -25,6 +25,7 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -931,22 +932,23 @@ class MainActivity : AppCompatActivity() {
             val network = watchedNetwork ?: activeNetwork()
             val needProvider = providerKind != kind || shownProvider.isBlank()
             val needPlace = placeKind != kind || !placeNamed(heldPlace)
-            val providerJob = if (needProvider && network != null) {
-                async(Dispatchers.IO) {
-                    val target = runCatching { SpeedtestTarget.resolve(family = IpFamily.IPV4) }.getOrNull()
-                        ?: return@async null
-                    ClientNetworkInfo.publicClientFromHello(target, network, publish = false)
+            val (info, found) = coroutineScope {
+                val providerJob = if (needProvider && network != null) {
+                    async(Dispatchers.IO) {
+                        val target = runCatching { SpeedtestTarget.resolve(family = IpFamily.IPV4) }.getOrNull()
+                            ?: return@async null
+                        ClientNetworkInfo.publicClientFromHello(target, network, publish = false)
+                    }
+                } else {
+                    null
                 }
-            } else {
-                null
+                val placeRead = if (needPlace) {
+                    async(Dispatchers.IO) { PlaceCapture.district(applicationContext) }
+                } else {
+                    null
+                }
+                providerJob?.await() to placeRead?.await()
             }
-            val placeRead = if (needPlace) {
-                async(Dispatchers.IO) { PlaceCapture.district(applicationContext) }
-            } else {
-                null
-            }
-            val info = providerJob?.await()
-            val found = placeRead?.await()
             if (!(running || videoRunning) || watchedKind != kind) continue
             if (info != null) {
                 ClientNetworkInfo.remember(info)
