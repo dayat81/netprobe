@@ -1359,7 +1359,7 @@ footer{padding:36px 24px}
 <section class="hero">
 <div>
 <h1 data-i18n-html="heroTitle">Share a real test.<br>Compare the district.</h1>
-<p data-i18n="heroBody">Magnon Lite measures speed and video on the phone you already use. Choose loops with the same provider and transport, then draft one public link for all of them. Google is not required.</p>
+<p data-i18n="heroBody">Magnon Lite measures speed and video on the phone you already use. Choose loops with the same provider and transport, then draft one public link for all of them.</p>
 <a class="btn" href="/magnon-lite.apk" data-i18n="downloadApk">Download APK</a>
 </div>
 <div class="rings" aria-hidden="true"></div>
@@ -1368,7 +1368,7 @@ footer{padding:36px 24px}
 <h2 data-i18n="howTitle">From a phone test to a public comparison</h2>
 <p class="sub" data-i18n="howSub">Each phone can post ten new tests a day. For more, copy the device id on the Post tab and send it to @MagnonTest on X.</p>
 <div class="steps">
-<div><strong data-i18n="step1">01 &nbsp;Test</strong><span data-i18n="step1Body">Run Speed or Video. Google is not required. Post lists only the ten newest loops.</span></div>
+<div><strong data-i18n="step1">01 &nbsp;Test</strong><span data-i18n="step1Body">Run Speed or Video. Post lists only the ten newest loops.</span></div>
 <div><strong data-i18n="step2">02 &nbsp;Draft</strong><span data-i18n="step2Body">Select loops that share a provider and a transport. One draft is one link, and the page lists every selected test.</span></div>
 <div><strong data-i18n="step3">03 &nbsp;Compare</strong><span data-i18n="step3Body">Anyone can open the link. The district map compares shared results and shows no email and no exact place.</span></div>
 </div>
@@ -1397,7 +1397,7 @@ var copy = {
   en: {
     ribbon: "Crowdsourced network quality",
     heroTitle: "Share a real test.<br>Compare the district.",
-    heroBody: "Magnon Lite measures speed and video on the phone you already use. Choose loops with the same provider and transport, then draft one public link for all of them. Google is not required.",
+    heroBody: "Magnon Lite measures speed and video on the phone you already use. Choose loops with the same provider and transport, then draft one public link for all of them.",
     signIn: "Share the draft",
     downloadApk: "Download APK",
     navHow: "How it works",
@@ -1405,7 +1405,7 @@ var copy = {
     howTitle: "From a phone test to a public comparison",
     howSub: "Each phone can post ten new tests a day. For more, copy the device id on the Post tab and send it to @MagnonTest on X.",
     step1: "01  Test",
-    step1Body: "Run Speed or Video. Google is not required. Post lists only the ten newest loops.",
+    step1Body: "Run Speed or Video. Post lists only the ten newest loops.",
     step2: "02  Draft",
     step2Body: "Select loops that share a provider and a transport. One draft is one link, and the page lists every selected test.",
     step3: "03  Compare",
@@ -1434,7 +1434,7 @@ var copy = {
   id: {
     ribbon: "Kualitas jaringan dari banyak orang",
     heroTitle: "Bagikan hasil uji.<br>Bandingkan kecamatannya.",
-    heroBody: "Magnon Lite mengukur kecepatan dan video di ponsel yang sedang dipakai. Pilih loop dengan provider dan transport yang sama, lalu buat satu tautan publik untuk semuanya. Google tidak wajib.",
+    heroBody: "Magnon Lite mengukur kecepatan dan video di ponsel yang sedang dipakai. Pilih loop dengan provider dan transport yang sama, lalu buat satu tautan publik untuk semuanya.",
     signIn: "Bagikan draf",
     downloadApk: "Unduh APK",
     navHow: "Cara kerja",
@@ -1442,7 +1442,7 @@ var copy = {
     howTitle: "Dari uji di ponsel ke perbandingan publik",
     howSub: "Setiap ponsel bisa memposting sepuluh uji baru sehari. Untuk menambahnya, salin device id di tab Post dan kirim ke @MagnonTest di X.",
     step1: "01  Uji",
-    step1Body: "Jalankan Speed atau Video. Google tidak wajib. Tab Post hanya menampilkan sepuluh loop terbaru.",
+    step1Body: "Jalankan Speed atau Video. Tab Post hanya menampilkan sepuluh loop terbaru.",
     step2: "02  Draf",
     step2Body: "Pilih loop dengan provider dan transport yang sama. Satu draf menjadi satu tautan, dan halamannya memuat setiap uji yang dipilih.",
     step3: "03  Bandingkan",
