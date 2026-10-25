@@ -701,6 +701,9 @@ def test_public_portal_compares_districts_without_the_old_pitch():
     assert "/magnon-lite.apk" in visible
     assert "unduh apk" in visible
     assert "download apk" in visible
+    assert "ten newest loops" in visible
+    assert "@magnontest" in visible
+    assert "sepuluh loop terbaru" in visible
 
 
 def _quota_events(ids, device):

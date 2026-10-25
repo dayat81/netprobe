@@ -1359,18 +1359,18 @@ footer{padding:36px 24px}
 <section class="hero">
 <div>
 <h1 data-i18n-html="heroTitle">Share a real test.<br>Compare the district.</h1>
-<p data-i18n="heroBody">Magnon Lite measures speed and video on the phone you already use. A test does not need Google. Posting the draft does not need Google either. Anyone can open the link, and shared results are compared by district.</p>
+<p data-i18n="heroBody">Magnon Lite measures speed and video on the phone you already use. Choose loops with the same provider and transport, then draft one public link for all of them. Google is not required.</p>
 <a class="btn" href="/magnon-lite.apk" data-i18n="downloadApk">Download APK</a>
 </div>
 <div class="rings" aria-hidden="true"></div>
 </section>
 <section id="measure">
 <h2 data-i18n="howTitle">From a phone test to a public comparison</h2>
-<p class="sub" data-i18n="howSub">Magnon Lite is for sharing what the network felt like, not for a private score.</p>
+<p class="sub" data-i18n="howSub">Each phone can post ten new tests a day. For more, copy the device id on the Post tab and send it to @MagnonTest on X.</p>
 <div class="steps">
-<div><strong data-i18n="step1">01 &nbsp;Test</strong><span data-i18n="step1Body">Run Speed or Video. Google is not required.</span></div>
-<div><strong data-i18n="step2">02 &nbsp;Share</strong><span data-i18n="step2Body">Share the draft. Google is not required. The sentence names the district.</span></div>
-<div><strong data-i18n="step3">03 &nbsp;Compare</strong><span data-i18n="step3Body">Anyone can see how districts compare. The list has no email and no exact place.</span></div>
+<div><strong data-i18n="step1">01 &nbsp;Test</strong><span data-i18n="step1Body">Run Speed or Video. Google is not required. Post lists only the ten newest loops.</span></div>
+<div><strong data-i18n="step2">02 &nbsp;Draft</strong><span data-i18n="step2Body">Select loops that share a provider and a transport. One draft is one link, and the page lists every selected test.</span></div>
+<div><strong data-i18n="step3">03 &nbsp;Compare</strong><span data-i18n="step3Body">Anyone can open the link. The district map compares shared results and shows no email and no exact place.</span></div>
 </div>
 </section>
 <section id="places">
@@ -1397,19 +1397,19 @@ var copy = {
   en: {
     ribbon: "Crowdsourced network quality",
     heroTitle: "Share a real test.<br>Compare the district.",
-    heroBody: "Magnon Lite measures speed and video on the phone you already use. A test does not need Google. Posting the draft does not need Google either. Anyone can open the link, and shared results are compared by district.",
+    heroBody: "Magnon Lite measures speed and video on the phone you already use. Choose loops with the same provider and transport, then draft one public link for all of them. Google is not required.",
     signIn: "Share the draft",
     downloadApk: "Download APK",
     navHow: "How it works",
     navPlaces: "Compare",
     howTitle: "From a phone test to a public comparison",
-    howSub: "Magnon Lite is for sharing what the network felt like, not for a private score.",
+    howSub: "Each phone can post ten new tests a day. For more, copy the device id on the Post tab and send it to @MagnonTest on X.",
     step1: "01  Test",
-    step1Body: "Run Speed or Video. Google is not required.",
-    step2: "02  Share",
-    step2Body: "Share the draft. Google is not required. The sentence names the district.",
+    step1Body: "Run Speed or Video. Google is not required. Post lists only the ten newest loops.",
+    step2: "02  Draft",
+    step2Body: "Select loops that share a provider and a transport. One draft is one link, and the page lists every selected test.",
     step3: "03  Compare",
-    step3Body: "Anyone can see how districts compare. The list has no email and no exact place.",
+    step3Body: "Anyone can open the link. The district map compares shared results and shows no email and no exact place.",
     placesTitle: "Best tests by district",
     placesSub: "Best Wi-Fi and cellular speed and video tests in each district.",
     placesEmpty: "Choose a province and a regency.",
@@ -1434,19 +1434,19 @@ var copy = {
   id: {
     ribbon: "Kualitas jaringan dari banyak orang",
     heroTitle: "Bagikan hasil uji.<br>Bandingkan kecamatannya.",
-    heroBody: "Magnon Lite mengukur kecepatan dan video di ponsel yang sedang dipakai. Tes dan membagikan hasil tidak perlu Google. Siapa pun bisa membuka tautannya, dan hasil yang dibagikan dibandingkan per kecamatan.",
+    heroBody: "Magnon Lite mengukur kecepatan dan video di ponsel yang sedang dipakai. Pilih loop dengan provider dan transport yang sama, lalu buat satu tautan publik untuk semuanya. Google tidak wajib.",
     signIn: "Bagikan draf",
     downloadApk: "Unduh APK",
     navHow: "Cara kerja",
     navPlaces: "Bandingkan",
     howTitle: "Dari uji di ponsel ke perbandingan publik",
-    howSub: "Magnon Lite untuk membagikan rasanya jaringan, bukan untuk skor pribadi.",
+    howSub: "Setiap ponsel bisa memposting sepuluh uji baru sehari. Untuk menambahnya, salin device id di tab Post dan kirim ke @MagnonTest di X.",
     step1: "01  Uji",
-    step1Body: "Jalankan Speed atau Video. Google tidak wajib.",
-    step2: "02  Bagikan",
-    step2Body: "Bagikan drafnya. Google tidak wajib. Kalimatnya menyebut kecamatan.",
+    step1Body: "Jalankan Speed atau Video. Google tidak wajib. Tab Post hanya menampilkan sepuluh loop terbaru.",
+    step2: "02  Draf",
+    step2Body: "Pilih loop dengan provider dan transport yang sama. Satu draf menjadi satu tautan, dan halamannya memuat setiap uji yang dipilih.",
     step3: "03  Bandingkan",
-    step3Body: "Siapa pun bisa melihat perbandingan kecamatan. Daftar ini tidak memuat email atau titik lokasi.",
+    step3Body: "Siapa pun bisa membuka tautannya. Peta kecamatan membandingkan hasil yang dibagikan, tanpa email dan tanpa titik lokasi.",
     placesTitle: "Hasil terbaik per kecamatan",
     placesSub: "Hasil speed dan video terbaik untuk Wi-Fi dan seluler di tiap kecamatan.",
     placesEmpty: "Pilih provinsi dan kabupaten.",
