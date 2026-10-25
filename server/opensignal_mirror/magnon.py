@@ -1351,6 +1351,7 @@ footer{padding:36px 24px}
 <nav>
 <a href="#measure" data-i18n="navHow">How it works</a>
 <a href="#places" data-i18n="navPlaces">Compare</a>
+<a href="/posts" data-i18n="navPosts">Posts</a>
 <a class="signin" href="/magnon-lite.apk" data-i18n="downloadApk">Download APK</a>
 <div class="lang"><button id="langEn" type="button">EN</button><button id="langId" type="button">ID</button></div>
 </nav>
@@ -1385,7 +1386,7 @@ footer{padding:36px 24px}
 </section>
 <footer>
 <div class="cols">
-<div><h2 data-i18n="footerProduct">Product</h2><a href="#measure" data-i18n="navHow">How it works</a><a href="#places" data-i18n="navPlaces">Compare</a></div>
+<div><h2 data-i18n="footerProduct">Product</h2><a href="#measure" data-i18n="navHow">How it works</a><a href="#places" data-i18n="navPlaces">Compare</a><a href="/posts" data-i18n="navPosts">Posts</a></div>
 <div><h2 data-i18n="footerPost">Post</h2><a href="/magnon-lite.apk" data-i18n="downloadApk">Download APK</a></div>
 <div><h2>Magnon</h2><a href="/">magnon.site</a></div>
 </div>
@@ -1402,6 +1403,7 @@ var copy = {
     downloadApk: "Download APK",
     navHow: "How it works",
     navPlaces: "Compare",
+    navPosts: "Posts",
     howTitle: "From a phone test to a public comparison",
     howSub: "Each phone can post ten new tests a day. For more, copy the device id on the Post tab and send it to @MagnonTest on X.",
     step1: "01  Test",
@@ -1439,6 +1441,7 @@ var copy = {
     downloadApk: "Unduh APK",
     navHow: "Cara kerja",
     navPlaces: "Bandingkan",
+    navPosts: "Postingan",
     howTitle: "Dari uji di ponsel ke perbandingan publik",
     howSub: "Setiap ponsel bisa memposting sepuluh uji baru sehari. Untuk menambahnya, salin device id di tab Post dan kirim ke @MagnonTest di X.",
     step1: "01  Uji",
@@ -2462,6 +2465,125 @@ def publish_run(ledger: MemoryLedger, brief: dict, sentence: str = "") -> str:
     )
     host = os.environ.get("MAGNON_PUBLIC_HOST", "magnon.site").strip() or "magnon.site"
     return "https://%s/r/%s" % (host, run_id)
+
+
+def _post_names(row: dict, key: str) -> str:
+    value = str(row.get(key) or "").strip()
+    if value:
+        return value
+    events = row.get("events") if isinstance(row.get("events"), list) else []
+    names = []
+    for event in events:
+        if not isinstance(event, dict):
+            continue
+        name = str(event.get(key) or "").strip()
+        if name and name not in names:
+            names.append(name)
+        if len(names) == 3:
+            break
+    return ", ".join(names)
+
+
+def _post_card(row: dict) -> str:
+    run_id = str(row.get("id") or "")
+    if not (len(run_id) == 12 and run_id.isalnum() and run_id == run_id.lower()):
+        return ""
+    sentence = str(row.get("sentence") or "").strip()
+    title = html.escape(sentence or "Magnon result")
+    place = " · ".join(
+        part
+        for part in (
+            _post_names(row, "provider"),
+            _post_names(row, "transport"),
+            _post_names(row, "kelurahan"),
+            _post_names(row, "kecamatan"),
+            _post_names(row, "kabupaten"),
+            _post_names(row, "provinsi"),
+        )
+        if part
+    )
+    when = ""
+    created = row.get("created_at")
+    if isinstance(created, (int, float)) and not isinstance(created, bool) and created > 0:
+        when = datetime.fromtimestamp(float(created), JAKARTA).strftime("%d %b %Y %H:%M")
+    meta = html.escape(" · ".join(part for part in (place, when) if part))
+    return '<article class="post"><h2><a href="/r/%s">%s</a></h2><p class="meta">%s</p></article>' % (
+        run_id,
+        title,
+        meta,
+    )
+
+
+def posts_page(ledger: MemoryLedger) -> bytes:
+    cards = "".join(_post_card(row) for row in ledger.list_runs())
+    if not cards:
+        cards = '<p class="meta" data-i18n="empty">No posts yet.</p>'
+    page = """<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Magnon | Posts</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,Helvetica,sans-serif;color:#141414;background:#fff;line-height:1.45}
+a{color:inherit}
+.top{display:flex;align-items:center;justify-content:space-between;gap:24px;background:#111;color:#fff;padding:14px 28px}
+.brand{color:#fff;font-weight:700;font-size:20px;letter-spacing:-.03em;text-decoration:none}
+.top nav{display:flex;align-items:center;gap:22px;font-size:15px}
+.top nav a{color:#fff;text-decoration:none}
+.lang{display:flex;gap:8px}
+.lang button{background:transparent;color:#fff;border:1px solid #fff;border-radius:4px;padding:6px 10px;cursor:pointer;font-weight:700}
+.lang button.active{background:#fff;color:#111}
+main{padding:48px 8vw 72px;max-width:860px}
+h1{font-size:clamp(36px,5vw,56px);line-height:.95;letter-spacing:-.035em;margin:0 0 12px}
+.sub{color:#333;margin:0 0 28px}
+.post{border-top:1px solid #e4e4e4;padding:18px 0}
+.post h2{font-size:22px;letter-spacing:-.02em;margin:0 0 6px}
+.post a{text-decoration:none}
+.post a:hover{text-decoration:underline}
+.meta{color:#444;margin:0}
+@media(max-width:800px){.top{align-items:flex-start;flex-direction:column}main{padding:28px 24px}}
+</style></head><body>
+<header class="top">
+<a class="brand" href="/">Magnon</a>
+<nav>
+<a href="/#places" data-i18n="compare">Compare</a>
+<a href="/posts" data-i18n="title">Posts</a>
+<div class="lang"><button id="langEn" type="button">EN</button><button id="langId" type="button">ID</button></div>
+</nav>
+</header>
+<main>
+<h1 data-i18n="title">Posts</h1>
+<p class="sub" data-i18n="sub">Every shared draft, newest first.</p>
+__LIST__
+</main>
+<script>
+var copy = {
+  en: {title: "Posts", sub: "Every shared draft, newest first.", compare: "Compare", empty: "No posts yet."},
+  id: {title: "Postingan", sub: "Setiap draf yang dibagikan, yang terbaru di atas.", compare: "Bandingkan", empty: "Belum ada postingan."}
+};
+function currentLang() {
+  var saved = localStorage.getItem("magnon-lang");
+  if (saved === "id" || saved === "en") return saved;
+  return (navigator.language || "").toLowerCase().indexOf("id") === 0 ? "id" : "en";
+}
+function apply(lang) {
+  if (lang !== "id") lang = "en";
+  localStorage.setItem("magnon-lang", lang);
+  document.documentElement.lang = lang === "id" ? "id" : "en";
+  var text = copy[lang];
+  document.title = "Magnon | " + text.title;
+  document.querySelectorAll("[data-i18n]").forEach(function(node) {
+    var key = node.getAttribute("data-i18n");
+    if (text[key]) node.textContent = text[key];
+  });
+  document.getElementById("langEn").className = lang === "en" ? "active" : "";
+  document.getElementById("langId").className = lang === "id" ? "active" : "";
+}
+document.getElementById("langEn").onclick = function(){ apply("en"); };
+document.getElementById("langId").onclick = function(){ apply("id"); };
+apply(currentLang());
+</script>
+</body></html>"""
+    return page.replace("__LIST__", cards).encode("utf-8")
 
 
 def result_page(ledger: MemoryLedger, run_id: str) -> tuple[int, bytes]:

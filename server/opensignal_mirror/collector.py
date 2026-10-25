@@ -1442,6 +1442,11 @@ def make_handler(config: Config):
             if config.magnon is not None and path == "/magnon-lite.apk":
                 self._magnon_apk()
                 return
+            if config.magnon is not None and path == "/posts":
+                from opensignal_mirror.magnon import posts_page
+
+                self._send_bytes(200, posts_page(config.magnon.ledger), "text/html; charset=utf-8")
+                return
             if config.magnon is not None and path.startswith("/r/"):
                 self._magnon_run(path[3:])
                 return

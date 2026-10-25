@@ -22,6 +22,7 @@ from opensignal_mirror.magnon import (  # noqa: E402
     haversine_m,
     home_html,
     place_from_components,
+    posts_page,
     result_page,
     strip_identity,
     _jev_questions,
@@ -705,6 +706,42 @@ def test_public_portal_compares_districts_without_the_old_pitch():
     assert "@magnontest" in visible
     assert "sepuluh loop terbaru" in visible
     assert "google" not in visible
+    assert 'href="/posts"' in visible
+    assert "postingan" in visible
+
+
+def test_posts_page_lists_each_draft_without_identity():
+    ledger = MemoryLedger()
+    ledger.save_run({
+        "id": "abcdefghij01",
+        "created_at": 1_700_000_000,
+        "sentence": "Slow in Menteng.",
+        "provider": "Telkomsel",
+        "transport": "cellular",
+        "kecamatan": "Menteng",
+        "device_id": "deviceaaa1",
+        "latitude": -6.2,
+        "events": [{"id": "myspd0123456789ab", "download_mbps": 4, "public_ip": "203.0.113.9"}],
+    })
+    ledger.save_run({
+        "id": "klmnopqrst02",
+        "created_at": 1_700_000_100,
+        "sentence": "Fine in Gambir.",
+        "events": [
+            {"kecamatan": "Gambir", "provider": "XL"},
+            {"kecamatan": "Menteng", "provider": "XL"},
+        ],
+    })
+    ledger.save_run({"id": "short", "created_at": 1_700_000_200, "sentence": "Hidden draft."})
+    page = posts_page(ledger).decode("utf-8")
+    assert page.index("Fine in Gambir.") < page.index("Slow in Menteng.")
+    assert 'href="/r/klmnopqrst02"' in page
+    assert 'href="/r/abcdefghij01"' in page
+    assert "Hidden draft." not in page
+    assert "Gambir, Menteng" in page
+    assert "XL" in page
+    for hidden in ("deviceaaa1", "203.0.113.9", "-6.2", "myspd0123456789ab", "device_id"):
+        assert hidden not in page, hidden
 
 
 def _quota_events(ids, device):
