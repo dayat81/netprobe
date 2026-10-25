@@ -160,11 +160,6 @@ object MagnonAccount {
         return profile(response)
     }
 
-
-: JSONObject = get(context, "/v1/magnon/jobs", session(context))
-
-
-
     private fun profile(json: JSONObject): MagnonProfile {
         return MagnonProfile(
             name = json.optString("name"),
@@ -183,14 +178,6 @@ object MagnonAccount {
         val bytes = Base64.decode(padded + "=".repeat(pad), Base64.DEFAULT)
         return JSONObject(String(bytes, StandardCharsets.UTF_8))
     }
-
-: String = buildString {
-        append("Bulan ini\n")
-        append(names(json.optJSONArray("month")))
-        append("\nSepanjang waktu\n")
-        append(names(json.optJSONArray("all_time")))
-    }
-
 
     internal fun session(context: Context): String? =
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(SESSION, null)?.takeIf { it.isNotBlank() }

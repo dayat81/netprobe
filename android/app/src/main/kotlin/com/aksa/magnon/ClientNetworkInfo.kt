@@ -190,4 +190,18 @@ object ClientNetworkInfo {
             connection.disconnect()
         }
     }
+
+    /** Prefer global, then ULA/site, then link-local. */
+    private fun ipv6Rank(addr: Inet6Address): Int = when {
+        !addr.isLinkLocalAddress && !addr.isSiteLocalAddress && !addr.isMulticastAddress -> 0
+        addr.isSiteLocalAddress -> 1
+        addr.isLinkLocalAddress -> 2
+        else -> 3
+    }
+
+    private fun formatHost(addr: InetAddress): String? {
+        val raw = addr.hostAddress ?: return null
+        val bare = raw.substringBefore('%')
+        return bare.ifEmpty { null }
+    }
 }

@@ -108,26 +108,5 @@ object SpeedtestReport {
         }
     }
 
-: JSONObject? {
-        val v4 = hopArray(hops4)
-        val v6 = hopArray(hops6)
-        if (v4.length() == 0 && v6.length() == 0) return null
-        val trace = JSONObject()
-        if (v4.length() > 0) trace.put("ipv4", v4)
-        if (v6.length() > 0) trace.put("ipv6", v6)
-        return trace
-    }
-
-: JSONArray {
-        val array = JSONArray()
-        hops.take(30).forEach { hop ->
-            val item = JSONObject().put("ttl", hop.ttl.coerceIn(1, 64))
-            hop.host?.trim()?.takeIf { it.isNotEmpty() }?.let { item.put("host", it.take(64)) }
-            hop.rttMs?.takeIf { it.isFinite() && it >= 0.0 }?.let { item.put("rtt_ms", it) }
-            array.put(item)
-        }
-        return array
-    }
-
     private fun bps(mbps: Double): Long = (mbps * 1_000_000.0).roundToLong().coerceAtLeast(0L)
 }

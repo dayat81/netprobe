@@ -34,9 +34,8 @@ import kotlin.coroutines.coroutineContext
  * up to [ConnectionScaler.maxConnections]. [BandwidthStableStop] ends the stage once
  * the plateau holds. On stop we disconnect live sockets so a blocked write cannot
  * hang the suite.
- * Unloaded latency is an ICMP echo to the server address, same packet RTT as
- * traceroute. The shown ping is the lowest sample. A TCP handshake to port 443
- * is slower: the load balancer answers it after the edge ICMP reply.
+ * Unloaded latency is a TCP handshake to port 443. The shown ping is the lowest
+ * sample. ICMP echo stays in the premium flavor.
  */
 class SpeedtestEngine(
     private val target: SpeedtestTarget,
@@ -215,17 +214,12 @@ class SpeedtestEngine(
     }
 
     /**
-     * Unloaded latency. ICMP echo to [SpeedtestTarget.serverIp], then the lowest sample.
-     * On this Wi-Fi the same address is ~5 ms by traceroute and ~20 ms by TCP:443.
+     * Unloaded latency. TCP handshake to [SpeedtestTarget.serverIp] port 443.
+     * The shown ping is the lowest sample.
      */
     private suspend fun ping(): List<Long> {
         if (!coroutineContext.isActive) return emptyList()
-        val icmp = GatewayPinger.rttSamples(target.serverIp)
-        if (icmp.size >= 3) {
-            AppLog.i(TAG, "ping mode=icmp n=${icmp.size}")
-            return icmp
-        }
-        AppLog.i(TAG, "ping mode=tcp icmp=${icmp.size}")
+        AppLog.i(TAG, "ping mode=tcp")
         val remote = InetSocketAddress(InetAddress.getByName(target.serverIp), 443)
         repeat(pingWarmup) {
             if (!coroutineContext.isActive) return emptyList()
