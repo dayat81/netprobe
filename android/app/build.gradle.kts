@@ -142,7 +142,7 @@ dependencies {
     implementation("androidx.viewpager2:viewpager2:1.1.0")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.7")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")
-    premiumImplementation("org.lsposed.hiddenapibypass:hiddenapibypass:6.1")
+    add("premiumImplementation", "org.lsposed.hiddenapibypass:hiddenapibypass:6.1")
     implementation("androidx.media3:media3-exoplayer:1.5.1")
     implementation("androidx.media3:media3-ui:1.5.1")
     implementation("androidx.credentials:credentials:1.3.0")
