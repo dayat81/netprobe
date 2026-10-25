@@ -27,7 +27,7 @@ object SpeedtestReport {
         ComplaintStore.saveSpeed(
             context, result, kecamatan, transport, kelurahan, kabupaten, provinsi, latitude, longitude, eventId,
         )
-        if (!CollectorClient.measureEnabled) return
+        if (!ReportUpload.immediate(BuildConfig.IS_PREMIUM) || !CollectorClient.measureEnabled) return
         val app = context.applicationContext
         thread(name = "mysignal-speed-upload", start = true) {
             val test = JSONObject()
@@ -80,7 +80,7 @@ object SpeedtestReport {
         ComplaintStore.saveVideo(
             context, result, kecamatan, transport, kelurahan, kabupaten, provinsi, latitude, longitude, eventId, provider,
         )
-        if (!CollectorClient.measureEnabled) return
+        if (!ReportUpload.immediate(BuildConfig.IS_PREMIUM) || !CollectorClient.measureEnabled) return
         val app = context.applicationContext
         thread(name = "mysignal-video-upload", start = true) {
             val summary = "mysignal-video load_ms=${result.loadTimeMs} res=${result.maxResolution} buf=${"%.1f".format(result.bufferingPct)}"
