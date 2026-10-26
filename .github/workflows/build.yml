@@ -48,7 +48,7 @@ jobs:
           echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/magnon-release.jks"
           test -s "$RUNNER_TEMP/magnon-release.jks"
 
-      - name: Build release APKs
+      - name: Build Lite release APK
         working-directory: android
         env:
           KEYSTORE_PATH: ${{ runner.temp }}/magnon-release.jks
@@ -61,7 +61,7 @@ jobs:
           MAGNON_HMAC_KEY_HEX: ${{ secrets.MAGNON_HMAC_KEY_HEX }}
           MAGNON_MEASURE_KEY_HEX: ${{ secrets.MAGNON_MEASURE_KEY_HEX }}
           MAGNON_GOOGLE_CLIENT_ID: ${{ secrets.MAGNON_GOOGLE_CLIENT_ID }}
-        run: chmod +x gradlew && ./gradlew :app:assembleLiteRelease :app:assemblePremiumRelease --no-daemon
+        run: chmod +x gradlew && ./gradlew :app:assembleLiteRelease --no-daemon
 
       - name: Get version
         id: version
@@ -75,20 +75,12 @@ jobs:
           name: magnon-lite-release
           path: android/app/build/outputs/apk/lite/release/magnon-lite-*.apk
 
-      - name: Upload Premium APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: magnon-premium-release
-          path: android/app/build/outputs/apk/premium/release/magnon-premium-*.apk
-
       - name: Publish GitHub release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.event_name == 'push' && github.ref_name || format('v{0}', steps.version.outputs.version) }}
           name: Magnon ${{ github.event_name == 'push' && github.ref_name || format('v{0}', steps.version.outputs.version) }}
-          files: |
-            android/app/build/outputs/apk/lite/release/magnon-lite-*.apk
-            android/app/build/outputs/apk/premium/release/magnon-premium-*.apk
+          files: android/app/build/outputs/apk/lite/release/magnon-lite-*.apk
           generate_release_notes: true
           make_latest: true
         env:
