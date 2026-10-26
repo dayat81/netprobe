@@ -1,6 +1,7 @@
 package com.aksa.magnon
 
 import android.widget.Button
+import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.Spinner
@@ -26,6 +27,8 @@ internal object PostChrome {
     lateinit var style: Spinner
     lateinit var autoLabel: TextView
     lateinit var autoTag: Spinner
+    lateinit var experience: EditText
+    lateinit var usedLabel: TextView
     lateinit var events: LinearLayout
     lateinit var draft: Button
     lateinit var verdict: TextView

@@ -48,22 +48,73 @@ def _portal(operators: str = "", admins: str = "") -> Portal:
     )
 
 
+def _seat(portal: Portal, email: str, name: str, device: str = "", flavor: str = "lite") -> dict:
+    if not portal.ledger.user_by_email(email):
+        portal.ledger.save_user({
+            "sub": "sub-" + email,
+            "email": email,
+            "name": name,
+            "roles": ["tester"],
+            "role": "tester",
+            "level": "lite",
+            "post_limit": 3,
+            "test_limit": 20,
+            "operator_brand": "",
+            "commercial_access": False,
+            "device_ids": [],
+            "tester_emails": [],
+            "tester_quota": 0,
+        })
+    return portal.login("%s|%s" % (email, name), device, flavor)
+
+
 def test_login_starts_lite_and_binds_device():
-    portal = _portal()
-    result = portal.login("ada@gmail.com|Ada", "device1234", "lite")
-    assert result["profile"]["role"] == "contributor"
-    assert result["profile"]["level"] == "lite"
-    assert result["profile"]["post_limit"] == 3
-    assert result["profile"]["test_limit"] == 20
-    assert result["profile"]["stay_on_lite"] is False
-    again = portal.login("ada@gmail.com|Ada", "device1234", "premium")
-    assert again["profile"]["level"] == "lite"
-    assert again["profile"]["stay_on_lite"] is True
+    portal = _portal(admins="root@gmail.com")
+    try:
+        portal.login("ada@gmail.com|Ada", "device1234", "lite")
+        opened = False
+    except ValueError as exc:
+        opened = str(exc) == "not_registered"
+    assert opened
+    try:
+        portal.login("ada@gmail.com|Ada", "device1234", "premium")
+        opened = False
+    except ValueError as exc:
+        opened = str(exc) == "premium_not_granted"
+    assert opened
+    root = portal.login("root@gmail.com|Root", "", "lite")
+    try:
+        portal.login("root@gmail.com|Root", "device1234", "premium")
+        admin_premium = False
+    except ValueError as exc:
+        admin_premium = str(exc) == "premium_not_granted"
+    assert admin_premium
+    created = portal.create_sponsor(root["session"], "ops@gmail.com", 2)
+    assert created["tester_quota"] == 2
+    assert portal.ledger.user_by_email("ops@gmail.com")["sub"].startswith("pending-")
+    ops = portal.login("ops@gmail.com|Ops", "", "lite")
+    assert ops["profile"]["roles"] == ["sponsor"]
+    assert not portal.ledger.user_by_email("ops@gmail.com")["sub"].startswith("pending-")
+    portal.set_tester(ops["session"], "ops@gmail.com")
+    portal.set_tester(ops["session"], "ada@gmail.com")
+    try:
+        portal.set_tester(ops["session"], "bee@gmail.com")
+        room = False
+    except ValueError as exc:
+        room = str(exc) == "tester_quota"
+    assert room
+    ada = portal.login("ada@gmail.com|Ada", "device1234", "premium")
+    assert ada["profile"]["roles"] == ["tester"]
+    assert ada["profile"]["level"] == "lite"
+    assert ada["profile"]["stay_on_lite"] is True
+    assert "device1234" in portal.ledger.user_by_email("ada@gmail.com")["device_ids"]
+    own = portal.login("ops@gmail.com|Ops", "deviceops1", "premium")
+    assert own["profile"]["roles"] == ["sponsor", "tester"]
 
 
 def test_premium_account_may_open_lite():
     portal = _portal()
-    token = portal.login("ada@gmail.com|Ada", "device1234", "lite")["session"]
+    token = _seat(portal, "ada@gmail.com", "Ada", "device1234")["session"]
     portal.set_level("ada@gmail.com", "premium")
     profile = portal.me(token, "lite")
     assert profile["level"] == "premium"
@@ -72,7 +123,7 @@ def test_premium_account_may_open_lite():
 
 def test_points_and_credits_stay_off():
     portal = _portal()
-    token = portal.login("ada@gmail.com|Ada", "device1234", "lite")["session"]
+    token = _seat(portal, "ada@gmail.com", "Ada", "device1234")["session"]
     for _ in range(5):
         assert portal.reserve(token, "post")["ok"] is True
     assert portal.award("device1234", "myspd1", "speed", {"latitude": -6.2, "longitude": 106.8}) == 0
@@ -84,7 +135,7 @@ def test_points_and_credits_stay_off():
 def test_post_credit_is_three_per_day_and_test_credit_is_premium_only(monkeypatch):
     monkeypatch.setenv("MAGNON_CREDITS", "1")
     portal = _portal()
-    token = portal.login("ada@gmail.com|Ada", "device1234", "lite")["session"]
+    token = _seat(portal, "ada@gmail.com", "Ada", "device1234")["session"]
     try:
         portal.reserve(token, "test")
         raised = False
@@ -113,7 +164,7 @@ def test_post_credit_is_three_per_day_and_test_credit_is_premium_only(monkeypatc
 def test_points_once_per_event_and_radio_cap(monkeypatch):
     monkeypatch.setenv("MAGNON_CREDITS", "1")
     portal = _portal()
-    portal.login("ada@gmail.com|Ada", "device1234", "lite")
+    _seat(portal, "ada@gmail.com", "Ada", "device1234")
     assert portal.award("device1234", "myspd1", "speed", {}) == 10
     assert portal.award("device1234", "myspd1", "speed", {}) == 0
     assert portal.award("device1234", "mysvd1", "video", {}) == 8
@@ -143,10 +194,10 @@ def test_aggregate_hides_sensitive_fields_and_matches_brand():
 
 def test_campaign_matches_premium_inside_the_area():
     portal = _portal("ops@gmail.com=Telco")
-    premium = portal.login("ada@gmail.com|Ada", "device1234", "premium")
+    premium = _seat(portal, "ada@gmail.com", "Ada", "device1234")
     portal.set_level("ada@gmail.com", "premium")
     portal.award("device1234", "myspd9", "speed", {"latitude": -6.2, "longitude": 106.8})
-    bee = portal.login("bee@gmail.com|Bee", "device9999", "lite")
+    bee = _seat(portal, "bee@gmail.com", "Bee", "device9999")
     portal.award("device9999", "myspd8", "speed", {"latitude": -6.2, "longitude": 106.8})
     try:
         portal.create_campaign(premium["session"], {"lat": -6.2, "lon": 106.8, "radius_m": 1000, "start": 1, "end": 2})
@@ -156,7 +207,7 @@ def test_campaign_matches_premium_inside_the_area():
     assert denied
     sponsor = portal.login("ops@gmail.com|Ops", "", "lite")
     token = sponsor["session"]
-    assert sponsor["profile"]["roles"] == ["sponsor", "contributor"]
+    assert sponsor["profile"]["roles"] == ["sponsor"]
     created = portal.create_campaign(token, {"lat": -6.2, "lon": 106.8, "radius_m": 2000, "start": 1, "end": 9_999_999_999, "audience": "both"})
     assert created["matched"] == 2
     assert created["lite"] == 1 and created["premium"] == 1
@@ -187,10 +238,10 @@ def test_campaign_matches_premium_inside_the_area():
 def test_admin_sets_credits_and_cannot_drop_self(monkeypatch):
     monkeypatch.setenv("MAGNON_CREDITS", "1")
     portal = _portal(admins="root@gmail.com")
-    ada = portal.login("ada@gmail.com|Ada", "device1234", "lite")
+    ada = _seat(portal, "ada@gmail.com", "Ada", "device1234")
     root = portal.login("root@gmail.com|Root", "", "lite")
-    assert root["profile"]["roles"] == ["admin", "contributor"]
-    assert root["profile"]["role"] == "admin,contributor"
+    assert root["profile"]["roles"] == ["admin"]
+    assert root["profile"]["role"] == "admin"
     try:
         portal.list_users(ada["session"])
         hidden = False
@@ -199,7 +250,7 @@ def test_admin_sets_credits_and_cannot_drop_self(monkeypatch):
     assert hidden
     listed = portal.list_users(root["session"])
     assert {row["email"] for row in listed["users"]} == {"ada@gmail.com", "root@gmail.com"}
-    saved = portal.update_user(root["session"], "ada@gmail.com", "contributor", "premium", 1, 2)
+    saved = portal.update_user(root["session"], "ada@gmail.com", "tester", "premium", 1, 2)
     assert saved["level"] == "premium"
     assert saved["post_limit"] == 1
     assert portal.reserve(ada["session"], "post")["ok"] is True
@@ -218,19 +269,92 @@ def test_admin_sets_credits_and_cannot_drop_self(monkeypatch):
         blocked = str(exc) == "credit_exhausted"
     assert blocked
     try:
-        portal.update_user(root["session"], "root@gmail.com", "contributor", "lite", 3, 20)
+        portal.update_user(root["session"], "root@gmail.com", "tester", "lite", 3, 20)
         kept = False
     except ValueError as exc:
         kept = str(exc) == "keep_admin"
     assert kept
-    again = portal.login("ada@gmail.com|Ada", "device1234", "lite")
-    assert again["profile"]["role"] == "contributor"
+    again = _seat(portal, "ada@gmail.com", "Ada", "device1234")
+    assert again["profile"]["role"] == "tester"
     assert again["profile"]["post_limit"] == 1
+
+
+def test_admin_deletes_an_account_but_not_the_super_admin():
+    portal = _portal(admins="netdrivetest@gmail.com")
+    root = portal.login("netdrivetest@gmail.com|Net", "", "lite")
+    portal.create_sponsor(root["session"], "ops@gmail.com", 2)
+    ops = portal.login("ops@gmail.com|Ops", "", "lite")
+    portal.set_tester(ops["session"], "ada@gmail.com")
+    _seat(portal, "ada@gmail.com", "Ada", "device1234")
+    try:
+        portal.delete_account(ops["session"], "ada@gmail.com")
+        forbidden = False
+    except PermissionError as exc:
+        forbidden = str(exc) == "admin_only"
+    assert forbidden
+    removed = portal.delete_account(root["session"], "ada@gmail.com")
+    assert removed == {"ok": True, "email": "ada@gmail.com"}
+    assert portal.ledger.user_by_email("ada@gmail.com") is None
+    assert "ada@gmail.com" not in portal.ledger.user_by_email("ops@gmail.com")["tester_emails"]
+    try:
+        portal.delete_account(root["session"], "netdrivetest@gmail.com")
+        kept = False
+    except ValueError as exc:
+        kept = str(exc) == "keep_super_admin"
+    assert kept
+    assert portal.ledger.user_by_email("netdrivetest@gmail.com")
+    from opensignal_mirror.magnon import portal_html
+
+    page = portal_html("client", "admin").decode("utf-8")
+    assert "data-delete" in page
+    assert "netdrivetest@gmail.com" in page
+    assert "Tester quota" in page
+    assert "data-k='tester_quota'" in page
+    assert ">Sponsor</th>" in page
+
+
+def test_sponsor_roster_survives_a_measurement_query_failure(monkeypatch):
+    portal = _portal(admins="root@gmail.com")
+    root = portal.login("root@gmail.com|Root", "", "lite")
+    portal.create_sponsor(root["session"], "ops@gmail.com", 4)
+    ops = portal.login("ops@gmail.com|Ops", "", "lite")
+    portal.set_tester(ops["session"], "ada@gmail.com")
+    portal.login("ada@gmail.com|Ada", "device1234", "premium")
+
+    def boom(_device_ids, _limit):
+        raise RuntimeError("missing_index")
+
+    monkeypatch.setattr(portal.ledger, "events_for_devices", boom)
+    view = portal.sponsor_view(ops["session"])
+    assert view["tester_quota"] == 4
+    assert [person["email"] for person in view["testers"]] == ["ada@gmail.com"]
+    assert view["testers"][0]["devices"][0]["device_id"] == "device1234"
+    assert view["testers"][0]["devices"][0]["measurements"] == []
+
+
+def test_admin_edits_tester_quota_and_lists_the_sponsor_name():
+    portal = _portal(admins="root@gmail.com")
+    root = portal.login("root@gmail.com|Root", "", "lite")
+    portal.create_sponsor(root["session"], "ops@gmail.com", 2)
+    ops = portal.login("ops@gmail.com|Ops", "", "lite")
+    portal.set_tester(ops["session"], "ada@gmail.com")
+    portal.login("ada@gmail.com|Ada", "", "lite")
+    listed = portal.list_users(root["session"])["users"]
+    ada = [row for row in listed if row["email"] == "ada@gmail.com"][0]
+    assert ada["sponsor_name"] == "Ops"
+    saved = portal.update_user(root["session"], "ops@gmail.com", ["sponsor"], "lite", 3, 20, 5)
+    assert saved["tester_quota"] == 5
+    try:
+        portal.update_user(root["session"], "ops@gmail.com", ["sponsor"], "lite", 3, 20, 0)
+        lowered = False
+    except ValueError as exc:
+        lowered = str(exc) == "quota_too_small"
+    assert lowered
 
 
 def test_lite_detail_is_premium_only_and_operator_is_sponsor():
     portal = _portal("old@gmail.com")
-    lite = portal.login("ada@gmail.com|Ada", "device1234", "lite")
+    lite = _seat(portal, "ada@gmail.com", "Ada", "device1234")
     try:
         portal.own_detail(lite["session"])
         opened = False
@@ -242,7 +366,7 @@ def test_lite_detail_is_premium_only_and_operator_is_sponsor():
     detail = portal.own_detail(lite["session"])
     assert detail["events"][0]["rsrp"] == -88
     sponsor = portal.login("old@gmail.com|Old", "", "lite")
-    assert sponsor["profile"]["roles"] == ["sponsor", "contributor"]
+    assert sponsor["profile"]["roles"] == ["sponsor"]
     stored = portal.ledger.user_by_email("old@gmail.com")
     stored.pop("roles", None)
     stored["role"] = "operator"
@@ -253,17 +377,17 @@ def test_lite_detail_is_premium_only_and_operator_is_sponsor():
 
 def test_one_account_can_hold_every_role():
     portal = _portal(admins="root@gmail.com")
-    ada = portal.login("ada@gmail.com|Ada", "device1234", "lite")
+    ada = _seat(portal, "ada@gmail.com", "Ada", "device1234")
     root = portal.login("root@gmail.com|Root", "", "lite")
     saved = portal.update_user(
         root["session"],
         "ada@gmail.com",
-        ["sponsor", "admin", "contributor"],
+        ["sponsor", "admin", "tester"],
         "premium",
         3,
         20,
     )
-    assert saved["roles"] == ["admin", "sponsor", "contributor"]
+    assert saved["roles"] == ["admin", "sponsor", "tester"]
     assert portal.list_users(ada["session"])["users"]
     created = portal.create_campaign(
         ada["session"],
@@ -272,7 +396,7 @@ def test_one_account_can_hold_every_role():
     assert created["matched"] == 0
     portal.ledger.add_event({"device_id": "device1234", "received_at": 5, "rsrp": -70})
     assert portal.own_detail(ada["session"])["events"][0]["rsrp"] == -70
-    portal.update_user(root["session"], "ada@gmail.com", ["admin", "contributor"], "premium", 3, 20)
+    portal.update_user(root["session"], "ada@gmail.com", ["admin", "tester"], "premium", 3, 20)
     try:
         portal.create_campaign(ada["session"], {"lat": -6.2, "lon": 106.8, "radius_m": 1000, "start": 1, "end": 9})
         still = False
@@ -326,6 +450,8 @@ def test_compose_keeps_jev_intent_and_writes_the_requested_language():
     assert result["composer"] == "deepseek"
     assert len(result["sentence"]) <= 180
     assert result["sentence"].startswith("Bagus")
+    assert result["sentence"].endswith("@MagnonTest")
+    assert result["sentence"].lower().count("@magnontest") == 1
     assert seen["language"] == "id"
     assert seen["download"] == 80.5
     assert seen["intent"] == "praise"
@@ -685,8 +811,17 @@ def test_public_portal_compares_districts_without_the_old_pitch():
     assert best_places(portal.ledger.list_runs())[0]["cell"]["video_load_ms"] == 250
     page = home_html().decode("utf-8")
     visible = re.sub(r"data:[^\"]+", "", page).lower()
-    for banned in ("sponsor", "premium", "credit", "points", "radio", "/admin"):
+    for banned in ("credit", "points", "/admin"):
         assert banned not in visible, banned
+    sentence = "the technical release opens after a sponsor registers this gmail. to become a sponsor, dm @magnonbot on x."
+    assert sentence in visible
+    assert "sponsor" not in visible.replace(sentence, "").replace(
+        "rilis teknis terbuka setelah sponsor mendaftarkan gmail ini. untuk menjadi sponsor, kirim dm ke @magnonbot di x.",
+        "",
+    )
+    assert "premium apk" in visible
+    assert "/magnon-premium.apk" in visible
+    assert "traceroute" in visible
     assert "placetable" not in visible
     assert "median" not in visible
     assert "placemap" in visible
@@ -830,7 +965,7 @@ def test_eleventh_test_needs_admin_credit_and_another_device_is_separate():
     from opensignal_mirror.magnon import parse_emails
 
     portal = Portal(ledger, "client", {}, parse_emails("root@gmail.com"), verify=verify, clock=time.time)
-    guest = portal.login("ada@gmail.com|Ada", "device1234", "lite")["session"]
+    guest = _seat(portal, "ada@gmail.com", "Ada", "device1234")["session"]
     try:
         portal.post_credit(guest, "deviceaaa1", 1)
         raise AssertionError("guest added credit")
@@ -881,7 +1016,7 @@ def test_admin_lists_devices_that_checked_quota_and_hides_a_bare_hash():
         return {"sub": "sub-" + email, "email": email, "name": name, "email_verified": True}
 
     portal = Portal(ledger, "client", {}, parse_emails("root@gmail.com"), verify=verify, clock=time.time)
-    guest = portal.login("ada@gmail.com|Ada", "", "lite")["session"]
+    guest = _seat(portal, "ada@gmail.com", "Ada")["session"]
     try:
         portal.list_devices(guest)
         raise AssertionError("guest listed devices")
@@ -901,8 +1036,12 @@ def test_admin_lists_devices_that_checked_quota_and_hides_a_bare_hash():
 
 
 def test_sponsor_sees_probe_rows_without_identity():
-    portal = _portal("ops@gmail.com=Telco")
-    guest = portal.login("ada@gmail.com|Ada", "device1234", "lite")
+    portal = _portal("ops@gmail.com=Telco", "root@gmail.com")
+    admin = portal.login("root@gmail.com|Root", "", "lite")
+    portal.create_sponsor(admin["session"], "ops@gmail.com", 2)
+    sponsor = portal.login("ops@gmail.com|Ops", "", "lite")
+    portal.set_tester(sponsor["session"], "ada@gmail.com")
+    guest = portal.login("ada@gmail.com|Ada", "device1234", "premium")
     try:
         portal.sponsor_view(guest["session"])
         denied = False
@@ -915,21 +1054,120 @@ def test_sponsor_sees_probe_rows_without_identity():
         "ipv4_rtt_ms": 4,
         "device_id": "device1234",
         "imei": "123456789012345",
+        "imsi": "510100000000000",
         "email": "ada@gmail.com",
         "received_at": 10,
     })
-    portal.ledger.add_event({"kind": "speed", "download_bps": 1, "received_at": 9})
-    sponsor = portal.login("ops@gmail.com|Ops", "", "lite")
+    portal.ledger.add_event({
+        "kind": "pcap",
+        "app": "com.example",
+        "packets": 3,
+        "bytes": 9,
+        "duration_ms": 1000,
+        "pcap_object": "pcap/device1234/abcdabcdabcdabcdabcdabcdabcdabcd.pcap",
+        "device_id": "device1234",
+        "imei": "123456789012345",
+        "email": "ada@gmail.com",
+        "received_at": 11,
+    })
+    portal.ledger.add_event({"kind": "speed", "download_bps": 1, "received_at": 12, "device_id": "device1234"})
     view = portal.sponsor_view(sponsor["session"])
-    assert len(view["measurements"]) == 1
-    row = view["measurements"][0]
-    assert row["kind"] == "gateway"
-    assert row["ipv4_rtt_ms"] == 4
-    assert "imei" not in row
-    assert "email" not in row
-    assert "device_id" not in row
+    assert [person["email"] for person in view["testers"]] == ["ada@gmail.com"]
+    device = view["testers"][0]["devices"][0]
+    assert device["device_id"] == "device1234"
+    assert [row["kind"] for row in device["measurements"]] == ["pcap", "gateway"]
+    for row in device["measurements"]:
+        assert "imei" not in row
+        assert "imsi" not in row
+        assert "email" not in row
+        assert "device_id" not in row
+    assert device["measurements"][0]["pcap_object"].startswith("pcap/device1234/")
+    admin_view = portal.sponsor_view(admin["session"])
+    ops = [row for row in admin_view["sponsors"] if row["email"] == "ops@gmail.com"][0]
+    assert ops["testers"][0]["email"] == "ada@gmail.com"
     page = home_html().decode("utf-8").lower()
-    assert "magnon-premium.apk" not in page
+    assert 'href="/magnon-premium.apk"' in page
+    assert "capture file is sent when the capture stops" in page
+    assert "@magnonbot" in page
+    assert "ada@gmail.com" not in page
+    assert "device1234" not in page
+
+
+def test_pcap_slot_uses_the_signed_in_device_and_sponsor_downloads_it(monkeypatch):
+    from opensignal_mirror import magnon
+
+    portal = _portal("ops@gmail.com=Telco", "root@gmail.com")
+    root = portal.login("root@gmail.com|Root", "", "lite")
+    portal.create_sponsor(root["session"], "ops@gmail.com", 3)
+    sponsor = portal.login("ops@gmail.com|Ops", "", "lite")
+    portal.set_tester(sponsor["session"], "ada@gmail.com")
+    ada = portal.login("ada@gmail.com|Ada", "device1234", "premium")
+    seen = {}
+
+    def upload(name, size):
+        seen["name"] = name
+        seen["size"] = size
+        return "https://upload.example/slot"
+
+    def download(name):
+        seen["download"] = name
+        return "https://download.example/file"
+
+    monkeypatch.setattr(magnon, "pcap_upload_url", upload)
+    monkeypatch.setattr(magnon, "pcap_download_url", download)
+    status, slot, _cookie = handle(
+        portal, "POST", "/api/magnon/pcap/slot", ada["session"], {"device_id": "device1234", "bytes": 1200}, False
+    )
+    assert status == 200
+    assert slot["upload_url"] == "https://upload.example/slot"
+    assert slot["object"].startswith("pcap/device1234/")
+    assert slot["object"].endswith(".pcap")
+    assert seen["name"] == slot["object"]
+    assert seen["size"] == 1200
+    status, rejected, _cookie = handle(
+        portal, "POST", "/api/magnon/pcap/slot", ada["session"], {"device_id": "device9999", "bytes": 10}, False
+    )
+    assert status == 400 and rejected["error"] == "device_required"
+    status, huge, _cookie = handle(
+        portal,
+        "POST",
+        "/api/magnon/pcap/slot",
+        ada["session"],
+        {"device_id": "device1234", "bytes": 50 * 1024 * 1024 + 1},
+        False,
+    )
+    assert status == 400 and huge["error"] == "pcap_too_large"
+    status, link, _cookie = handle(
+        portal, "GET", "/api/magnon/pcap", sponsor["session"], {"object": slot["object"]}, False
+    )
+    assert status == 200
+    assert link == {"url": "https://download.example/file"}
+    assert seen["download"] == slot["object"]
+    status, blocked, _cookie = handle(
+        portal, "GET", "/api/magnon/pcap", ada["session"], {"object": slot["object"]}, False
+    )
+    assert status == 400 and blocked["error"] == "sponsor_only"
+    status, admin_link, _cookie = handle(
+        portal, "GET", "/api/magnon/pcap", root["session"], {"object": slot["object"]}, False
+    )
+    assert status == 200 and admin_link["url"] == "https://download.example/file"
+    status, missing, _cookie = handle(
+        portal,
+        "GET",
+        "/api/magnon/pcap",
+        sponsor["session"],
+        {"object": "pcap/otherdev01/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.pcap"},
+        False,
+    )
+    assert status == 400 and missing["error"] == "pcap_not_found"
+    from opensignal_mirror.magnon import portal_html
+
+    html = portal_html("client", "sponsor").decode("utf-8")
+    assert "Testers" in html
+    assert "rosterCards" in html
+    assert "data-pcap" in html
+    assert "@magnonbot" in html
+    assert 'href="/contrib"' not in html
 
 
 def test_stored_band_is_reused_and_other_kecamatan_stays_out():
@@ -1016,3 +1254,100 @@ def test_stored_band_is_reused_and_other_kecamatan_stays_out():
         classify_context=classify_context,
     )
     assert calls == ["speed1"]
+
+
+def test_experience_keeps_the_slow_video_and_drops_the_fast_speed():
+    ledger = MemoryLedger()
+    seen = {}
+
+    def select(experience, events):
+        seen["experience"] = experience
+        seen["candidates"] = [row["id"] for row in events]
+        return ["video1"]
+
+    def classify_event(event):
+        seen.setdefault("classified", []).append(event["id"])
+        return "poor"
+
+    def classify_context(selected, nearby):
+        seen["selected"] = [row["id"] for row in selected]
+        return {"post_intent": "complaint", "quality_band": "poor"}
+
+    def draft(brief, classification):
+        seen["draft_ids"] = [row["id"] for row in brief["events"]]
+        seen["note"] = brief.get("experience")
+        seen["mention"] = brief.get("mention")
+        return {"sentence": "YouTube is slow on Telkomsel.", "summary": "Video only."}
+
+    result = compose_post(
+        {
+            "language": "id",
+            "device_id": "deviceaaa1",
+            "experience": "kenapa yutub lemot?",
+            "auto_mention": True,
+            "events": [
+                {
+                    "id": "speed1",
+                    "kind": "speed",
+                    "provider": "Telkomsel",
+                    "transport": "cellular",
+                    "kecamatan": "Menteng",
+                    "download_mbps": 80,
+                    "upload_mbps": 20,
+                    "ping_ms": 20,
+                },
+                {
+                    "id": "video1",
+                    "kind": "video",
+                    "provider": "Telkomsel",
+                    "transport": "cellular",
+                    "kecamatan": "Menteng",
+                    "resolution": "360p",
+                    "load_ms": 4000,
+                    "buffering_pct": 12,
+                },
+            ],
+        },
+        select=select,
+        classify_event=classify_event,
+        classify_context=classify_context,
+        draft=draft,
+        store=ledger,
+    )
+    assert result["eligible"]
+    assert result["used"] == ["video1"]
+    assert result["free_used"] == 1
+    assert seen["experience"] == "kenapa yutub lemot?"
+    assert seen["candidates"] == ["speed1", "video1"]
+    assert seen["classified"] == ["video1"]
+    assert seen["selected"] == ["video1"]
+    assert seen["draft_ids"] == ["video1"]
+    assert seen["note"] == "kenapa yutub lemot?"
+    assert seen["mention"] == "@Telkomsel"
+    stored = ledger.run(result["url"].rsplit("/", 1)[-1])
+    assert [row["id"] for row in stored["events"]] == ["video1"]
+
+
+def test_experience_with_no_match_writes_nothing():
+    ledger = MemoryLedger()
+
+    result = compose_post(
+        {
+            "device_id": "deviceaaa1",
+            "experience": "kenapa yutub lemot?",
+            "events": [{
+                "id": "speed1",
+                "kind": "speed",
+                "provider": "Telkomsel",
+                "transport": "wifi",
+                "download_mbps": 80,
+            }],
+        },
+        select=lambda experience, events: [],
+        draft=lambda brief, classification: {"sentence": "Should not be written."},
+        store=ledger,
+    )
+    assert result["eligible"] is False
+    assert result["used"] == []
+    assert "matches that experience" in result["summary"]
+    assert ledger.list_runs() == []

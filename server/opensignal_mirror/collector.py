@@ -1661,14 +1661,14 @@ def make_handler(config: Config):
             from opensignal_mirror.magnon import handle, portal_html, token_from_headers
 
             parsed = urlsplit(self.path)
-            if method == "GET" and parsed.path == "/magnon":
+            if method == "GET" and parsed.path in ("/magnon", "/contrib"):
                 self.send_response(302)
-                self.send_header("Location", "/contrib")
+                self.send_header("Location", "/sponsor")
                 self.send_header("Content-Length", "0")
                 self.send_header("Connection", "close")
                 self.end_headers()
                 return
-            if method == "GET" and parsed.path in ("/admin", "/sponsor", "/contrib"):
+            if method == "GET" and parsed.path in ("/admin", "/sponsor"):
                 self._send_bytes(200, portal_html(config.magnon.client_id, parsed.path[1:]), "text/html; charset=utf-8")
                 return
             body: dict = {}

@@ -16,6 +16,8 @@ internal object ProbeChrome {
     private var binding: ActivityMainBinding? = null
     private var pcapPackage = ""
     private var captureStartedMs = 0L
+    private var captureGen = 0
+    private var uploadNote = ""
     private var sawRunning = false
     private var windowMin = 10
     private var rat: String? = null
@@ -55,6 +57,7 @@ internal object ProbeChrome {
     }
 
     fun start(host: MainActivity) {
+        if (!AccountGate.signedIn(host)) return
         val views = binding ?: return
         views.pcapStatus.removeCallbacks(tick)
         views.pcapStatus.post(tick)
@@ -76,6 +79,7 @@ internal object ProbeChrome {
     }
 
     fun onRound(host: MainActivity) {
+        if (!AccountGate.signedIn(host)) return
         Thread({
             val sample = runCatching { GatewayMonitor.sample(host) }.getOrNull()
             if (sample != null) {
@@ -154,6 +158,7 @@ internal object ProbeChrome {
     }
 
     private fun toggle(host: MainActivity) {
+        if (!AccountGate.allow(host)) return
         if (PcapVpnService.running) {
             PcapVpnService.stop(host)
             return
@@ -173,6 +178,8 @@ internal object ProbeChrome {
     }
 
     private fun beginCapture(host: MainActivity) {
+        captureGen += 1
+        uploadNote = ""
         captureStartedMs = System.currentTimeMillis()
         sawRunning = true
         PcapVpnService.start(host, pcapPackage)
@@ -191,6 +198,7 @@ internal object ProbeChrome {
         val note = PcapVpnService.message
         views.pcapStatus.text = when {
             active -> host.getString(R.string.pcap_running, pkg, count)
+            uploadNote.isNotBlank() -> uploadNote
             note.isNotBlank() -> note
             count > 0L && saved.isNotBlank() -> host.getString(R.string.pcap_saved, count, File(saved).name)
             pkg.isNotBlank() -> pkg
@@ -203,6 +211,7 @@ internal object ProbeChrome {
         val started = captureStartedMs
         if (started <= 0L) return
         captureStartedMs = 0L
+        val generation = captureGen
         val row = JSONObject()
             .put("kind", "pcap")
             .put("event_id", UUID.randomUUID().toString())
@@ -211,6 +220,16 @@ internal object ProbeChrome {
             .put("packets", PcapVpnService.packets)
             .put("bytes", PcapVpnService.bytes)
             .put("duration_ms", (System.currentTimeMillis() - started).coerceAtLeast(0L))
-        MeasureUploader.enqueue(host, row)
+        val saved = PcapVpnService.path
+        Thread({
+            val objectName = runCatching { PcapUpload.send(host, File(saved)) }.getOrNull()
+            if (!objectName.isNullOrBlank()) {
+                row.put("pcap_object", objectName)
+            } else if (generation == captureGen) {
+                uploadNote = host.getString(R.string.pcap_upload_failed)
+                host.runOnUiThread { binding?.let { renderPcap(host, it) } }
+            }
+            MeasureUploader.enqueue(host, row)
+        }, "magnon-pcap-up").start()
     }
 }

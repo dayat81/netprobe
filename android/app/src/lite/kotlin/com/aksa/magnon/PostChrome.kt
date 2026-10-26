@@ -1,6 +1,8 @@
 package com.aksa.magnon
 
+import android.view.View
 import android.widget.Button
+import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.Spinner
@@ -20,12 +22,14 @@ internal object PostChrome {
     lateinit var share: Button
     lateinit var preview: TextView
     lateinit var history: ScrollView
-    lateinit var current: LinearLayout
+    lateinit var current: View
     lateinit var historyList: LinearLayout
     lateinit var language: Spinner
     lateinit var style: Spinner
     lateinit var autoLabel: TextView
     lateinit var autoTag: Spinner
+    lateinit var experience: EditText
+    lateinit var usedLabel: TextView
     lateinit var events: LinearLayout
     lateinit var draft: Button
     lateinit var verdict: TextView
@@ -40,12 +44,14 @@ internal object PostChrome {
         share = binding.complaintShare
         preview = binding.complaintPreview
         history = binding.complaintHistory
-        current = binding.complaintCurrent
+        current = binding.complaintScroll
         historyList = binding.complaintHistoryList
         language = binding.complaintLanguage
         style = binding.complaintStyle
         autoLabel = binding.complaintAutoLabel
         autoTag = binding.complaintAutoTag
+        experience = binding.complaintExperience
+        usedLabel = binding.complaintUsedLabel
         events = binding.complaintEvents
         draft = binding.complaintDraft
         verdict = binding.complaintVerdict

@@ -605,6 +605,7 @@ object ComplaintDraft {
         val reviewed: Boolean = false,
         val freeUsed: Int? = null,
         val balance: Int? = null,
+        val used: List<ComplaintStore.PostEvent> = emptyList(),
     )
 
     data class Quota(val freeUsed: Int, val balance: Int)
@@ -613,15 +614,20 @@ object ComplaintDraft {
         timeZone = TimeZone.getTimeZone("Asia/Jakarta")
     }
 
-    fun review(context: Context, events: List<ComplaintStore.PostEvent>): Review {
-        val chosen = events.take(20)
+    fun review(context: Context, experience: String, events: List<ComplaintStore.PostEvent>): Review {
+        val note = experience.trim().take(400)
+        val chosen = events.take(10)
+        if (note.isEmpty()) {
+            return Review(false, "Write what you experienced, then press Draft.", "")
+        }
         if (chosen.isEmpty()) {
-            return Review(false, "Select at least one event, then press Draft.", "")
+            return Review(false, "Run a Speed or Video test first.", "")
         }
         return try {
-            val response = postComplaint(eventsBrief(context, chosen))
+            val response = postComplaint(eventsBrief(context, note, chosen))
             val freeUsed = if (response.has("free_used")) response.optInt("free_used") else null
             val balance = if (response.has("balance")) response.optInt("balance") else null
+            val used = usedEvents(response.optJSONArray("used"), chosen)
             if (response.optString("quota") == "exhausted") {
                 return Review(false, response.optString("summary"), "", freeUsed = freeUsed, balance = balance)
             }
@@ -642,21 +648,33 @@ object ComplaintDraft {
                 !draftReady -> ""
                 else -> listOf(sentence, url).filter { it.isNotBlank() }.joinToString("\n")
             }
-            Review(draftReady, "$headline$tip\n$summary", tweet, reviewed = true, freeUsed = freeUsed, balance = balance)
+            Review(
+                draftReady,
+                "$headline$tip\n$summary",
+                tweet,
+                reviewed = true,
+                freeUsed = freeUsed,
+                balance = balance,
+                used = used,
+            )
         } catch (error: Exception) {
             AppLog.w("MagnonPost", "compose failed", error)
             Review(false, "Compose failed\n${error.message?.take(160) ?: "network"}", "")
         }
     }
 
-    private fun eventsBrief(context: Context, events: List<ComplaintStore.PostEvent>): JSONObject {
-        val names = events.map { it.provider.trim() }
-        val agreed = names.firstOrNull()?.takeIf { name -> name.isNotEmpty() && names.all { it == name } }
-        val mention = if (ComplaintStore.autoTag(context) && agreed != null) {
-            mentionForProvider(agreed).ifEmpty { agreed }
-        } else {
-            ""
+    private fun usedEvents(rows: org.json.JSONArray?, events: List<ComplaintStore.PostEvent>): List<ComplaintStore.PostEvent> {
+        if (rows == null) return emptyList()
+        val byId = events.associateBy { it.eventId.ifBlank { it.key } }
+        val used = mutableListOf<ComplaintStore.PostEvent>()
+        for (index in 0 until rows.length()) {
+            val event = byId[rows.optString(index)] ?: continue
+            used.add(event)
         }
+        return used
+    }
+
+    private fun eventsBrief(context: Context, experience: String, events: List<ComplaintStore.PostEvent>): JSONObject {
         val rows = JSONArray()
         for (event in events) {
             val row = JSONObject()
@@ -684,7 +702,8 @@ object ComplaintDraft {
         val body = JSONObject()
             .put("language", ComplaintStore.postLanguage(context))
             .put("style", ComplaintStore.postStyle(context))
-            .put("mention", mention)
+            .put("experience", experience)
+            .put("auto_mention", ComplaintStore.autoTag(context))
             .put("events", rows)
         val device = CollectorClient.quotaDeviceId(context)
         if (device.isNotBlank()) body.put("device_id", device)

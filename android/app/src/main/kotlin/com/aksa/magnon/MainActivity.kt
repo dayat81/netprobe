@@ -9,17 +9,20 @@ import android.net.ConnectivityManager
 import android.net.Network
 import android.net.NetworkCapabilities
 import android.os.Bundle
+import android.text.Editable
+import android.text.TextWatcher
 import android.view.View
 import android.view.ViewGroup
 import android.widget.AdapterView
 import android.widget.ArrayAdapter
-import android.widget.CheckBox
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import androidx.recyclerview.widget.RecyclerView
 import com.aksa.magnon.databinding.ActivityMainBinding
 import kotlinx.coroutines.CancellationException
@@ -43,8 +46,8 @@ class MainActivity : AppCompatActivity() {
     private var speedJob: Job? = null
     private var videoJob: Job? = null
     private var complaintJob: Job? = null
-    private val selectedEventKeys = linkedSetOf<String>()
     private val pickableEventLimit = 10
+    private var shownUsed = listOf<ComplaintStore.PostEvent>()
     private var draftCache: DraftCache? = null
     private var quotaDeviceId: String = ""
     private var running = false
@@ -64,6 +67,8 @@ class MainActivity : AppCompatActivity() {
     private var postOnline = false
     private var placeJob: Job? = null
     private var gateJob: Job? = null
+    private var gpsDialog: AlertDialog? = null
+    private var gpsPrompted = false
     private var heldPlace = PlaceCapture.Place()
     private var providerKind = ""
     private var placeKind = ""
@@ -91,6 +96,7 @@ class MainActivity : AppCompatActivity() {
         setContentView(binding.root)
         PostChrome.install(binding)
         ProbeChrome.install(this, binding)
+        AccountGate.install(this, binding)
         binding.speedPublicLabel.setText(R.string.speed_label_provider)
         binding.tabSpeed.setOnClickListener { showTab(Tab.SPEED) }
         binding.tabVideo.setOnClickListener { showTab(Tab.VIDEO) }
@@ -109,8 +115,14 @@ class MainActivity : AppCompatActivity() {
                 shareComplaint(preview)
             }
         }
-        binding.speedCenter.setOnClickListener { toggleSpeedtest() }
-        binding.videoGo.setOnClickListener { toggleVideo() }
+        binding.speedCenter.setOnClickListener {
+            if (!AccountGate.allow(this)) return@setOnClickListener
+            toggleSpeedtest()
+        }
+        binding.videoGo.setOnClickListener {
+            if (!AccountGate.allow(this)) return@setOnClickListener
+            toggleVideo()
+        }
         binding.speedServer.text = BuildConfig.COLLECTOR_HOST
         binding.speedPublic.text = "—"
         binding.speedTransport.text = "—"
@@ -138,6 +150,9 @@ class MainActivity : AppCompatActivity() {
     override fun onStop() {
         ProbeChrome.stop(this)
         gateJob?.cancel()
+        gpsPrompted = false
+        gpsDialog?.dismiss()
+        gpsDialog = null
         unwatchDefaultNetwork()
         super.onStop()
     }
@@ -271,6 +286,9 @@ class MainActivity : AppCompatActivity() {
             heldPlace = PlaceCapture.Place()
             placeKind = ""
             providerKind = ""
+            gpsPrompted = false
+            gpsDialog?.dismiss()
+            gpsDialog = null
             gateJob?.cancel()
         }
         if (running || videoRunning) {
@@ -579,6 +597,16 @@ class MainActivity : AppCompatActivity() {
             }
         }
         bindPostChoices()
+        PostChrome.experience.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) = Unit
+            override fun afterTextChanged(s: Editable?) {
+                if (rebindingPost) return
+                shownUsed = emptyList()
+                renderUsed()
+                refreshDraftActions()
+            }
+        })
         postChromeArmed = true
     }
 
@@ -646,7 +674,7 @@ class MainActivity : AppCompatActivity() {
     private fun showPost() {
         if (!PostChrome.attached) return
         showLink()
-        renderEventPicker()
+        renderUsed()
         refreshDraftActions()
         loadQuota()
         fillPlaces()
@@ -678,7 +706,7 @@ class MainActivity : AppCompatActivity() {
             val newest = events.firstOrNull()
             val newestNamed = newest != null && PlaceFill.named(newest.kelurahan, newest.kecamatan, newest.kabupaten, newest.provinsi)
             if (newest != null && !newestNamed && newest.latitude == null) {
-                val found = withContext(Dispatchers.IO) { PlaceCapture.district(applicationContext) }
+                val found = withContext(Dispatchers.IO) { PlaceCapture.district(applicationContext) }.place
                 val latitude = found.latitude
                 val longitude = found.longitude
                 if (latitude != null && longitude != null) {
@@ -696,7 +724,8 @@ class MainActivity : AppCompatActivity() {
                 }
             }
             if (changed && currentTab == Tab.COMPLAINT) {
-                renderEventPicker()
+                shownUsed = refreshUsed(shownUsed)
+                renderUsed()
                 refreshDraftActions()
             }
         }
@@ -723,28 +752,23 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun renderEventPicker() {
+    private fun renderUsed(events: List<ComplaintStore.PostEvent> = shownUsed) {
         if (!PostChrome.attached) return
+        shownUsed = events
         val list = PostChrome.events
         list.removeAllViews()
-        val events = ComplaintStore.postEvents(this).take(pickableEventLimit)
-        val known = events.map { it.key }.toSet()
-        selectedEventKeys.retainAll(known)
-        val anchor = events.firstOrNull { it.key in selectedEventKeys }
-        if (anchor != null) {
-            selectedEventKeys.retainAll(events.filter { samePath(it, anchor) }.map { it.key }.toSet())
-        }
-        if (events.isEmpty()) {
-            list.addView(historyText(getString(R.string.complaint_events_empty), 14f, false))
-            return
-        }
+        PostChrome.usedLabel.visibility = if (events.isEmpty()) View.GONE else View.VISIBLE
         events.forEach { event ->
-            list.addView(eventCheck(event))
+            list.addView(historyText(eventLine(event), 14f, false))
         }
-        refreshEventAvailability()
     }
 
-    private fun eventCheck(event: ComplaintStore.PostEvent): CheckBox {
+    private fun refreshUsed(current: List<ComplaintStore.PostEvent>): List<ComplaintStore.PostEvent> {
+        val fresh = ComplaintStore.postEvents(this).associateBy { it.key }
+        return current.map { fresh[it.key] ?: it }
+    }
+
+    private fun eventLine(event: ComplaintStore.PostEvent): String {
         val whenText = historyClock.format(Date(event.tsMs))
         val kind = if (event.kind == "video") "Video" else "Speed"
         val provider = event.provider.trim().ifBlank { "—" }
@@ -760,71 +784,24 @@ class MainActivity : AppCompatActivity() {
             val ping = event.pingMs?.let { SpeedtestMath.formatMs(it) } ?: "—"
             "↓ $down  ↑ $up  ping $ping ms"
         }
-        val label = buildString {
-            append("$whenText · $kind\n$provider · $transport\n$place\n$metrics")
-            if (event.eventId.isNotBlank()) append("\n${event.eventId}")
-        }
-        return CheckBox(this).apply {
-            tag = event
-            text = label
-            setTextColor(ContextCompat.getColor(this@MainActivity, R.color.text_primary))
-            isChecked = selectedEventKeys.contains(event.key)
-            setOnCheckedChangeListener { _, checked ->
-                val current = selectedAnchor()
-                if (checked && current != null && !samePath(event, current)) {
-                    isChecked = false
-                    return@setOnCheckedChangeListener
-                }
-                if (checked) selectedEventKeys.add(event.key) else selectedEventKeys.remove(event.key)
-                refreshEventAvailability()
-                refreshDraftActions()
-            }
-        }
+        return "$whenText · $kind\n$provider · $transport\n$place\n$metrics"
     }
 
-    private fun selectedAnchor(): ComplaintStore.PostEvent? {
-        if (!PostChrome.attached) return null
-        val list = PostChrome.events
-        for (index in 0 until list.childCount) {
-            val box = list.getChildAt(index) as? CheckBox ?: continue
-            val event = box.tag as? ComplaintStore.PostEvent ?: continue
-            if (event.key in selectedEventKeys) return event
-        }
-        return null
-    }
+    private fun experienceText(): String =
+        PostChrome.experience.text?.toString()?.trim().orEmpty()
 
-    private fun refreshEventAvailability() {
-        if (!PostChrome.attached) return
-        val anchor = selectedAnchor()
-        val list = PostChrome.events
-        for (index in 0 until list.childCount) {
-            val box = list.getChildAt(index) as? CheckBox ?: continue
-            val event = box.tag as? ComplaintStore.PostEvent ?: continue
-            box.isEnabled = anchor == null || event.key in selectedEventKeys || samePath(event, anchor)
-            box.alpha = if (box.isEnabled) 1f else 0.4f
-        }
-    }
-
-    private fun samePath(event: ComplaintStore.PostEvent, anchor: ComplaintStore.PostEvent): Boolean {
-        val transport = NetworkPath.canonical(event.transport) == NetworkPath.canonical(anchor.transport)
-        val provider = event.provider.trim().equals(anchor.provider.trim(), ignoreCase = true)
-        return transport && provider
-    }
-
-    private fun selectionKey(): String {
-        val ids = selectedEventKeys.sorted().joinToString(",")
-        return listOf(
-            ids,
-            ComplaintStore.postLanguage(this),
-            ComplaintStore.postStyle(this),
-            ComplaintStore.autoTag(this).toString(),
-        ).joinToString("|")
-    }
+    private fun selectionKey(): String = listOf(
+        experienceText(),
+        ComplaintStore.postLanguage(this),
+        ComplaintStore.postStyle(this),
+        ComplaintStore.autoTag(this).toString(),
+    ).joinToString("|")
 
     private fun refreshDraftActions() {
         if (!PostChrome.attached) return
+        val hasTests = ComplaintStore.postEvents(this).isNotEmpty()
         PostChrome.draft.isEnabled =
-            postOnline && selectedEventKeys.isNotEmpty() && complaintJob?.isActive != true
+            postOnline && experienceText().isNotEmpty() && hasTests && complaintJob?.isActive != true
         val cache = draftCache
         val matches = cache != null && cache.key == selectionKey()
         PostChrome.share.isEnabled = matches && cache.eligible
@@ -833,6 +810,8 @@ class MainActivity : AppCompatActivity() {
     private fun draftSelected() {
         if (!PostChrome.attached) return
         if (!postOnline) return
+        val note = experienceText()
+        if (note.isEmpty()) return
         val key = selectionKey()
         val cached = draftCache
         if (cached != null && cached.key == key) {
@@ -841,13 +820,14 @@ class MainActivity : AppCompatActivity() {
             refreshDraftActions()
             return
         }
-        val chosen = ComplaintStore.postEvents(this).take(pickableEventLimit).filter { it.key in selectedEventKeys }
+        val pool = ComplaintStore.postEvents(this).take(pickableEventLimit)
+        if (pool.isEmpty()) return
         complaintJob?.cancel()
         PostChrome.draft.isEnabled = false
         PostChrome.share.isEnabled = false
         PostChrome.verdict.text = "Drafting post…"
         complaintJob = lifecycleScope.launch(Dispatchers.IO) {
-            val review = ComplaintDraft.review(this@MainActivity, chosen)
+            val review = ComplaintDraft.review(this@MainActivity, note, pool)
             withContext(Dispatchers.Main) {
                 if (review.reviewed) {
                     draftCache = DraftCache(key, review.verdict, review.draft, review.eligible)
@@ -858,6 +838,7 @@ class MainActivity : AppCompatActivity() {
                 if (selectionKey() == key) {
                     PostChrome.verdict.text = review.verdict
                     if (review.reviewed) PostChrome.preview.text = review.draft
+                    renderUsed(review.used)
                 }
                 if (review.reviewed) ComplaintStore.remember(this@MainActivity, review)
                 renderHistory()
@@ -903,9 +884,9 @@ class MainActivity : AppCompatActivity() {
     private fun isWaitStatus(text: String): Boolean =
         text == getString(R.string.speed_wait_provider) || text == getString(R.string.speed_wait_place)
 
-    private fun refreshStartButtons() {
+    internal fun refreshStartButtons() {
         if (!::binding.isInitialized) return
-        val ready = roundReady()
+        val ready = roundReady() && AccountGate.signedIn(this)
         val busy = running || videoRunning
         binding.speedCenter.isEnabled = busy || ready
         binding.videoGo.isEnabled = busy || ready
@@ -925,20 +906,44 @@ class MainActivity : AppCompatActivity() {
     private fun ensurePlace() {
         if (running || videoRunning || watchedKind.isEmpty()) return
         if (placeKind == watchedKind && placeNamed(heldPlace)) return
-        if (gateJob?.isActive == true) return
+        if (gateJob?.isActive == true || gpsPrompted || gpsDialog?.isShowing == true) return
         val kind = watchedKind
         gateJob = lifecycleScope.launch {
-            val found = withContext(Dispatchers.IO) { PlaceCapture.district(applicationContext) }
+            val reading = withContext(Dispatchers.IO) { PlaceCapture.district(applicationContext) }
             if (running || videoRunning || watchedKind != kind) return@launch
-            if (placeNamed(found)) {
-                heldPlace = found
+            if (placeNamed(reading.place)) {
+                heldPlace = reading.place
                 placeKind = kind
+                gpsPrompted = false
                 refreshStartButtons()
                 return@launch
             }
-            delay(2_000)
-            if (!running && !videoRunning && watchedKind == kind) refreshStartButtons()
+            val reason = reading.reason ?: return@launch
+            gpsPrompted = true
+            showGpsDialog(reason)
         }
+    }
+
+    private fun showGpsDialog(reason: PlaceCapture.Reason) {
+        if (isFinishing || gpsDialog?.isShowing == true) return
+        val body = when (reason) {
+            PlaceCapture.Reason.OFF -> R.string.speed_gps_off
+            PlaceCapture.Reason.UNNAMED -> R.string.speed_gps_unnamed
+            PlaceCapture.Reason.TIMEOUT, PlaceCapture.Reason.COARSE -> R.string.speed_gps_timeout
+        }
+        gpsDialog = MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.speed_gps_title)
+            .setMessage(body)
+            .setPositiveButton(R.string.speed_gps_retry) { _, _ ->
+                gpsPrompted = false
+                if (running || videoRunning) return@setPositiveButton
+                window.decorView.post {
+                    if (!gpsPrompted) ensurePlace()
+                }
+            }
+            .setNegativeButton(R.string.speed_gps_close, null)
+            .setOnDismissListener { gpsDialog = null }
+            .show()
     }
 
     private suspend fun awaitRoundReady(): Boolean {
@@ -982,15 +987,22 @@ class MainActivity : AppCompatActivity() {
                 providerKind = kind
                 showProvider(info.provider)
             }
-            if (found != null && placeNamed(found)) {
-                heldPlace = found
+            val gpsReason = found?.reason
+            if (found != null && placeNamed(found.place)) {
+                heldPlace = found.place
                 placeKind = kind
+                gpsPrompted = false
+            } else if (gpsReason != null && !placeNamed(heldPlace)) {
+                gpsPrompted = true
+                showGpsDialog(gpsReason)
+                while ((running || videoRunning) && gpsPrompted) delay(300)
             }
             if (providerKind == kind && placeKind == kind && placeNamed(heldPlace) &&
                 TestGate.ready(shownProvider, heldPlace.kelurahan, heldPlace.kecamatan, heldPlace.kabupaten, heldPlace.provinsi)
             ) {
                 return true
             }
+            if (gpsPrompted) continue
             delay(1_000)
         }
         return false

@@ -69,7 +69,10 @@
     <string name="complaint_copy">Copy</string>
     <string name="complaint_draft">Draft</string>
     <string name="complaint_events">Events</string>
-    <string name="complaint_events_empty">No tests yet. Run Speed or Video, then select the loops to include.</string>
+    <string name="complaint_experience">Your experience</string>
+    <string name="complaint_experience_hint">Why was YouTube slow, or what felt good?</string>
+    <string name="complaint_used">Tests used</string>
+    <string name="complaint_events_empty">No tests yet. Run Speed or Video, then describe what you experienced.</string>
     <string name="complaint_history">History</string>
     <string name="complaint_history_empty">No posts yet. Swipe left for the latest draft.</string>
     <string name="complaint_swipe">Swipe right for history</string>
@@ -115,6 +118,12 @@
     <string name="pcap_running">%1$s · %2$d pkts</string>
     <string name="pcap_saved">%1$d pkts · %2$s</string>
     <string name="pcap_denied">VPN permission denied</string>
+    <string name="pcap_upload_failed">Upload failed. The file stays on this phone.</string>
+    <string name="account_sign_in">Sign in with Gmail before a test or a capture.</string>
+    <string name="account_google">Sign in</string>
+    <string name="account_signing_in">Signing in…</string>
+    <string name="account_failed">Sign-in failed.</string>
+    <string name="account_not_registered">This Gmail is not registered for Premium.</string>
     <string name="pcap_none">No launcher apps</string>
     <string name="speed_label_gw4">GW4</string>
     <string name="speed_label_gw6">GW6</string>
@@ -136,6 +145,12 @@
     <string name="speed_running">Testing…</string>
     <string name="speed_wait_provider">Waiting for the provider</string>
     <string name="speed_wait_place">Waiting for a GPS place</string>
+    <string name="speed_gps_title">GPS</string>
+    <string name="speed_gps_off">Turn on location so Magnon can read a GPS place.</string>
+    <string name="speed_gps_timeout">GPS is not responding. Try again in an open area.</string>
+    <string name="speed_gps_unnamed">Magnon could not read a place name. Try again in an open area.</string>
+    <string name="speed_gps_retry">Try again</string>
+    <string name="speed_gps_close">Close</string>
     <string name="speed_loop">Loop %1$d · tap STOP to end</string>
     <string name="speed_loop_route">Loop %1$d · route</string>
     <string name="speed_label_gw">GW</string>

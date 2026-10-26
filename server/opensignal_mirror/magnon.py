@@ -13,6 +13,7 @@ import math
 import os
 import re
 import secrets
+import sys
 import threading
 import time
 import urllib.error
@@ -30,6 +31,8 @@ FREE_POSTS_PER_DAY = 10
 TEST_LIMIT = 20
 RADIO_POINT_CAP = 30
 POINT_VALUES = {"speed": 10, "video": 8, "radio": 1}
+PCAP_MAX_BYTES = 50 * 1024 * 1024
+_PCAP_OBJECT = re.compile(r"^pcap/([A-Za-z0-9_-]{8,64})/([a-f0-9]{32})\.pcap$")
 
 
 def credits_enabled() -> bool:
@@ -135,6 +138,96 @@ def _probe_rows(events: list[dict]) -> list[dict]:
     return rows[:40]
 
 
+def _pcap_bucket() -> str:
+    bucket = os.environ.get("MAGNON_PCAP_BUCKET", "").strip()
+    if not bucket:
+        raise ValueError("pcap_not_configured")
+    return bucket
+
+
+def _google_access() -> tuple[str, str]:
+    import google.auth
+    from google.auth.transport.requests import Request
+
+    credentials, _project = google.auth.default(scopes=["https://www.googleapis.com/auth/cloud-platform"])
+    credentials.refresh(Request())
+    email = str(getattr(credentials, "service_account_email", "") or "")
+    token = str(credentials.token or "")
+    if not token or not email or email == "default":
+        raise ValueError("pcap_not_configured")
+    return email, token
+
+
+def pcap_upload_url(name: str, size: int) -> str:
+    """Ask Cloud Storage for a one-shot upload URL. Cloud Run never holds the file."""
+    bucket = _pcap_bucket()
+    _email, token = _google_access()
+    url = "https://storage.googleapis.com/upload/storage/v1/b/%s/o?uploadType=resumable&name=%s" % (
+        urllib.parse.quote(bucket, safe=""),
+        urllib.parse.quote(name, safe=""),
+    )
+    payload = json.dumps({"contentType": "application/vnd.tcpdump.pcap"}).encode("utf-8")
+    request = urllib.request.Request(url, data=payload, method="POST")
+    request.add_header("Authorization", "Bearer " + token)
+    request.add_header("Content-Type", "application/json; charset=UTF-8")
+    request.add_header("X-Upload-Content-Type", "application/vnd.tcpdump.pcap")
+    request.add_header("X-Upload-Content-Length", str(size))
+    try:
+        with urllib.request.urlopen(request, timeout=20) as response:
+            location = response.headers.get("Location")
+    except urllib.error.HTTPError as exc:
+        raise ValueError("pcap_slot_failed") from exc
+    if not location:
+        raise ValueError("pcap_slot_failed")
+    return str(location)
+
+
+def pcap_download_url(name: str) -> str:
+    bucket = _pcap_bucket()
+    email, token = _google_access()
+    now = datetime.now(ZoneInfo("UTC"))
+    stamp = now.strftime("%Y%m%dT%H%M%SZ")
+    scope = "%s/auto/storage/goog4_request" % stamp[:8]
+    credential = "%s/%s" % (email, scope)
+    query = "&".join([
+        "X-Goog-Algorithm=GOOG4-RSA-SHA256",
+        "X-Goog-Credential=" + urllib.parse.quote(credential, safe=""),
+        "X-Goog-Date=" + stamp,
+        "X-Goog-Expires=600",
+        "X-Goog-SignedHeaders=host",
+    ])
+    canonical_uri = "/" + urllib.parse.quote(bucket, safe="") + "/" + urllib.parse.quote(name, safe="/")
+    canonical = "\n".join([
+        "GET",
+        canonical_uri,
+        query,
+        "host:storage.googleapis.com\n",
+        "host",
+        "UNSIGNED-PAYLOAD",
+    ])
+    hashed = hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+    to_sign = "\n".join(["GOOG4-RSA-SHA256", stamp, scope, hashed])
+    signature = _sign_blob(email, token, to_sign.encode("utf-8"))
+    return "https://storage.googleapis.com%s?%s&X-Goog-Signature=%s" % (canonical_uri, query, signature)
+
+
+def _sign_blob(email: str, token: str, payload: bytes) -> str:
+    url = "https://iamcredentials.googleapis.com/v1/projects/-/serviceAccounts/%s:signBlob" % urllib.parse.quote(email, safe="")
+    body = json.dumps({"payload": base64.b64encode(payload).decode("ascii")}).encode("utf-8")
+    request = urllib.request.Request(url, data=body, method="POST")
+    request.add_header("Authorization", "Bearer " + token)
+    request.add_header("Content-Type", "application/json")
+    try:
+        with urllib.request.urlopen(request, timeout=20) as response:
+            parsed = json.loads(response.read().decode("utf-8"))
+    except urllib.error.HTTPError as exc:
+        raise ValueError("pcap_link_failed") from exc
+    raw = base64.b64decode(str(parsed.get("signedBlob") or ""))
+    if not raw:
+        raise ValueError("pcap_link_failed")
+    return raw.hex()
+
+
 def aggregate(events: list[dict], brand: str) -> dict:
     brand_l = brand.strip().lower()
     totals = {"samples": 0, "lte": 0, "nr": 0, "wifi": 0, "cellular": 0}
@@ -214,23 +307,31 @@ def parse_emails(text: str) -> set[str]:
     return {part.strip().lower() for part in text.split(",") if part.strip()}
 
 
-ROLE_ORDER = ("admin", "sponsor", "contributor")
+ROLE_ORDER = ("admin", "sponsor", "tester")
+
+
+def _role_name(item: str) -> str:
+    if item == "operator":
+        return "sponsor"
+    if item == "contributor":
+        return "tester"
+    return item
 
 
 def account_roles(user: dict) -> list[str]:
-    """Roles on one Gmail account. A stored operator is a sponsor."""
+    """Roles on one Gmail account. A stored operator is a sponsor, and a contributor is a tester."""
     raw = user.get("roles")
     if isinstance(raw, list) and raw:
         source = [str(item) for item in raw]
     else:
-        source = [part.strip() for part in str(user.get("role") or "contributor").split(",") if part.strip()]
+        source = [part.strip() for part in str(user.get("role") or "tester").split(",") if part.strip()]
     found: list[str] = []
     for item in source:
-        name = "sponsor" if item == "operator" else item
+        name = _role_name(item)
         if name in ROLE_ORDER and name not in found:
             found.append(name)
     if not found:
-        found.append("contributor")
+        found.append("tester")
     return sorted(found, key=ROLE_ORDER.index)
 
 
@@ -249,7 +350,7 @@ def parse_role_list(value: object) -> list[str]:
     if not parts:
         raise ValueError("bad_role")
     for part in parts:
-        name = "sponsor" if part == "operator" else part
+        name = _role_name(part)
         if name not in ROLE_ORDER:
             raise ValueError("bad_role")
     return account_roles({"roles": parts})
@@ -282,6 +383,22 @@ class MemoryLedger:
     def save_user(self, user: dict) -> None:
         with self.lock:
             self._user_rows[user["sub"]] = dict(user)
+
+    def claim_user(self, old_sub: str, user: dict) -> None:
+        with self.lock:
+            if old_sub and old_sub != user["sub"]:
+                self._user_rows.pop(old_sub, None)
+                for row in self.sessions.values():
+                    if row.get("sub") == old_sub:
+                        row["sub"] = user["sub"]
+            self._user_rows[user["sub"]] = dict(user)
+
+    def delete_user(self, sub: str) -> None:
+        with self.lock:
+            self._user_rows.pop(sub, None)
+            stale = [token for token, row in self.sessions.items() if row.get("sub") == sub]
+            for token in stale:
+                self.sessions.pop(token, None)
 
     def user_by_sub(self, sub: str) -> dict | None:
         with self.lock:
@@ -460,6 +577,14 @@ class FirestoreLedger(MemoryLedger):
     def save_user(self, user: dict) -> None:
         self.client.collection("magnon_users").document(user["sub"]).set(user)
 
+    def claim_user(self, old_sub: str, user: dict) -> None:
+        if old_sub and old_sub != user["sub"]:
+            self.client.collection("magnon_users").document(old_sub).delete()
+        self.save_user(user)
+
+    def delete_user(self, sub: str) -> None:
+        self.client.collection("magnon_users").document(sub).delete()
+
     def user_by_sub(self, sub: str) -> dict | None:
         snap = self.client.collection("magnon_users").document(sub).get()
         return snap.to_dict() if snap.exists else None
@@ -632,18 +757,22 @@ class FirestoreLedger(MemoryLedger):
     def events_for_devices(self, device_ids: list[str], limit: int) -> list[dict]:
         rows = []
         collection = self.client.collection("events")
-        for device_id in device_ids[:10]:
-            from google.cloud import firestore
+        from google.cloud import firestore
 
-            query = (
+        for device_id in device_ids[:10]:
+            ordered = (
                 collection.where("device_id", "==", device_id)
                 .order_by("received_at", direction=firestore.Query.DESCENDING)
                 .limit(limit)
-                .stream()
             )
-            for snap in query:
+            try:
+                snaps = list(ordered.stream())
+            except Exception as exc:
+                sys.stderr.write("events query fallback: %s\n" % exc)
+                snaps = list(collection.where("device_id", "==", device_id).limit(max(limit, 80)).stream())
+            for snap in snaps:
                 rows.append(_event_row(snap.to_dict() or {}))
-        rows.sort(key=lambda item: item.get("received_at") or 0, reverse=True)
+        rows.sort(key=lambda item: _stamp(item.get("received_at")), reverse=True)
         return rows[:limit]
 
     def recent_events(self, limit: int) -> list[dict]:
@@ -658,10 +787,30 @@ class FirestoreLedger(MemoryLedger):
         return [_event_row(snap.to_dict() or {}) for snap in query]
 
 
+def _stamp(value: object) -> float:
+    if isinstance(value, bool):
+        return 0
+    if isinstance(value, (int, float)):
+        return float(value)
+    timestamp = getattr(value, "timestamp", None)
+    if callable(timestamp):
+        try:
+            return float(timestamp())
+        except (TypeError, ValueError, OSError):
+            return 0
+    return 0
+
+
 def _event_row(data: dict) -> dict:
     payload = data.get("payload") or "{}"
-    event = json.loads(payload) if isinstance(payload, str) else dict(payload)
-    event["received_at"] = data.get("received_at")
+    try:
+        event = json.loads(payload) if isinstance(payload, str) else dict(payload)
+    except (json.JSONDecodeError, TypeError, ValueError):
+        event = {}
+    if not isinstance(event, dict):
+        event = {}
+    received = data.get("received_at")
+    event["received_at"] = received if isinstance(received, (int, float)) and not isinstance(received, bool) else _stamp(received)
     event["device_id"] = data.get("device_id")
     event["role"] = data.get("role")
     return event
@@ -700,30 +849,49 @@ class Portal:
         if not nonce_matches(nonce, token_nonce):
             raise ValueError("bad_nonce")
         sub = str(info["sub"])
-        user = self.ledger.user_by_sub(sub) or {
-            "sub": sub,
-            "email": email,
-            "name": str(info.get("name") or email.split("@")[0])[:80],
-            "role": "contributor",
-            "roles": ["contributor"],
-            "level": "lite",
-            "post_limit": POST_LIMIT,
-            "test_limit": TEST_LIMIT,
-            "operator_brand": "",
-            "commercial_access": False,
-            "device_ids": [],
-        }
+        name = str(info.get("name") or email.split("@")[0])[:80]
+        granted = self._grant_owner(email) is not None
+        if flavor == "premium" and not granted:
+            raise ValueError("premium_not_granted")
+        user = self.ledger.user_by_sub(sub)
+        previous = ""
+        if not user:
+            found = self.ledger.user_by_email(email)
+            if found:
+                previous = str(found.get("sub") or "")
+                if previous == sub or previous.startswith("pending-"):
+                    user = found
+                    user["sub"] = sub
+                else:
+                    raise ValueError("email_taken")
+        if not user:
+            if email in self.admins:
+                user = _blank_user(sub, email, name, ["admin"])
+            elif email in self.operators:
+                user = _blank_user(sub, email, name, ["sponsor"])
+            elif granted:
+                user = _blank_user(sub, email, name, ["tester"])
+            elif flavor == "premium":
+                raise ValueError("premium_not_granted")
+            else:
+                raise ValueError("not_registered")
         user["email"] = email
-        user["name"] = str(info.get("name") or user.get("name") or email.split("@")[0])[:80]
+        user["name"] = name or str(user.get("name") or email.split("@")[0])[:80]
         if user.get("post_limit") is None:
             user["post_limit"] = POST_LIMIT
         if user.get("test_limit") is None:
             user["test_limit"] = TEST_LIMIT
+        if user.get("tester_quota") is None:
+            user["tester_quota"] = 0
+        if not isinstance(user.get("tester_emails"), list):
+            user["tester_emails"] = []
         roles = set(account_roles(user))
         if email in self.admins:
             roles.add("admin")
         if email in self.operators:
             roles.add("sponsor")
+        if granted:
+            roles.add("tester")
         store_roles(user, list(roles))
         if email in self.operators:
             user["operator_brand"] = self.operators[email] or user.get("operator_brand") or ""
@@ -731,7 +899,10 @@ class Portal:
         if device_id and _device_ok(device_id) and device_id not in devices:
             devices.append(device_id)
             user["device_ids"] = devices[-8:]
-        self.ledger.save_user(user)
+        if previous.startswith("pending-") and previous != sub:
+            self.ledger.claim_user(previous, user)
+        else:
+            self.ledger.save_user(user)
         token = secrets.token_urlsafe(32)
         self.ledger.put_session(token, sub, self.now() + SESSION_TTL)
         return {"session": token, "profile": self._public(user, flavor)}
@@ -870,7 +1041,7 @@ class Portal:
         today = day_key(self.now())
         for candidate in self.ledger.contributors():
             level = str(candidate.get("level") or "")
-            if "contributor" not in account_roles(candidate):
+            if "tester" not in account_roles(candidate):
                 continue
             if level not in wanted or candidate.get("sub") == user["sub"]:
                 continue
@@ -935,10 +1106,153 @@ class Portal:
         rows = self.ledger.events_for_devices(list(user.get("device_ids") or []), 40)
         return {"events": rows}
 
-    def sponsor_view(self, token: str) -> dict:
+    def _sponsor_user(self, token: str) -> dict:
+        user = self._need(token)
+        roles = account_roles(user)
+        if "sponsor" not in roles and "admin" not in roles:
+            raise ValueError("sponsor_only")
+        return user
+
+    def _sponsor_name(self, email: str) -> str:
+        owner = self._grant_owner(email)
+        if not owner or str(owner.get("email") or "").lower() == email.lower():
+            return ""
+        return str(owner.get("name") or "").strip() or str(owner.get("email") or "")
+
+    def _grant_owner(self, email: str) -> dict | None:
+        wanted = str(email or "").strip().lower()
+        if not wanted:
+            return None
+        for row in self.ledger.users():
+            if not row or "sponsor" not in account_roles(row):
+                continue
+            owned = [str(item).strip().lower() for item in (row.get("tester_emails") or [])]
+            if wanted in owned:
+                return row
+        return None
+
+    def _people_for(self, emails: list) -> list[dict]:
+        people = []
+        for raw in emails:
+            email = str(raw or "").strip().lower()
+            if not email:
+                continue
+            row = self.ledger.user_by_email(email)
+            devices = []
+            if row:
+                for device_id in row.get("device_ids") or []:
+                    ident = str(device_id)
+                    if not _device_ok(ident):
+                        continue
+                    try:
+                        measurements = _probe_rows(self.ledger.events_for_devices([ident], 40))
+                    except Exception as exc:
+                        sys.stderr.write("tester measurements skipped: %s\n" % exc)
+                        measurements = []
+                    devices.append({
+                        "device_id": ident,
+                        "measurements": measurements,
+                    })
+            people.append({"email": email, "devices": devices})
+        people.sort(key=lambda item: item["email"])
+        return people
+
+    def _sponsor_summary(self, user: dict) -> dict:
+        emails = [str(item).strip().lower() for item in (user.get("tester_emails") or []) if str(item).strip()]
+        return {
+            "email": str(user.get("email") or "").lower(),
+            "tester_quota": int(user.get("tester_quota") or 0),
+            "testers": self._people_for(emails),
+        }
+
+    def _all_sponsors(self) -> list[dict]:
+        rows = []
+        for user in self.ledger.users():
+            if not user or "sponsor" not in account_roles(user) or not user.get("email"):
+                continue
+            rows.append(self._sponsor_summary(user))
+        rows.sort(key=lambda item: item["email"])
+        return rows
+
+    def create_sponsor(self, token: str, email: str, quota: object) -> dict:
+        actor = self._need(token)
+        if "admin" not in account_roles(actor):
+            raise PermissionError("admin_only")
+        address = _email_ok(email)
+        try:
+            count = int(quota)
+        except (TypeError, ValueError):
+            raise ValueError("bad_quota")
+        if count < 0 or count > 500:
+            raise ValueError("bad_quota")
+        user = self.ledger.user_by_email(address)
+        if user:
+            if count < len(user.get("tester_emails") or []):
+                raise ValueError("quota_too_small")
+            roles = set(account_roles(user))
+            roles.add("sponsor")
+            store_roles(user, list(roles))
+            user["tester_quota"] = count
+            if not isinstance(user.get("tester_emails"), list):
+                user["tester_emails"] = []
+            self.ledger.save_user(user)
+            return self._sponsor_summary(user)
+        user = _blank_user(_pending_sub(address), address, address.split("@", 1)[0], ["sponsor"])
+        user["tester_quota"] = count
+        self.ledger.save_user(user)
+        return self._sponsor_summary(user)
+
+    def set_tester(self, token: str, email: str, remove: bool = False) -> dict:
         user = self._need(token)
         if "sponsor" not in account_roles(user):
             raise ValueError("sponsor_only")
+        address = _email_ok(email)
+        current = [str(item).strip().lower() for item in (user.get("tester_emails") or []) if str(item).strip()]
+        if remove:
+            current = [item for item in current if item != address]
+        elif address not in current:
+            owner = self._grant_owner(address)
+            if owner and owner.get("sub") != user.get("sub"):
+                raise ValueError("tester_taken")
+            if len(current) >= int(user.get("tester_quota") or 0):
+                raise ValueError("tester_quota")
+            current.append(address)
+        user["tester_emails"] = current
+        self.ledger.save_user(user)
+        return self._sponsor_summary(user)
+
+    def pcap_slot(self, token: str, body: dict) -> dict:
+        user = self._need(token)
+        device_id = str(body.get("device_id") or "")
+        devices = [str(item) for item in (user.get("device_ids") or [])]
+        if device_id not in devices or not _device_ok(device_id):
+            raise ValueError("device_required")
+        try:
+            size = int(body.get("bytes") or 0)
+        except (TypeError, ValueError):
+            raise ValueError("pcap_too_large")
+        if size < 1 or size > PCAP_MAX_BYTES:
+            raise ValueError("pcap_too_large")
+        name = "pcap/%s/%s.pcap" % (device_id, secrets.token_hex(16))
+        return {"object": name, "upload_url": pcap_upload_url(name, size)}
+
+    def pcap_link(self, token: str, object_name: str) -> dict:
+        actor = self._sponsor_user(token)
+        match = _PCAP_OBJECT.fullmatch(str(object_name or "").strip())
+        if not match:
+            raise ValueError("pcap_not_found")
+        owner = self.ledger.user_by_device(match.group(1))
+        email = str((owner or {}).get("email") or "").lower()
+        if "admin" in account_roles(actor):
+            allowed = self._grant_owner(email) is not None
+        else:
+            allowed = email in [str(item).lower() for item in (actor.get("tester_emails") or [])]
+        if not owner or not allowed:
+            raise ValueError("pcap_not_found")
+        return {"url": pcap_download_url(match.group(0))}
+
+    def sponsor_view(self, token: str) -> dict:
+        user = self._sponsor_user(token)
         campaigns = []
         for campaign in self.ledger.campaigns_for(user["sub"]):
             accepted_devices = []
@@ -949,7 +1263,11 @@ class Portal:
                 contributor = self.ledger.user_by_sub(job["sub"])
                 if contributor:
                     accepted_devices.extend(contributor.get("device_ids") or [])
-            rows = self.ledger.events_for_devices(accepted_devices, 80)
+            try:
+                rows = self.ledger.events_for_devices(accepted_devices, 80)
+            except Exception as exc:
+                sys.stderr.write("campaign measurements skipped: %s\n" % exc)
+                rows = []
             detail = []
             for event in rows:
                 stamp = int(event.get("received_at") or 0)
@@ -958,7 +1276,15 @@ class Portal:
             item = dict(campaign)
             item["results"] = detail
             campaigns.append(item)
-        return {"campaigns": campaigns, "measurements": _probe_rows(self.ledger.recent_events(200))}
+        summary = self._sponsor_summary(user) if "sponsor" in account_roles(user) else {
+            "email": str(user.get("email") or "").lower(),
+            "tester_quota": 0,
+            "testers": [],
+        }
+        summary["campaigns"] = campaigns
+        if "admin" in account_roles(user):
+            summary["sponsors"] = self._all_sponsors()
+        return summary
 
     def set_level(self, email: str, level: str) -> dict:
         if level not in ("lite", "premium"):
@@ -980,7 +1306,7 @@ class Portal:
         else:
             roles.discard("sponsor")
         if not roles:
-            roles.add("contributor")
+            roles.add("tester")
         store_roles(user, list(roles))
         user["commercial_access"] = bool(commercial)
         if brand:
@@ -1002,7 +1328,7 @@ class Portal:
         rows.sort(key=lambda row: row["email"])
         return {"users": rows}
 
-    def update_user(self, token: str, email: str, role: object, level: str, post_limit: object, test_limit: object) -> dict:
+    def update_user(self, token: str, email: str, role: object, level: str, post_limit: object, test_limit: object, tester_quota: object = None) -> dict:
         actor = self._need(token)
         if "admin" not in account_roles(actor):
             raise PermissionError("admin_only")
@@ -1025,8 +1351,39 @@ class Portal:
         user["level"] = level
         user["post_limit"] = post_value
         user["test_limit"] = test_value
+        if tester_quota is not None and "sponsor" in account_roles(user):
+            try:
+                count = int(tester_quota)
+            except (TypeError, ValueError):
+                raise ValueError("bad_quota")
+            if count < 0 or count > 500:
+                raise ValueError("bad_quota")
+            if count < len(user.get("tester_emails") or []):
+                raise ValueError("quota_too_small")
+            user["tester_quota"] = count
         self.ledger.save_user(user)
         return self._admin_row(user, self.ledger.credit_row(user["sub"], day_key(self.now())))
+
+    def delete_account(self, token: str, email: str) -> dict:
+        actor = self._need(token)
+        if "admin" not in account_roles(actor):
+            raise PermissionError("admin_only")
+        address = _email_ok(email)
+        if address == "netdrivetest@gmail.com":
+            raise ValueError("keep_super_admin")
+        user = self.ledger.user_by_email(address)
+        if not user:
+            raise ValueError("user_not_found")
+        for sponsor in list(self.ledger.users()):
+            if not sponsor or sponsor.get("sub") == user.get("sub"):
+                continue
+            owned = [str(item).strip().lower() for item in (sponsor.get("tester_emails") or [])]
+            if address not in owned:
+                continue
+            sponsor["tester_emails"] = [item for item in owned if item != address]
+            self.ledger.save_user(sponsor)
+        self.ledger.delete_user(str(user["sub"]))
+        return {"ok": True, "email": address}
 
     def post_credit(self, token: str, device_id: str, amount: object = None) -> dict:
         actor = self._need(token)
@@ -1073,6 +1430,9 @@ class Portal:
             "level": user.get("level") or "lite",
             "post_limit": credit_limit(user, "post"),
             "test_limit": credit_limit(user, "test"),
+            "tester_quota": int(user.get("tester_quota") or 0),
+            "tester_count": len(user.get("tester_emails") or []),
+            "sponsor_name": self._sponsor_name(str(user.get("email") or "")),
             "post_used": int(credit.get("post_used", 0)),
             "test_used": int(credit.get("test_used", 0)),
         }
@@ -1117,6 +1477,38 @@ def _device_ok(value: str) -> bool:
     if len(value) < 8 or len(value) > 64:
         return False
     return all(ch.isalnum() or ch in "_-" for ch in value)
+
+
+def _email_ok(value: str) -> str:
+    email = str(value or "").strip().lower()
+    if len(email) < 6 or len(email) > 120 or email.count("@") != 1 or any(ch.isspace() for ch in email):
+        raise ValueError("bad_email")
+    local, domain = email.split("@", 1)
+    if not local or "." not in domain:
+        raise ValueError("bad_email")
+    return email
+
+
+def _pending_sub(email: str) -> str:
+    return "pending-" + hashlib.sha256(email.encode("utf-8")).hexdigest()[:24]
+
+
+def _blank_user(sub: str, email: str, name: str, roles: list[str]) -> dict:
+    user = {
+        "sub": sub,
+        "email": email,
+        "name": name[:80],
+        "level": "lite",
+        "post_limit": POST_LIMIT,
+        "test_limit": TEST_LIMIT,
+        "operator_brand": "",
+        "commercial_access": False,
+        "device_ids": [],
+        "tester_emails": [],
+        "tester_quota": 0,
+    }
+    store_roles(user, roles)
+    return user
 
 
 def nonce_matches(sent: str, token_nonce: str) -> bool:
@@ -1392,53 +1784,37 @@ def home_html() -> bytes:
     page = """<!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Magnon | Crowdsourced network quality</title>
-<meta name="description" content="Magnon Lite classifies each phone test, reads recent results from the same district, and writes the sentence to share.">
+<meta name="description" content="Magnon Lite keeps each test on the phone. You choose what to send. Selected tests are classified with the same district, then written as one sentence to share on X.">
 <link rel="icon" type="image/png" href="__ICON__">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <style>
 *{box-sizing:border-box}
 html{scroll-behavior:smooth}
-body{margin:0;font-family:Arial,Helvetica,sans-serif;color:#141414;background:#fff;line-height:1.45}
+body{margin:0;font-family:Arial,Helvetica,sans-serif;color:#141414;background:#fff;line-height:1.5}
 a{color:inherit;text-decoration:none}
-.top{display:flex;align-items:center;justify-content:space-between;gap:24px;background:#111;color:#fff;padding:14px 28px}
-.brand{height:46px;width:auto;background:#fff;border-radius:4px;padding:2px 8px}
+.top{display:flex;align-items:center;justify-content:space-between;gap:24px;background:#fff;color:#141414;padding:16px 28px;border-bottom:1px solid #e6e6e6}
+.brand{height:40px;width:auto}
 .top nav{display:flex;align-items:center;gap:22px;font-size:15px}
-.top nav a:hover{opacity:.75}
-.signin{border:1px solid #fff;border-radius:4px;padding:8px 14px}
-.ribbon{background:#5b2dff;color:#fff;text-align:center;font-weight:700;padding:12px 16px}
-.hero{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(220px,.7fr);gap:32px;align-items:center;background:linear-gradient(110deg,#071824 0%,#0c3b55 58%,#123 100%);color:#fff;padding:72px 8vw 80px;min-height:520px}
-h1{font-size:clamp(46px,6.4vw,84px);line-height:.95;letter-spacing:-.035em;font-weight:700;margin:0 0 22px}
-.hero p{font-size:clamp(18px,2vw,24px);max-width:40rem;margin:0 0 28px;color:#d7e6ef}
-.btn{display:inline-block;background:#fff;color:#111;font-weight:700;padding:14px 22px;border-radius:4px}
-.btn.dark{background:#111;color:#fff}
-.rings{height:280px;border-radius:50%;background:radial-gradient(circle,#7ee7ff 0 6px,transparent 7px),radial-gradient(circle,transparent 34%,rgba(126,231,255,.55) 35% 36%,transparent 37%),radial-gradient(circle,transparent 58%,rgba(126,231,255,.35) 59% 60%,transparent 61%),radial-gradient(circle,transparent 80%,rgba(126,231,255,.22) 81% 82%,transparent 83%);background-position:center;background-repeat:no-repeat}
-.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:18px;padding:54px 8vw;background:#fff}
-.stats strong{display:block;font-size:clamp(40px,5vw,64px);letter-spacing:-.04em;line-height:1}
-.stats span{display:block;color:#444;margin-top:8px;max-width:14rem}
-section{padding:72px 8vw}
-h2{font-size:clamp(32px,4vw,48px);line-height:1.05;letter-spacing:-.03em;margin:0 0 12px}
-.sub{font-size:20px;color:#333;max-width:42rem;margin:0 0 28px}
-.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:22px}
-.steps div{border-top:3px solid #111;padding-top:16px}
-.steps strong{display:block;font-size:20px;margin-bottom:8px}
-.grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}
-article{background:#f4f6f8;padding:28px;border-radius:8px}
-article h3{margin:0 0 10px;font-size:28px}
-article p{margin:0;font-size:17px}
-.band{background:#071824;color:#fff}
-.band .sub{color:#d7e6ef}
-.board{margin-top:22px}
-.board li{margin:6px 0}
+.top nav a:hover{opacity:.6}
+.signin{border:1px solid #141414;border-radius:4px;padding:8px 14px}
+.hero{max-width:760px;padding:64px 8vw 8px}
+.ribbon{font-size:13px;letter-spacing:.04em;text-transform:uppercase;color:#666;margin:0 0 12px}
+h1{font-size:clamp(40px,5vw,64px);line-height:1;letter-spacing:-.035em;font-weight:700;margin:0 0 18px}
+.hero p{font-size:18px;max-width:38rem;margin:0 0 28px;color:#333}
+.btn{display:inline-block;background:#141414;color:#fff;font-weight:700;padding:12px 18px;border-radius:4px}
+section{padding:28px 8vw 72px}
+h2{font-size:clamp(28px,3vw,40px);line-height:1.1;letter-spacing:-.03em;margin:0 0 12px}
+.sub{font-size:18px;color:#333;max-width:40rem;margin:0 0 28px}
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.steps div{background:#f6f6f6;border-radius:8px;padding:22px}
+.steps strong{display:block;font-size:18px;margin-bottom:8px}
 .lang{display:flex;gap:8px}
-.lang button{background:transparent;color:#fff;border:1px solid #fff;border-radius:4px;padding:6px 10px;cursor:pointer;font-weight:700}
-.lang button.active{background:#fff;color:#111}
-table{width:100%;border-collapse:collapse}
-th,td{text-align:left;padding:12px 8px;border-bottom:1px solid #e4e4e4}
-th{font-size:13px;color:#444}
+.lang button{background:#fff;color:#141414;border:1px solid #ccc;border-radius:4px;padding:6px 10px;cursor:pointer;font-weight:700}
+.lang button.active{background:#141414;color:#fff;border-color:#141414}
 .filters{display:flex;gap:12px;flex-wrap:wrap;margin:0 0 16px}
 .filters label{display:flex;flex-direction:column;gap:6px;font-size:13px;color:#444}
 .filters select{font:inherit;color:#141414;padding:10px 12px;min-width:220px;border:1px solid #ccc;border-radius:4px;background:#fff}
-#placeMap{height:960px;border:1px solid #e4e4e4;border-radius:8px}
+#placeMap{height:560px;border:1px solid #e6e6e6;border-radius:8px}
 .place-pop .leaflet-popup-content{margin:12px 14px;width:300px !important}
 .place-pop .place-title{display:block;font-size:18px;margin:0 0 4px}
 .place-pop h3{margin:12px 0 8px;font-size:16px;letter-spacing:-.02em}
@@ -1448,52 +1824,57 @@ th{font-size:13px;color:#444}
 .place-pop .facts strong{display:block;color:#444;font-size:12px;font-weight:700}
 .place-pop .facts span{display:block;font-size:16px;letter-spacing:-.03em;line-height:1.2}
 #placeEmpty{color:#444;margin:0 0 12px}
-footer{background:#111;color:#ddd;padding:48px 8vw 28px}
+footer{background:#fff;color:#444;padding:28px 8vw 36px;border-top:1px solid #e6e6e6}
 .cols{display:grid;grid-template-columns:repeat(3,1fr);gap:24px}
-footer h2{color:#fff;font-size:16px;letter-spacing:0;margin:0 0 12px}
-footer a{display:block;margin:8px 0;color:#ddd}
+footer h2{color:#141414;font-size:16px;letter-spacing:0;margin:0 0 12px}
+footer a{display:block;margin:8px 0;color:#444}
 .legal{margin-top:28px;color:#9a9a9a;font-size:13px}
 @media(max-width:800px){
-.hero,.stats,.steps,.grid,.cols{grid-template-columns:1fr}
+.steps,.cols{grid-template-columns:1fr}
 .top{align-items:flex-start;flex-direction:column}
 .top nav{flex-wrap:wrap}
-.hero{padding:48px 24px;min-height:0}
-section,.stats{padding:48px 24px}
-footer{padding:36px 24px}
-.rings{height:180px}
+.hero{padding:40px 24px 8px}
+section{padding:24px 24px 48px}
+footer{padding:24px}
 }
 </style></head><body>
 <header class="top">
 <a href="/"><img class="brand" src="__LOGO__" alt="Magnon"></a>
 <nav>
 <a href="#measure" data-i18n="navHow">How it works</a>
+<a href="#premium" data-i18n="navPremium">Premium</a>
 <a href="#places" data-i18n="navPlaces">Compare</a>
 <a href="/posts" data-i18n="navPosts">Posts</a>
 <a class="signin" href="/magnon-lite.apk" data-i18n="downloadApk">Download APK</a>
 <div class="lang"><button id="langEn" type="button">EN</button><button id="langId" type="button">ID</button></div>
 </nav>
 </header>
-<div class="ribbon" data-i18n="ribbon">Crowdsourced network quality</div>
 <section class="hero">
 <div>
+<p class="ribbon" data-i18n="ribbon">Crowdsourced network quality</p>
 <h1 data-i18n-html="heroTitle">Share a real test.<br>Compare the district.</h1>
-<p data-i18n="heroBody">Magnon Lite starts a Speed or Video test only after the provider and the GPS place are known. On the AI tab, each result is classified, then read with recent results from the same district, and written as one sentence you can share.</p>
+<p data-i18n="heroBody">Magnon Lite starts a Speed or Video test only after the provider and the GPS place are known. The result stays on the phone. On the AI tab you write the experience. Magnon picks the relevant loops from the ten newest. Each chosen result is classified, then read with recent results from the same district, and written as one sentence to share on X.</p>
 <a class="btn" href="/magnon-lite.apk" data-i18n="downloadApk">Download APK</a>
 </div>
-<div class="rings" aria-hidden="true"></div>
 </section>
 <section id="measure">
-<h2 data-i18n="howTitle">From a measured test to the action it needs</h2>
+<h2 data-i18n="howTitle">Speed, Video, and AI</h2>
 <p class="sub" data-i18n="howSub">Each phone can share ten new tests a day. For more, copy the device id on the AI tab and send it to @MagnonTest on X.</p>
 <div class="steps">
-<div><strong data-i18n="step1">01 &nbsp;Test</strong><span data-i18n="step1Body">Speed or Video waits for the provider and a GPS place. The AI tab keeps the ten newest loops.</span></div>
-<div><strong data-i18n="step2">02 &nbsp;Context</strong><span data-i18n="step2Body">Each selected test is classified on its own. The latest classifications from the same district supply the wider context. One draft uses one provider and one transport.</span></div>
-<div><strong data-i18n="step3">03 &nbsp;Action</strong><span data-i18n="step3Body">One sentence is written from that context. The public page lists every selected test and shows no email and no exact place.</span></div>
+<div><strong data-i18n="step1">01 &nbsp;Speed</strong><span data-i18n="step1Body">Server, provider, and transport, then GO. The test reports ping, download, and upload. It waits for the provider and a GPS place, and the result stays on the phone.</span></div>
+<div><strong data-i18n="step2">02 &nbsp;Video</strong><span data-i18n="step2Body">Provider and transport, then GO. The test reports load time, resolution, and buffering. The result stays on the phone until you select it.</span></div>
+<div><strong data-i18n="step3">03 &nbsp;AI</strong><span data-i18n="step3Body">The AI tab keeps the ten newest loops. You write the experience, and Magnon sends only the loops that match it. One draft uses one provider and one transport. Share the sentence on X. The public page lists every selected test and shows no email and no exact place.</span></div>
 </div>
+</section>
+<section id="premium">
+<h2 data-i18n="premiumTitle">Premium APK</h2>
+<p class="sub" data-i18n="premiumBody">Speed and Video, plus Network and Radio. Network holds packet capture, gateway ping, and traceroute. Radio keeps the signal chart. Each finished measurement is sent when that test ends. The capture file is sent when the capture stops.</p>
+<p class="sub" data-i18n="premiumAsk">The technical release opens after a sponsor registers this Gmail. To become a sponsor, DM @magnonbot on X.</p>
+<a class="btn" href="/magnon-premium.apk" data-i18n="premiumDownload">Download Premium APK</a>
 </section>
 <section id="places">
 <h2 data-i18n="placesTitle">Best tests by district</h2>
-<p class="sub" data-i18n="placesSub">Best Wi-Fi and cellular speed and video tests in each district.</p>
+<p class="sub" data-i18n="placesSub">Best shared Wi-Fi and cellular speed and video tests in each district.</p>
 <div class="filters">
 <label><span data-i18n="filterProvinsi">Province</span><select id="placeProvinsi"></select></label>
 <label><span data-i18n="filterKabupaten">Regency</span><select id="placeKabupaten"></select></label>
@@ -1503,8 +1884,8 @@ footer{padding:36px 24px}
 </section>
 <footer>
 <div class="cols">
-<div><h2 data-i18n="footerProduct">Product</h2><a href="#measure" data-i18n="navHow">How it works</a><a href="#places" data-i18n="navPlaces">Compare</a><a href="/posts" data-i18n="navPosts">Posts</a></div>
-<div><h2 data-i18n="footerPost">Post</h2><a href="/magnon-lite.apk" data-i18n="downloadApk">Download APK</a></div>
+<div><h2 data-i18n="footerProduct">Product</h2><a href="#measure" data-i18n="navHow">How it works</a><a href="#premium" data-i18n="navPremium">Premium</a><a href="#places" data-i18n="navPlaces">Compare</a><a href="/posts" data-i18n="navPosts">Posts</a></div>
+<div><h2 data-i18n="footerPost">Post</h2><a href="/magnon-lite.apk" data-i18n="downloadApk">Download APK</a><a href="/magnon-premium.apk" data-i18n="premiumDownload">Download Premium APK</a></div>
 <div><h2>Magnon</h2><a href="/">magnon.site</a></div>
 </div>
 <p class="legal">magnon.site</p>
@@ -1515,22 +1896,27 @@ var copy = {
   en: {
     ribbon: "Crowdsourced network quality",
     heroTitle: "Share a real test.<br>Compare the district.",
-    heroBody: "Magnon Lite starts a Speed or Video test only after the provider and the GPS place are known. On the AI tab, each result is classified, then read with recent results from the same district, and written as one sentence you can share.",
+    heroBody: "Magnon Lite starts a Speed or Video test only after the provider and the GPS place are known. The result stays on the phone. On the AI tab you write the experience. Magnon picks the relevant loops from the ten newest. Each chosen result is classified, then read with recent results from the same district, and written as one sentence to share on X.",
     signIn: "Share the draft",
     downloadApk: "Download APK",
     navHow: "How it works",
+    navPremium: "Premium",
     navPlaces: "Compare",
     navPosts: "Posts",
-    howTitle: "From a measured test to the action it needs",
+    howTitle: "Speed, Video, and AI",
     howSub: "Each phone can share ten new tests a day. For more, copy the device id on the AI tab and send it to @MagnonTest on X.",
-    step1: "01  Test",
-    step1Body: "Speed or Video waits for the provider and a GPS place. The AI tab keeps the ten newest loops.",
-    step2: "02  Context",
-    step2Body: "Each selected test is classified on its own. The latest classifications from the same district supply the wider context. One draft uses one provider and one transport.",
-    step3: "03  Action",
-    step3Body: "One sentence is written from that context. The public page lists every selected test and shows no email and no exact place.",
+    step1: "01  Speed",
+    step1Body: "Server, provider, and transport, then GO. The test reports ping, download, and upload. It waits for the provider and a GPS place, and the result stays on the phone.",
+    step2: "02  Video",
+    step2Body: "Provider and transport, then GO. The test reports load time, resolution, and buffering. The result stays on the phone until you select it.",
+    step3: "03  AI",
+    step3Body: "The AI tab keeps the ten newest loops. You write the experience, and Magnon sends only the loops that match it. One draft uses one provider and one transport. Share the sentence on X. The public page lists every selected test and shows no email and no exact place.",
+    premiumTitle: "Premium APK",
+    premiumBody: "Speed and Video, plus Network and Radio. Network holds packet capture, gateway ping, and traceroute. Radio keeps the signal chart. Each finished measurement is sent when that test ends. The capture file is sent when the capture stops.",
+    premiumAsk: "The technical release opens after a sponsor registers this Gmail. To become a sponsor, DM @magnonbot on X.",
+    premiumDownload: "Download Premium APK",
     placesTitle: "Best tests by district",
-    placesSub: "Best Wi-Fi and cellular speed and video tests in each district.",
+    placesSub: "Best shared Wi-Fi and cellular speed and video tests in each district.",
     placesEmpty: "Choose a province and a regency.",
     placesNone: "No shared result yet.",
     filterProvinsi: "Province",
@@ -1553,22 +1939,27 @@ var copy = {
   id: {
     ribbon: "Kualitas jaringan dari banyak orang",
     heroTitle: "Bagikan hasil uji.<br>Bandingkan kecamatannya.",
-    heroBody: "Magnon Lite memulai uji Speed atau Video hanya setelah provider dan nama tempat dari GPS diketahui. Di tab AI, tiap hasil diklasifikasi, dibaca bersama hasil terbaru di kecamatan yang sama, lalu ditulis menjadi satu kalimat untuk dibagikan.",
+    heroBody: "Magnon Lite memulai uji Speed atau Video hanya setelah provider dan nama tempat dari GPS diketahui. Hasilnya tetap di ponsel. Di tab AI Anda menuliskan pengalaman. Magnon memilih loop yang relevan dari sepuluh loop terbaru. Tiap hasil yang dipilih diklasifikasi, dibaca bersama hasil terbaru di kecamatan yang sama, lalu ditulis menjadi satu kalimat untuk dibagikan di X.",
     signIn: "Bagikan draf",
     downloadApk: "Unduh APK",
     navHow: "Cara kerja",
+    navPremium: "Premium",
     navPlaces: "Bandingkan",
     navPosts: "Postingan",
-    howTitle: "Dari uji terukur ke tindakan yang dibutuhkan",
+    howTitle: "Speed, Video, dan AI",
     howSub: "Setiap ponsel bisa membagikan sepuluh uji baru sehari. Untuk menambahnya, salin device id di tab AI dan kirim ke @MagnonTest di X.",
-    step1: "01  Uji",
-    step1Body: "Speed atau Video menunggu provider dan nama tempat dari GPS. Tab AI menyimpan sepuluh loop terbaru.",
-    step2: "02  Konteks",
-    step2Body: "Tiap uji yang dipilih diklasifikasi sendiri. Klasifikasi terbaru dari kecamatan yang sama memberi konteks yang lebih luas. Satu draf memakai satu provider dan satu transport.",
-    step3: "03  Tindakan",
-    step3Body: "Satu kalimat ditulis dari konteks itu. Halaman publik memuat setiap uji yang dipilih, tanpa email dan tanpa titik lokasi.",
+    step1: "01  Speed",
+    step1Body: "Server, provider, dan transport, lalu GO. Uji ini melaporkan ping, unduh, dan unggah. Uji menunggu provider dan nama tempat dari GPS, dan hasilnya tetap di ponsel.",
+    step2: "02  Video",
+    step2Body: "Provider dan transport, lalu GO. Uji ini melaporkan waktu muat, resolusi, dan buffering. Hasilnya tetap di ponsel sampai Anda memilihnya.",
+    step3: "03  AI",
+    step3Body: "Tab AI menyimpan sepuluh loop terbaru. Anda menuliskan pengalaman, dan Magnon hanya mengirim loop yang cocok. Satu draf memakai satu provider dan satu transport. Bagikan kalimatnya di X. Halaman publik memuat setiap uji yang dipilih, tanpa email dan tanpa titik lokasi.",
+    premiumTitle: "APK Premium",
+    premiumBody: "Speed dan Video, plus Network dan Radio. Network memuat tangkapan paket, ping gateway, dan traceroute. Radio menampilkan grafik sinyal. Setiap pengukuran yang selesai dikirim saat uji itu berakhir. Berkas tangkapan dikirim saat tangkapan berhenti.",
+    premiumAsk: "Rilis teknis terbuka setelah sponsor mendaftarkan Gmail ini. Untuk menjadi sponsor, kirim DM ke @magnonbot di X.",
+    premiumDownload: "Unduh APK Premium",
     placesTitle: "Hasil terbaik per kecamatan",
-    placesSub: "Hasil speed dan video terbaik untuk Wi-Fi dan seluler di tiap kecamatan.",
+    placesSub: "Hasil speed dan video yang dibagikan, terbaik untuk Wi-Fi dan seluler di tiap kecamatan.",
     placesEmpty: "Pilih provinsi dan kabupaten.",
     placesNone: "Belum ada hasil yang dibagikan.",
     filterProvinsi: "Provinsi",
@@ -1812,11 +2203,11 @@ fetch("/api/magnon/places").then(function(response){ return response.json(); }).
     return page.replace("__LOGO__", _data_uri("magnon-logo.png")).replace("__ICON__", _data_uri("magnon-icon.png")).encode("utf-8")
 
 
-def portal_html(client_id: str, kind: str = "contrib") -> bytes:
+def portal_html(client_id: str, kind: str = "sponsor") -> bytes:
     configured = "true" if client_id else "false"
     client = client_id.replace('"', "")
-    page_kind = kind if kind in ("admin", "sponsor", "contrib") else "contrib"
-    title = {"admin": "Admin", "sponsor": "Sponsor", "contrib": "Contributor"}[page_kind]
+    page_kind = kind if kind in ("admin", "sponsor") else "sponsor"
+    title = {"admin": "Admin", "sponsor": "Sponsor"}[page_kind]
     page = """<!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Magnon | __TITLE__</title>
@@ -1848,11 +2239,12 @@ dt{color:#555} dd{margin:0}
 .roles label{display:block;margin:2px 0}
 </style></head><body>
 <header class="top"><a href="/"><img class="brand" src="__LOGO__" alt="Magnon"></a>
-<nav><a href="/admin">Admin</a><a href="/sponsor">Sponsor</a><a href="/contrib">Contributor</a></nav>
+<nav><a href="/admin">Admin</a><a href="/sponsor">Sponsor</a></nav>
 </header>
 <main>
 <h1>__TITLE__</h1>
 <p id="who" class="muted">Sign in with Gmail.</p>
+<p id="sponsorAsk" class="note" hidden>To use the technical release, a sponsor registers your Gmail. To become a sponsor, DM @magnonbot on X.</p>
 <div id="signin"></div>
 <p id="unconfigured" class="muted" hidden>Sign-in is not configured.</p>
 <p id="denied" class="note" hidden></p>
@@ -1868,13 +2260,26 @@ dt{color:#555} dd{margin:0}
 </form>
 <p id="quotaStatus" class="muted"></p>
 <div id="devices"></div>
+<h2>Sponsors</h2>
+<form id="sponsorForm">
+<input id="sponsorEmail" placeholder="gmail" size="28">
+<input id="sponsorQuota" type="number" min="0" max="500" placeholder="tester quota" size="8">
+<button type="submit">Create sponsor</button>
+</form>
+<p id="sponsorAdminStatus" class="muted"></p>
 <h2>Accounts</h2>
 <p id="adminStatus" class="muted"></p>
 <div id="users"></div>
 </section>
 <section id="sponsorWrap" hidden>
-<h2>Measurements</h2>
+<h2>Testers</h2>
 <p><a href="/magnon-premium.apk">Download the technical release</a></p>
+<p id="testerQuota" class="muted"></p>
+<form id="testerForm">
+<input id="testerEmail" placeholder="gmail" size="28">
+<button type="submit">Add tester</button>
+</form>
+<p id="testerStatus" class="muted"></p>
 <div id="measurements"></div>
 <h2>Request a measurement</h2>
 <form id="campaignForm">
@@ -1905,8 +2310,8 @@ dt{color:#555} dd{margin:0}
 const configured = __CONFIGURED__;
 const clientId = "__CLIENT__";
 const page = "__PAGE__";
-const ROLE_NAMES = ["admin","sponsor","contributor"];
-const DETAIL_KEYS = ["received_at","provider","rat","network_type","download_bps","upload_bps","latency_ms","rsrp","rsrq","sinr","rssi","ss_rsrp","ss_rsrq","ss_sinr","pci","arfcn","earfcn","nrarfcn","band","cqi","kind","ipv4","ipv4_rtt_ms","ipv6","ipv6_rtt_ms","app","packets","bytes","duration_ms"];
+const ROLE_NAMES = ["admin","sponsor","tester"];
+const DETAIL_KEYS = ["received_at","provider","rat","network_type","download_bps","upload_bps","latency_ms","rsrp","rsrq","sinr","rssi","ss_rsrp","ss_rsrq","ss_sinr","pci","arfcn","earfcn","nrarfcn","band","cqi","kind","ipv4","ipv4_rtt_ms","ipv6","ipv6_rtt_ms","app","packets","bytes","duration_ms","pcap_object"];
 function esc(value){return String(value).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;")}
 function pick(event){
   const found = {};
@@ -1932,9 +2337,22 @@ function detailCards(events){
     const fields = pick(event);
     const keys = Object.keys(fields);
     if (!keys.length) return "";
-    return "<article class='card'><dl>"+keys.map(function(key){return "<dt>"+esc(key)+"</dt><dd>"+esc(fields[key])+"</dd>"}).join("")+"</dl></article>";
+    return "<article class='card'><dl>"+keys.map(function(key){
+      const value = key === "pcap_object" ? "<a href='#' data-pcap='"+esc(fields[key])+"'>download</a>" : esc(fields[key]);
+      return "<dt>"+esc(key)+"</dt><dd>"+value+"</dd>";
+    }).join("")+"</dl></article>";
   }).join("");
   return html || "<p class='muted'>No radio or network measurements yet.</p>";
+}
+function rosterCards(people, removable){
+  if (!people || !people.length) return "<p class='muted'>No testers yet.</p>";
+  return people.map(function(person){
+    const devices = (person.devices || []).map(function(device){
+      return "<h4>"+esc(device.device_id)+"</h4>"+detailCards(device.measurements || []);
+    }).join("") || "<p class='muted'>No phone yet.</p>";
+    const drop = removable ? " <button type='button' data-drop='"+esc(person.email)+"'>Remove</button>" : "";
+    return "<article class='card'><h3>"+esc(person.email)+drop+"</h3>"+devices+"</article>";
+  }).join("");
 }
 function campaignCards(campaigns){
   if (!campaigns.length) return "<p class='muted'>No requests yet.</p>";
@@ -1967,6 +2385,17 @@ async function readQuota(adding) {
     status.textContent = (err && err.error) || "Lookup failed";
   }
 }
+document.getElementById("measurements").onclick = async function(ev) {
+  const link = ev.target.closest("a[data-pcap]");
+  if (!link) return;
+  ev.preventDefault();
+  try {
+    const data = await api("/api/magnon/pcap?object=" + encodeURIComponent(link.getAttribute("data-pcap") || ""));
+    if (data.url) window.location.href = data.url;
+  } catch (err) {
+    link.textContent = (err && err.error) || "download failed";
+  }
+};
 document.getElementById("quotaLookup").onclick = function(){ readQuota(false); };
 document.getElementById("quotaForm").onsubmit = function(ev){ ev.preventDefault(); readQuota(true); };
 async function loadDevices(){
@@ -1999,11 +2428,15 @@ async function loadDevices(){
 async function loadUsers(){
   const data = await api("/api/magnon/users");
   const rows = data.users || [];
-  document.getElementById("users").innerHTML = "<table><thead><tr><th>Email</th><th>Roles</th><th>Level</th><th>Post credit</th><th>Premium tests</th><th></th></tr></thead><tbody>"+
+  document.getElementById("users").innerHTML = "<table><thead><tr><th>Email</th><th>Roles</th><th>Level</th><th>Post credit</th><th>Premium tests</th><th>Tester quota</th><th>Sponsor</th><th></th></tr></thead><tbody>"+
     rows.map(function(row, index){
       const roles = row.roles || [];
       const boxes = ROLE_NAMES.map(function(role){return "<label><input type='checkbox' data-k='"+role+"'"+(roles.indexOf(role)>=0?" checked":"")+"> "+role+"</label>"}).join("");
-      return "<tr data-i='"+index+"'><td>"+esc(row.email)+"</td><td class='roles'>"+boxes+"</td><td><select data-k='level'>"+["lite","premium"].map(function(level){return "<option"+(row.level===level?" selected":"")+">"+level+"</option>"}).join("")+"</select></td><td><input data-k='post_limit' type='number' min='0' max='1000' value='"+esc(row.post_limit)+"' size='4'></td><td><input data-k='test_limit' type='number' min='0' max='1000' value='"+esc(row.test_limit)+"' size='4'></td><td><button type='button' data-save='"+esc(row.email)+"'>Save</button></td></tr>";
+      const locked = String(row.email || "").toLowerCase() === "netdrivetest@gmail.com";
+      const drop = locked ? "" : "<button type='button' data-delete='"+esc(row.email)+"'>Delete</button>";
+      const quota = roles.indexOf("sponsor") >= 0 ? esc(row.tester_count || 0)+" / <input data-k='tester_quota' type='number' min='0' max='500' value='"+esc(row.tester_quota || 0)+"' size='4'>" : "—";
+      const sponsor = roles.indexOf("tester") >= 0 && row.sponsor_name ? esc(row.sponsor_name) : "—";
+      return "<tr data-i='"+index+"'><td>"+esc(row.email)+"</td><td class='roles'>"+boxes+"</td><td><select data-k='level'>"+["lite","premium"].map(function(level){return "<option"+(row.level===level?" selected":"")+">"+level+"</option>"}).join("")+"</select></td><td><input data-k='post_limit' type='number' min='0' max='1000' value='"+esc(row.post_limit)+"' size='4'></td><td><input data-k='test_limit' type='number' min='0' max='1000' value='"+esc(row.test_limit)+"' size='4'></td><td>"+quota+"</td><td>"+sponsor+"</td><td><button type='button' data-save='"+esc(row.email)+"'>Save</button> "+drop+"</td></tr>";
     }).join("")+"</tbody></table>";
   document.querySelectorAll("[data-save]").forEach(function(button){
     button.onclick = async function(){
@@ -2016,7 +2449,8 @@ async function loadUsers(){
           roles: ROLE_NAMES.filter(function(role){return tr.querySelector("[data-k="+role+"]").checked}),
           level: tr.querySelector("[data-k=level]").value,
           post_limit: Number(tr.querySelector("[data-k=post_limit]").value),
-          test_limit: Number(tr.querySelector("[data-k=test_limit]").value)
+          test_limit: Number(tr.querySelector("[data-k=test_limit]").value),
+          tester_quota: tr.querySelector("[data-k=tester_quota]") ? Number(tr.querySelector("[data-k=tester_quota]").value) : undefined
         });
         status.textContent = "Saved " + button.getAttribute("data-save");
         refresh();
@@ -2025,39 +2459,108 @@ async function loadUsers(){
       }
     };
   });
+  document.querySelectorAll("[data-delete]").forEach(function(button){
+    button.onclick = async function(){
+      const email = button.getAttribute("data-delete");
+      const status = document.getElementById("adminStatus");
+      if (!window.confirm("Delete " + email + "?")) return;
+      status.textContent = "";
+      try {
+        await api("/api/magnon/users/delete", {email: email});
+        status.textContent = "Deleted " + email;
+        refresh();
+      } catch (err) {
+        status.textContent = (err && err.error) || "Delete failed";
+      }
+    };
+  });
 }
 async function refresh() {
   const me = await api("/api/magnon/me");
   const roles = me.roles || String(me.role || "").split(",").filter(Boolean);
   const has = function(role){return roles.indexOf(role) >= 0};
-  const needed = page === "contrib" ? "contributor" : page;
+  const needed = page;
+  const allowed = has(needed) || (page === "sponsor" && has("admin"));
   document.getElementById("who").textContent = me.name + " · " + roles.join(", ") + " · " + me.level;
   document.getElementById("balance").textContent = "Points " + me.points + " · posts " + me.post_used + "/" + me.post_limit + " · premium tests " + me.test_used + "/" + me.test_limit;
-  if (!has(needed)) {
+  if (!allowed) {
     document.getElementById("app").hidden = true;
     const denied = document.getElementById("denied");
     denied.hidden = false;
-    denied.textContent = "This account does not have the " + needed + " role.";
+    denied.textContent = roles.indexOf("tester") >= 0 && !has("admin") && !has("sponsor")
+      ? "This account has no web dashboard."
+      : "This account does not have the " + needed + " role.";
     return;
   }
   document.getElementById("denied").hidden = true;
   document.getElementById("app").hidden = false;
-  const premium = page === "contrib" && me.level === "premium";
   document.getElementById("adminWrap").hidden = page !== "admin";
   document.getElementById("sponsorWrap").hidden = page !== "sponsor";
-  document.getElementById("mineWrap").hidden = !premium;
-  document.getElementById("liteWrap").hidden = page !== "contrib" || me.level === "premium";
+  document.getElementById("mineWrap").hidden = true;
+  document.getElementById("liteWrap").hidden = true;
   if (page === "admin") { await loadDevices(); await loadUsers(); }
   if (page === "sponsor") {
-    const view = await api("/api/magnon/sponsor");
-    document.getElementById("measurements").innerHTML = detailCards(view.measurements || []);
-    document.getElementById("sponsor").innerHTML = campaignCards(view.campaigns || []);
-  }
-  if (premium) {
-    const mine = await api("/api/magnon/mine");
-    document.getElementById("mine").innerHTML = detailCards(mine.events || []);
+    const status = document.getElementById("testerStatus");
+    try {
+      const view = await api("/api/magnon/sponsor");
+      const own = has("sponsor");
+      const sponsors = view.sponsors || [];
+      document.getElementById("testerForm").hidden = !own;
+      document.getElementById("testerQuota").textContent = own
+        ? ((view.testers || []).length + " / " + view.tester_quota)
+        : sponsors.map(function(row){return row.email+" · "+(row.testers || []).length+" / "+row.tester_quota}).join(" · ");
+      let html = own ? rosterCards(view.testers || [], true) : "";
+      if (has("admin")) {
+        html += sponsors.map(function(row){
+          return "<h3>"+esc(row.email)+" · "+(row.testers || []).length+" / "+esc(row.tester_quota)+"</h3>"+rosterCards(row.testers || [], false);
+        }).join("");
+      }
+      document.getElementById("measurements").innerHTML = html;
+      document.getElementById("sponsor").innerHTML = campaignCards(view.campaigns || []);
+    } catch (err) {
+      status.textContent = (err && err.error) || "Could not load testers";
+    }
   }
 }
+document.getElementById("sponsorForm").onsubmit = async function(ev){
+  ev.preventDefault();
+  const status = document.getElementById("sponsorAdminStatus");
+  status.textContent = "";
+  try {
+    const saved = await api("/api/magnon/sponsors", {
+      email: document.getElementById("sponsorEmail").value.trim(),
+      tester_quota: Number(document.getElementById("sponsorQuota").value)
+    });
+    status.textContent = saved.email + " · " + (saved.testers || []).length + " / " + saved.tester_quota;
+    refresh();
+  } catch (err) {
+    status.textContent = (err && err.error) || "Create failed";
+  }
+};
+document.getElementById("testerForm").onsubmit = async function(ev){
+  ev.preventDefault();
+  const status = document.getElementById("testerStatus");
+  status.textContent = "";
+  try {
+    await api("/api/magnon/testers", {email: document.getElementById("testerEmail").value.trim()});
+    document.getElementById("testerEmail").value = "";
+    refresh();
+  } catch (err) {
+    status.textContent = (err && err.error) || "Add failed";
+  }
+};
+document.getElementById("measurements").addEventListener("click", async function(ev){
+  const button = ev.target.closest("[data-drop]");
+  if (!button) return;
+  const status = document.getElementById("testerStatus");
+  status.textContent = "";
+  try {
+    await api("/api/magnon/testers", {email: button.getAttribute("data-drop"), remove: true});
+    refresh();
+  } catch (err) {
+    status.textContent = (err && err.error) || "Remove failed";
+  }
+});
 document.getElementById("campaignForm").onsubmit = async (ev) => {
   ev.preventDefault();
   const form = new FormData(ev.target);
@@ -2073,6 +2576,7 @@ window.onGoogle = async (resp) => {
   await api("/v1/auth/google", {id_token: resp.credential, device_id: "", flavor: "lite"});
   refresh();
 };
+document.getElementById("sponsorAsk").hidden = page !== "sponsor";
 if (!configured) {
   document.getElementById("unconfigured").hidden = false;
 } else {
@@ -2380,6 +2884,149 @@ def _classify_saved_then_context(
     }
 
 
+def _auto_mention(raw: dict) -> bool:
+    value = raw.get("auto_mention")
+    return value in (True, 1, "1", "true", "yes")
+
+
+_MAGNON_MENTION = "@MagnonTest"
+
+
+def _with_magnon_mention(sentence: str) -> str:
+    """Keep the draft inside 180 characters and end it with @MagnonTest."""
+    mention = _MAGNON_MENTION
+    text = " ".join(sentence.split())
+    lowered = text.lower()
+    needle = mention.lower()
+    if needle in lowered:
+        start = lowered.find(needle)
+        text = " ".join((text[:start] + text[start + len(mention) :]).split())
+    room = 180 - len(mention) - 1
+    body = text[:room].rstrip()
+    if not body:
+        return mention
+    return "%s %s" % (body, mention)
+
+
+def _mention_for(provider: str) -> str:
+    return {
+        "telkomsel": "@Telkomsel",
+        "indosat": "@indosat",
+        "xl": "@myXL",
+        "tri": "@triindonesia",
+        "smartfren": "@smartfren",
+        "telkom": "@TelkomIndonesia",
+    }.get(str(provider or "").strip().lower(), "")
+
+
+def _same_path(events: list[dict]) -> list[dict]:
+    """One draft uses one provider and one transport. The largest group stays."""
+    groups: dict[tuple[str, str], list[dict]] = {}
+    order: list[tuple[str, str]] = []
+    for event in events:
+        path = (
+            str(event.get("provider") or "").strip().lower(),
+            str(event.get("transport") or "").strip().lower(),
+        )
+        if path not in groups:
+            order.append(path)
+            groups[path] = []
+        groups[path].append(event)
+    if not order:
+        return []
+    best = max(order, key=lambda path: len(groups[path]))
+    return groups[best]
+
+
+def _candidate_view(event: dict) -> dict:
+    view = {
+        "id": str(event.get("id") or ""),
+        "kind": str(event.get("kind") or ""),
+        "when": str(event.get("when") or ""),
+        "provider": str(event.get("provider") or ""),
+        "transport": str(event.get("transport") or ""),
+        "kecamatan": str(event.get("kecamatan") or ""),
+    }
+    for key in ("download_mbps", "upload_mbps", "ping_ms", "jitter_ms", "load_ms", "resolution", "buffering_pct"):
+        if event.get(key) not in ("", None):
+            view[key] = event.get(key)
+    return view
+
+
+def select_events_with_jev(experience: str, events: list[dict]) -> list[str]:
+    """Pick the candidate ids that answer the written experience."""
+    key = os.environ.get("TYPESAFE_API_KEY", "").strip()
+    if not key:
+        raise RuntimeError("jev_not_configured")
+    pool = events[:10]
+    questions = {}
+    for index, event in enumerate(pool):
+        questions["use_%d" % index] = {
+            "type": "choice",
+            "instructions": (
+                "Does candidate %d answer the user's experience? "
+                "Choose use only when this row is evidence for what they wrote. "
+                "A slow video note, including YouTube or yutub, uses a weak video row, not a fast speed row. "
+                "A good Wi-Fi note uses a strong speed row on Wi-Fi. "
+                "Skip a row that would mix provider or transport with the rows you use."
+                % index
+            ),
+            "criteria": {
+                "use": "This test is relevant evidence for the experience",
+                "skip": "This test is a different kind, path, or direction",
+            },
+        }
+    body = {
+        "model": os.environ.get("TYPESAFE_MODEL", "jev-latest").strip() or "jev-latest",
+        "state": _jev_state({
+            "experience": experience[:400],
+            "candidates": [_candidate_view(event) for event in pool],
+        }),
+        "questions": questions,
+    }
+    parsed = _post_json("https://api.typesafe.ai/v1/systemone", body, key, 12)
+    answers = parsed.get("answers") or {}
+    chosen = []
+    for index, event in enumerate(pool):
+        choice = str((answers.get("use_%d" % index) or {}).get("choice") or "")
+        if choice == "use":
+            chosen.append(event)
+    return [str(event.get("id") or "") for event in _same_path(chosen) if str(event.get("id") or "")]
+
+
+def _apply_experience(raw: dict, brief: dict, events: list[dict], select: Callable | None) -> tuple[list[dict], dict | None]:
+    experience = _clip(raw.get("experience"), 400)
+    if not experience:
+        return events, None
+    brief["experience"] = experience
+    if not events:
+        return events, None
+    picked = (select or select_events_with_jev)(experience, events)
+    allowed = {str(item).strip() for item in (picked or []) if str(item).strip()}
+    chosen = _same_path([event for event in events if str(event.get("id") or "") in allowed])
+    brief["events"] = chosen
+    for key in ("kelurahan", "kecamatan", "kabupaten", "provinsi", "transport", "provider", "carrier"):
+        brief[key] = _agreed(chosen, key)
+    if _auto_mention(raw) and not str(brief.get("mention") or "").strip():
+        mention = _mention_for(_agreed(chosen, "provider"))
+        if mention:
+            brief["mention"] = mention
+    if chosen:
+        return chosen, None
+    return [], {
+        "eligible": False,
+        "sentence": "",
+        "summary": "No saved test matches that experience.\nRun the Speed or Video test it describes, then draft again.",
+        "url": "",
+        "post_intent": "skip",
+        "quality_band": "",
+        "topic": "",
+        "classifier": "local",
+        "composer": "",
+        "used": [],
+    }
+
+
 def compose_post(
     raw: dict,
     classify: Callable | None = None,
@@ -2389,6 +3036,7 @@ def compose_post(
     geocode: Callable | None = None,
     classify_event: Callable | None = None,
     classify_context: Callable | None = None,
+    select: Callable | None = None,
 ) -> dict:
     """Jev chooses complaint or praise. DeepSeek writes the sentence and does not change that choice."""
     if not isinstance(raw, dict):
@@ -2401,6 +3049,9 @@ def compose_post(
             brief[key] = _agreed(events, key)
         brief["latitude"] = None
         brief["longitude"] = None
+        events, refused = _apply_experience(raw, brief, events, select)
+        if refused:
+            return refused
     else:
         _use_stored_fix(brief, fixes)
         _fill_place(brief, geocode or reverse_geocode)
@@ -2457,19 +3108,20 @@ def compose_post(
     classification = dict(classification)
     classification["post_intent"] = intent
     written = (draft or draft_with_deepseek)(model_brief, classification)
-    sentence = str(written.get("sentence") or "").strip()
-    if not sentence:
+    sentence = _with_magnon_mention(str(written.get("sentence") or "").strip())
+    if sentence == _MAGNON_MENTION:
         raise RuntimeError("empty_draft")
     return {
         "eligible": True,
-        "sentence": sentence[:180],
+        "sentence": sentence,
         "summary": str(written.get("summary") or "").strip()[:800],
-        "url": publish_run(ledger, brief, sentence[:180]),
+        "url": publish_run(ledger, brief, sentence),
         "post_intent": intent,
         "quality_band": str(classification.get("quality_band") or "unknown"),
         "topic": str(classification.get("topic") or ""),
         "classifier": "jev",
         "composer": "deepseek",
+        "used": [str(event.get("id") or "") for event in (brief.get("events") or [])],
         **({
             "free_used": quota["free_used"],
             "free_limit": quota["free_limit"],
@@ -2671,6 +3323,7 @@ def _model_brief(brief: dict) -> dict:
         "transport": brief.get("transport") or "",
         "provider": brief.get("provider") or "",
         "mention": brief.get("mention") or "",
+        "experience": brief.get("experience") or "",
     }
     if brief.get("events"):
         compact["events"] = brief.get("events")
@@ -3280,7 +3933,8 @@ def draft_with_deepseek(brief: dict, classification: dict) -> dict:
         "You write one X post for a phone network test. "
         "classification.post_intent is already decided as complaint or praise. Do not change it. "
         "Reply with JSON only, no markdown: {\"sentence\":\"...\",\"summary\":\"...\"}. "
-        "sentence is at most 180 characters, with no URL and no hashtag spam. "
+        "sentence is at most 168 characters, with no URL and no hashtag spam. "
+        "Do not write @MagnonTest. "
         "Write sentence and summary in %s. "
         "Write in this tone: %s. "
         "If post_intent is complaint, be clear and mildly annoyed, not abusive. "
@@ -3291,6 +3945,8 @@ def draft_with_deepseek(brief: dict, classification: dict) -> dict:
         "If kelurahan is present, the sentence must include that kelurahan. "
         "If kecamatan is present, the sentence must include that kecamatan. Do not invent a place. Do not include coordinates. "
         "Use only numbers present in the brief. Do not invent measurements. "
+        "If experience is present, the sentence answers that experience. "
+        "A note about a slow video uses the video measurements. A note about good Wi-Fi uses the speed measurements. "
         "When events is present, that list is the only set of measurements. "
         "Each event.quality_band was already classified. Do not change those labels. "
         "If context.nearby is present, those rows are quality bands from the same kecamatan. "
@@ -3388,6 +4044,14 @@ def handle(portal: Portal, method: str, path: str, token: str, body: dict, staff
             return 200, portal.own_detail(token), None
         if method == "GET" and path == "/api/magnon/sponsor":
             return 200, portal.sponsor_view(token), None
+        if method == "POST" and path == "/api/magnon/sponsors":
+            return 200, portal.create_sponsor(token, str(body.get("email") or ""), body.get("tester_quota")), None
+        if method == "POST" and path == "/api/magnon/testers":
+            return 200, portal.set_tester(token, str(body.get("email") or ""), bool(body.get("remove"))), None
+        if method == "POST" and path == "/api/magnon/pcap/slot":
+            return 200, portal.pcap_slot(token, body), None
+        if method == "GET" and path == "/api/magnon/pcap":
+            return 200, portal.pcap_link(token, str(body.get("object") or "")), None
         if method == "GET" and path == "/api/magnon/devices":
             return 200, portal.list_devices(token), None
         if method == "GET" and path == "/api/magnon/users":
@@ -3402,7 +4066,10 @@ def handle(portal: Portal, method: str, path: str, token: str, body: dict, staff
                 str(body.get("level") or ""),
                 body.get("post_limit"),
                 body.get("test_limit"),
+                body.get("tester_quota"),
             ), None
+        if method == "POST" and path == "/api/magnon/users/delete":
+            return 200, portal.delete_account(token, str(body.get("email") or "")), None
         if method == "GET" and path == "/v1/magnon/jobs":
             return 200, {"jobs": portal.jobs(token)}, None
         if method == "POST" and path == "/v1/magnon/reserve":
