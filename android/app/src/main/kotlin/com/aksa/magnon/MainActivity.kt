@@ -1014,7 +1014,7 @@ class MainActivity : AppCompatActivity() {
             try {
                 while (videoRunning) {
                     if (!awaitRoundReady()) break
-                    ProbeChrome.onRound(this)
+                    ProbeChrome.onRound(this@MainActivity)
                     round += 1
                     val found = heldPlace
                     val named = shownProvider
@@ -1159,7 +1159,7 @@ class MainActivity : AppCompatActivity() {
             try {
                 while (running) {
                     if (!awaitRoundReady()) break
-                    ProbeChrome.onRound(this)
+                    ProbeChrome.onRound(this@MainActivity)
                     if (triedSinceSuccess.isEmpty()) round += 1
                     val found = heldPlace
                     binding.speedStatus.text = getString(R.string.speed_loop, round)
