@@ -900,6 +900,38 @@ def test_admin_lists_devices_that_checked_quota_and_hides_a_bare_hash():
     assert "/api/magnon/devices" in page
 
 
+def test_sponsor_sees_probe_rows_without_identity():
+    portal = _portal("ops@gmail.com=Telco")
+    guest = portal.login("ada@gmail.com|Ada", "device1234", "lite")
+    try:
+        portal.sponsor_view(guest["session"])
+        denied = False
+    except ValueError as exc:
+        denied = str(exc) == "sponsor_only"
+    assert denied
+    portal.ledger.add_event({
+        "kind": "gateway",
+        "ipv4": "10.0.0.1",
+        "ipv4_rtt_ms": 4,
+        "device_id": "device1234",
+        "imei": "123456789012345",
+        "email": "ada@gmail.com",
+        "received_at": 10,
+    })
+    portal.ledger.add_event({"kind": "speed", "download_bps": 1, "received_at": 9})
+    sponsor = portal.login("ops@gmail.com|Ops", "", "lite")
+    view = portal.sponsor_view(sponsor["session"])
+    assert len(view["measurements"]) == 1
+    row = view["measurements"][0]
+    assert row["kind"] == "gateway"
+    assert row["ipv4_rtt_ms"] == 4
+    assert "imei" not in row
+    assert "email" not in row
+    assert "device_id" not in row
+    page = home_html().decode("utf-8").lower()
+    assert "magnon-premium.apk" not in page
+
+
 def test_stored_band_is_reused_and_other_kecamatan_stays_out():
     ledger = MemoryLedger()
     calls = []

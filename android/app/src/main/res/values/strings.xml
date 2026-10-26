@@ -107,6 +107,15 @@
     <string name="speed_label_public">Public</string>
     <string name="speed_label_provider">Provider</string>
     <string name="speed_label_transport">Transport</string>
+    <string name="pcap_label">PCAP</string>
+    <string name="pcap_idle">—</string>
+    <string name="pcap_pick">App</string>
+    <string name="pcap_start">Start</string>
+    <string name="pcap_stop">Stop</string>
+    <string name="pcap_running">%1$s · %2$d pkts</string>
+    <string name="pcap_saved">%1$d pkts · %2$s</string>
+    <string name="pcap_denied">VPN permission denied</string>
+    <string name="pcap_none">No launcher apps</string>
     <string name="speed_label_gw4">GW4</string>
     <string name="speed_label_gw6">GW6</string>
     <string name="speed_server">%1$s</string>

@@ -3,6 +3,7 @@ package com.aksa.magnon
 import android.Manifest
 import android.content.ClipData
 import android.content.ClipboardManager
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.ConnectivityManager
 import android.net.Network
@@ -36,7 +37,7 @@ import java.util.TimeZone
 
 /** Speed, video, and post. */
 class MainActivity : AppCompatActivity() {
-    private enum class Tab { SPEED, VIDEO, COMPLAINT }
+    private enum class Tab { SPEED, VIDEO, COMPLAINT, NETWORK, RADIO }
 
     private lateinit var binding: ActivityMainBinding
     private var speedJob: Job? = null
@@ -66,10 +67,14 @@ class MainActivity : AppCompatActivity() {
     private var heldPlace = PlaceCapture.Place()
     private var providerKind = ""
     private var placeKind = ""
-
     private val permissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions(),
     ) { updatePermissionUi() }
+    private val vpnConsent = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult(),
+    ) { result ->
+        ProbeChrome.onVpnConsent(this, result.resultCode == RESULT_OK)
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -84,21 +89,25 @@ class MainActivity : AppCompatActivity() {
         }
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        PostChrome.install(binding)
+        ProbeChrome.install(this, binding)
         binding.speedPublicLabel.setText(R.string.speed_label_provider)
         binding.tabSpeed.setOnClickListener { showTab(Tab.SPEED) }
         binding.tabVideo.setOnClickListener { showTab(Tab.VIDEO) }
-        binding.tabComplaint.setOnClickListener { showTab(Tab.COMPLAINT) }
-        binding.complaintDraft.setOnClickListener { draftSelected() }
-        binding.complaintCopy.setOnClickListener {
-            val ident = quotaDeviceId
-            if (ident.isBlank()) return@setOnClickListener
-            val clipboard = getSystemService(ClipboardManager::class.java)
-            clipboard.setPrimaryClip(ClipData.newPlainText("device", ident))
-        }
-        binding.complaintShare.setOnClickListener {
-            val preview = binding.complaintPreview.text?.toString().orEmpty()
-            if (!binding.complaintShare.isEnabled || preview.isBlank()) return@setOnClickListener
-            shareComplaint(preview)
+        if (PostChrome.attached) {
+            PostChrome.tab.setOnClickListener { showTab(Tab.COMPLAINT) }
+            PostChrome.draft.setOnClickListener { draftSelected() }
+            PostChrome.copy.setOnClickListener {
+                val ident = quotaDeviceId
+                if (ident.isBlank()) return@setOnClickListener
+                val clipboard = getSystemService(ClipboardManager::class.java)
+                clipboard.setPrimaryClip(ClipData.newPlainText("device", ident))
+            }
+            PostChrome.share.setOnClickListener {
+                val preview = PostChrome.preview.text?.toString().orEmpty()
+                if (!PostChrome.share.isEnabled || preview.isBlank()) return@setOnClickListener
+                shareComplaint(preview)
+            }
         }
         binding.speedCenter.setOnClickListener { toggleSpeedtest() }
         binding.videoGo.setOnClickListener { toggleVideo() }
@@ -108,8 +117,10 @@ class MainActivity : AppCompatActivity() {
         binding.videoServer.text = BuildConfig.COLLECTOR_HOST
         wireSpeedPager()
         wireVideoPager()
-        wireComplaintPager()
-        wirePostChoices()
+        if (PostChrome.attached) {
+            wireComplaintPager()
+            wirePostChoices()
+        }
         updatePermissionUi()
         requestPermissions()
         refreshStartButtons()
@@ -121,9 +132,11 @@ class MainActivity : AppCompatActivity() {
         if (integrityStopped) return
         RumReporter.onFirstFrame()
         watchDefaultNetwork()
+        ProbeChrome.start(this)
     }
 
     override fun onStop() {
+        ProbeChrome.stop(this)
         gateJob?.cancel()
         unwatchDefaultNetwork()
         super.onStop()
@@ -133,10 +146,13 @@ class MainActivity : AppCompatActivity() {
         currentTab = tab
         binding.speedPane.visibility = if (tab == Tab.SPEED) View.VISIBLE else View.GONE
         binding.videoPane.visibility = if (tab == Tab.VIDEO) View.VISIBLE else View.GONE
-        binding.complaintPane.visibility = if (tab == Tab.COMPLAINT) View.VISIBLE else View.GONE
+        if (PostChrome.attached) {
+            PostChrome.pane.visibility = if (tab == Tab.COMPLAINT) View.VISIBLE else View.GONE
+            PostChrome.tab.setTextColor(tabColor(tab == Tab.COMPLAINT))
+        }
+        ProbeChrome.show(tab.name)
         binding.tabSpeed.setTextColor(tabColor(tab == Tab.SPEED))
         binding.tabVideo.setTextColor(tabColor(tab == Tab.VIDEO))
-        binding.tabComplaint.setTextColor(tabColor(tab == Tab.COMPLAINT))
         if (tab != Tab.VIDEO && videoRunning) stopVideo()
         if (tab == Tab.SPEED) {
             binding.speedPane.setCurrentItem(1, false)
@@ -149,8 +165,8 @@ class MainActivity : AppCompatActivity() {
             if (!videoRunning) refreshTransport()
             renderVideoHistory()
         }
-        if (tab == Tab.COMPLAINT) {
-            binding.complaintPane.setCurrentItem(1, false)
+        if (tab == Tab.COMPLAINT && PostChrome.attached) {
+            PostChrome.pane.setCurrentItem(1, false)
             showPost()
         }
     }
@@ -309,9 +325,9 @@ class MainActivity : AppCompatActivity() {
         postOnline = caps != null &&
             caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
             caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
-        if (!::binding.isInitialized) return
-        binding.complaintLink.text = getString(if (postOnline) R.string.complaint_online else R.string.complaint_offline)
-        binding.complaintLink.setTextColor(
+        if (!::binding.isInitialized || !PostChrome.attached) return
+        PostChrome.link.text = getString(if (postOnline) R.string.complaint_online else R.string.complaint_offline)
+        PostChrome.link.setTextColor(
             ContextCompat.getColor(this, if (postOnline) R.color.accent else R.color.text_secondary),
         )
         refreshDraftActions()
@@ -481,13 +497,14 @@ class MainActivity : AppCompatActivity() {
 
 
     private fun wireComplaintPager() {
-        val history = binding.complaintHistory
-        val current = binding.complaintCurrent
+        if (!PostChrome.attached) return
+        val history = PostChrome.history
+        val current = PostChrome.current
         history.visibility = View.VISIBLE
         current.visibility = View.VISIBLE
         (history.parent as ViewGroup).removeView(history)
         (current.parent as ViewGroup).removeView(current)
-        binding.complaintPane.adapter = object : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
+        PostChrome.pane.adapter = object : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
             override fun getItemCount(): Int = 2
 
             override fun getItemViewType(position: Int): Int = position
@@ -504,12 +521,13 @@ class MainActivity : AppCompatActivity() {
 
             override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) = Unit
         }
-        binding.complaintPane.setCurrentItem(1, false)
+        PostChrome.pane.setCurrentItem(1, false)
         renderHistory()
     }
 
     private fun renderHistory() {
-        val list = binding.complaintHistoryList
+        if (!PostChrome.attached) return
+        val list = PostChrome.historyList
         list.removeAllViews()
         list.addView(historyText(getString(R.string.complaint_history), 18f, true))
         val items = ComplaintStore.history(this)
@@ -534,10 +552,11 @@ class MainActivity : AppCompatActivity() {
         }
 
     private fun wirePostChoices() {
+        if (!PostChrome.attached) return
         val languages = listOf("en", "id")
         val styles = listOf("biasa", "santai", "serius", "gaul")
         val autos = listOf("yes", "no")
-        binding.complaintLanguage.onItemSelectedListener = spinnerListener { position ->
+        PostChrome.language.onItemSelectedListener = spinnerListener { position ->
             val code = languages.getOrElse(position) { "en" }
             if (code != ComplaintStore.postLanguage(this)) {
                 ComplaintStore.rememberLanguage(this, code)
@@ -545,14 +564,14 @@ class MainActivity : AppCompatActivity() {
                 refreshDraftActions()
             }
         }
-        binding.complaintStyle.onItemSelectedListener = spinnerListener { position ->
+        PostChrome.style.onItemSelectedListener = spinnerListener { position ->
             val code = styles.getOrElse(position) { "biasa" }
             if (code != ComplaintStore.postStyle(this)) {
                 ComplaintStore.rememberStyle(this, code)
                 refreshDraftActions()
             }
         }
-        binding.complaintAutoTag.onItemSelectedListener = spinnerListener { position ->
+        PostChrome.autoTag.onItemSelectedListener = spinnerListener { position ->
             val enabled = autos.getOrElse(position) { "yes" } == "yes"
             if (enabled != ComplaintStore.autoTag(this)) {
                 ComplaintStore.rememberAutoTag(this, enabled)
@@ -576,16 +595,16 @@ class MainActivity : AppCompatActivity() {
         val english = ComplaintStore.postLanguage(this) != "id"
         rebindingPost = true
         try {
-            binding.complaintAutoLabel.setText(
+            PostChrome.autoLabel.setText(
                 if (english) R.string.post_auto_label_en else R.string.post_auto_label_id,
             )
             bindSpinner(
-                binding.complaintLanguage,
+                PostChrome.language,
                 listOf(getString(R.string.post_language_en), getString(R.string.post_language_id)),
                 if (english) 0 else 1,
             )
             bindSpinner(
-                binding.complaintStyle,
+                PostChrome.style,
                 if (english) {
                     listOf(
                         getString(R.string.post_style_plain),
@@ -604,7 +623,7 @@ class MainActivity : AppCompatActivity() {
                 listOf("biasa", "santai", "serius", "gaul").indexOf(ComplaintStore.postStyle(this)).coerceAtLeast(0),
             )
             bindSpinner(
-                binding.complaintAutoTag,
+                PostChrome.autoTag,
                 if (english) {
                     listOf(getString(R.string.post_auto_yes), getString(R.string.post_auto_no))
                 } else {
@@ -625,6 +644,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun showPost() {
+        if (!PostChrome.attached) return
         showLink()
         renderEventPicker()
         refreshDraftActions()
@@ -683,14 +703,16 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun showQuota(freeUsed: Int, balance: Int) {
-        binding.complaintQuota.text = getString(R.string.complaint_quota, freeUsed, balance)
+        if (!PostChrome.attached) return
+        PostChrome.quota.text = getString(R.string.complaint_quota, freeUsed, balance)
     }
 
     private fun loadQuota() {
+        if (!PostChrome.attached) return
         val ident = CollectorClient.quotaDeviceId(this)
         quotaDeviceId = ident
-        binding.complaintDevice.text = ident.ifBlank { "—" }
-        binding.complaintCopy.isEnabled = ident.isNotBlank()
+        PostChrome.device.text = ident.ifBlank { "—" }
+        PostChrome.copy.isEnabled = ident.isNotBlank()
         if (ident.isBlank()) return
         lifecycleScope.launch(Dispatchers.IO) {
             val snapshot = runCatching { ComplaintDraft.quota(this@MainActivity) }.getOrNull() ?: return@launch
@@ -702,7 +724,8 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun renderEventPicker() {
-        val list = binding.complaintEvents
+        if (!PostChrome.attached) return
+        val list = PostChrome.events
         list.removeAllViews()
         val events = ComplaintStore.postEvents(this).take(pickableEventLimit)
         val known = events.map { it.key }.toSet()
@@ -760,7 +783,8 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun selectedAnchor(): ComplaintStore.PostEvent? {
-        val list = binding.complaintEvents
+        if (!PostChrome.attached) return null
+        val list = PostChrome.events
         for (index in 0 until list.childCount) {
             val box = list.getChildAt(index) as? CheckBox ?: continue
             val event = box.tag as? ComplaintStore.PostEvent ?: continue
@@ -770,8 +794,9 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun refreshEventAvailability() {
+        if (!PostChrome.attached) return
         val anchor = selectedAnchor()
-        val list = binding.complaintEvents
+        val list = PostChrome.events
         for (index in 0 until list.childCount) {
             val box = list.getChildAt(index) as? CheckBox ?: continue
             val event = box.tag as? ComplaintStore.PostEvent ?: continue
@@ -797,28 +822,30 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun refreshDraftActions() {
-        binding.complaintDraft.isEnabled =
+        if (!PostChrome.attached) return
+        PostChrome.draft.isEnabled =
             postOnline && selectedEventKeys.isNotEmpty() && complaintJob?.isActive != true
         val cache = draftCache
         val matches = cache != null && cache.key == selectionKey()
-        binding.complaintShare.isEnabled = matches && cache.eligible
+        PostChrome.share.isEnabled = matches && cache.eligible
     }
 
     private fun draftSelected() {
+        if (!PostChrome.attached) return
         if (!postOnline) return
         val key = selectionKey()
         val cached = draftCache
         if (cached != null && cached.key == key) {
-            binding.complaintVerdict.text = cached.verdict
-            binding.complaintPreview.text = cached.sentence
+            PostChrome.verdict.text = cached.verdict
+            PostChrome.preview.text = cached.sentence
             refreshDraftActions()
             return
         }
         val chosen = ComplaintStore.postEvents(this).take(pickableEventLimit).filter { it.key in selectedEventKeys }
         complaintJob?.cancel()
-        binding.complaintDraft.isEnabled = false
-        binding.complaintShare.isEnabled = false
-        binding.complaintVerdict.text = "Drafting post…"
+        PostChrome.draft.isEnabled = false
+        PostChrome.share.isEnabled = false
+        PostChrome.verdict.text = "Drafting post…"
         complaintJob = lifecycleScope.launch(Dispatchers.IO) {
             val review = ComplaintDraft.review(this@MainActivity, chosen)
             withContext(Dispatchers.Main) {
@@ -829,8 +856,8 @@ class MainActivity : AppCompatActivity() {
                 val balance = review.balance
                 if (freeUsed != null && balance != null) showQuota(freeUsed, balance)
                 if (selectionKey() == key) {
-                    binding.complaintVerdict.text = review.verdict
-                    if (review.reviewed) binding.complaintPreview.text = review.draft
+                    PostChrome.verdict.text = review.verdict
+                    if (review.reviewed) PostChrome.preview.text = review.draft
                 }
                 if (review.reviewed) ComplaintStore.remember(this@MainActivity, review)
                 renderHistory()
@@ -987,6 +1014,7 @@ class MainActivity : AppCompatActivity() {
             try {
                 while (videoRunning) {
                     if (!awaitRoundReady()) break
+                    ProbeChrome.onRound(this)
                     round += 1
                     val found = heldPlace
                     val named = shownProvider
@@ -1131,6 +1159,7 @@ class MainActivity : AppCompatActivity() {
             try {
                 while (running) {
                     if (!awaitRoundReady()) break
+                    ProbeChrome.onRound(this)
                     if (triedSinceSuccess.isEmpty()) round += 1
                     val found = heldPlace
                     binding.speedStatus.text = getString(R.string.speed_loop, round)
@@ -1278,12 +1307,30 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun requestPermissions() {
-        val wanted = listOf(
+        val wanted = mutableListOf(
             Manifest.permission.ACCESS_FINE_LOCATION,
             Manifest.permission.ACCESS_COARSE_LOCATION,
         )
+        if (BuildConfig.IS_PREMIUM) wanted += Manifest.permission.READ_PHONE_STATE
         val needed = wanted.filterNot { granted(it) }
         if (needed.isNotEmpty()) permissionLauncher.launch(needed.toTypedArray())
+    }
+
+    internal fun openProbeTab(name: String) {
+        val tab = when (name) {
+            "NETWORK" -> Tab.NETWORK
+            "RADIO" -> Tab.RADIO
+            else -> return
+        }
+        showTab(tab)
+    }
+
+    internal fun launchVpnConsent(prepare: Intent) {
+        vpnConsent.launch(prepare)
+    }
+
+    internal fun requestRadioPermissions() {
+        requestPermissions()
     }
 
 

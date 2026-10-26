@@ -15,7 +15,8 @@
         <androidx.viewpager2.widget.ViewPager2
             android:id="@+id/radioPane"
             android:layout_width="match_parent"
-            android:layout_height="match_parent" />
+            android:layout_height="match_parent"
+            android:visibility="gone" />
 
         <LinearLayout
             android:id="@+id/radioChart"
@@ -359,21 +360,7 @@
                     android:textStyle="bold" />
             </FrameLayout>
 
-            <HorizontalScrollView
-                android:id="@+id/speedTrace"
-                android:layout_width="match_parent"
-                android:layout_height="160dp"
-                android:layout_marginBottom="4dp"
-                android:fadeScrollbars="false"
-                android:scrollbars="horizontal">
-
-                <com.aksa.magnon.TracerouteHopView
-                    android:id="@+id/tracerouteHops"
-                    android:layout_width="wrap_content"
-                    android:layout_height="match_parent" />
-            </HorizontalScrollView>
-
-            <LinearLayout
+            <LinearLayout>
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
@@ -703,110 +690,6 @@
                 android:padding="16dp" />
         </ScrollView>
 
-        <androidx.viewpager2.widget.ViewPager2
-            android:id="@+id/complaintPane"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:visibility="gone" />
-
-        <LinearLayout
-            android:id="@+id/complaintCurrent"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:orientation="vertical"
-            android:padding="16dp"
-            android:visibility="gone">
-
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:paddingBottom="8dp"
-                android:text="@string/complaint_swipe"
-                android:textColor="@color/text_secondary"
-                android:textSize="11sp" />
-
-            <Spinner
-                android:id="@+id/complaintLanguage"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="8dp" />
-
-            <Spinner
-                android:id="@+id/complaintStyle"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="8dp" />
-
-            <TextView
-                android:id="@+id/complaintAutoLabel"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="@string/post_auto_label_en"
-                android:textAllCaps="true"
-                android:textColor="@color/text_secondary"
-                android:textSize="11sp" />
-
-            <Spinner
-                android:id="@+id/complaintAutoTag"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="8dp" />
-
-            <TextView
-                android:id="@+id/complaintVerdict"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:textColor="@color/text_primary"
-                android:textSize="15sp"
-                android:textStyle="bold" />
-
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
-                android:text="@string/complaint_preview"
-                android:textAllCaps="true"
-                android:textColor="@color/text_secondary"
-                android:textSize="11sp" />
-
-            <ScrollView
-                android:layout_width="match_parent"
-                android:layout_height="0dp"
-                android:layout_marginTop="8dp"
-                android:layout_weight="1"
-                android:fillViewport="true">
-
-                <TextView
-                    android:id="@+id/complaintPreview"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:textColor="@color/text_primary"
-                    android:textIsSelectable="true"
-                    android:textSize="16sp" />
-            </ScrollView>
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/complaintShare"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
-                android:text="@string/complaint_share" />
-        </LinearLayout>
-
-        <ScrollView
-            android:id="@+id/complaintHistory"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:visibility="gone">
-
-            <LinearLayout
-                android:id="@+id/complaintHistoryList"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:padding="16dp" />
-        </ScrollView>
-
         <ScrollView
             android:id="@+id/networkPane"
             android:layout_width="match_parent"
@@ -826,6 +709,51 @@
                     android:textColor="@color/text_primary"
                     android:textSize="20sp" />
 
+                <LinearLayout
+                    android:id="@+id/pcapRow"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:layout_width="76dp"
+                        android:layout_height="wrap_content"
+                        android:text="@string/pcap_label"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="13sp" />
+
+                    <TextView
+                        android:id="@+id/pcapStatus"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:ellipsize="middle"
+                        android:maxLines="1"
+                        android:text="@string/pcap_idle"
+                        android:textColor="@color/text_primary"
+                        android:textSize="13sp" />
+
+                    <TextView
+                        android:id="@+id/pcapPick"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:paddingHorizontal="8dp"
+                        android:text="@string/pcap_pick"
+                        android:textColor="@color/accent"
+                        android:textSize="13sp" />
+
+                    <TextView
+                        android:id="@+id/pcapToggle"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:paddingHorizontal="4dp"
+                        android:text="@string/pcap_start"
+                        android:textColor="@color/accent"
+                        android:textSize="13sp" />
+                </LinearLayout>
+
                 <TextView
                     android:id="@+id/networkGateway"
                     android:layout_width="match_parent"
@@ -839,96 +767,9 @@
                     android:layout_width="match_parent"
                     android:layout_height="160dp"
                     android:layout_marginTop="8dp" />
-
-                <TextView
-                    android:id="@+id/networkJobs"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="16dp"
-                    android:text="@string/magnon_no_job"
-                    android:textColor="@color/text_primary" />
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/jobAccept"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:text="@string/magnon_accept"
-                    android:visibility="gone" />
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/jobSkip"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="@string/magnon_skip"
-                    android:visibility="gone" />
             </LinearLayout>
         </ScrollView>
 
-        <ScrollView
-            android:id="@+id/pointsPane"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:visibility="gone">
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:padding="16dp">
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/pointsSignIn"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="@string/magnon_sign_in" />
-
-                <TextView
-                    android:id="@+id/pointsBalance"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="12dp"
-                    android:textColor="@color/text_primary"
-                    android:textSize="18sp" />
-
-                <TextView
-                    android:id="@+id/pointsHistory"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:textColor="@color/text_secondary" />
-
-                <TextView
-                    android:id="@+id/pointsBoard"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="16dp"
-                    android:textColor="@color/text_primary" />
-
-                <TextView
-                    android:id="@+id/pointsJobs"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="16dp"
-                    android:text="@string/magnon_no_job"
-                    android:textColor="@color/text_primary" />
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/pointsAccept"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:text="@string/magnon_accept"
-                    android:visibility="gone" />
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/pointsSkip"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="@string/magnon_skip"
-                    android:visibility="gone" />
-            </LinearLayout>
-        </ScrollView>
     </FrameLayout>
 
     <LinearLayout
@@ -971,24 +812,6 @@
             android:layout_height="match_parent"
             android:layout_weight="1"
             android:text="@string/tab_radio"
-            android:textColor="@color/text_secondary" />
-
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/tabComplaint"
-            style="@style/TabLabel"
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_weight="1"
-            android:text="@string/tab_complaint"
-            android:textColor="@color/text_secondary" />
-
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/tabPoints"
-            style="@style/TabLabel"
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_weight="1"
-            android:text="@string/tab_points"
             android:textColor="@color/text_secondary" />
     </LinearLayout>
 </LinearLayout>

@@ -19,8 +19,8 @@ android {
         applicationId = "com.aksa.magnon"
         minSdk = 30
         targetSdk = 35
-        versionCode = 125
-        versionName = "2.6.8"
+        versionCode = 128
+        versionName = "2.6.11"
 
         val collectorHost = cfg("mysignal.collectorHost", "MAGNON_COLLECTOR_HOST", "127.0.0.1")
         val collectorPort = cfg("mysignal.collectorPort", "MAGNON_COLLECTOR_PORT", "8000").toIntOrNull() ?: 8000
@@ -90,13 +90,13 @@ android {
 
     androidComponents {
         onVariants { variant ->
-            val gate = variant.name == "liteRelease"
+            val gate = variant.name == "liteRelease" || variant.name == "premiumRelease"
             variant.buildConfigFields.put(
                 "INTEGRITY_GATE",
                 BuildConfigField(
                     "boolean",
                     if (gate) "true" else "false",
-                    "Lite release exits when the device is rooted or developer options are on.",
+                    "Release builds exit when the device is rooted or developer options are on.",
                 ),
             )
         }

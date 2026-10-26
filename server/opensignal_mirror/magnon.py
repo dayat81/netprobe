@@ -112,6 +112,29 @@ def strip_identity(event: dict) -> dict:
     return {key: value for key, value in event.items() if key not in IDENTITY_KEYS}
 
 
+def _scrub(value: object) -> object:
+    hidden = IDENTITY_KEYS | {"msisdn", "iccid"}
+    if isinstance(value, dict):
+        return {key: _scrub(item) for key, item in value.items() if key not in hidden}
+    if isinstance(value, list):
+        return [_scrub(item) for item in value]
+    return value
+
+
+def _probe_rows(events: list[dict]) -> list[dict]:
+    rows = []
+    for event in events:
+        kind = str(event.get("kind") or "")
+        if kind not in {"gateway", "traceroute", "pcap", "radio"} and not any(
+            key in event for key in ("trace", "cells", "subscriptions", "packets")
+        ):
+            continue
+        cleaned = _scrub(strip_identity(event))
+        if isinstance(cleaned, dict):
+            rows.append(cleaned)
+    return rows[:40]
+
+
 def aggregate(events: list[dict], brand: str) -> dict:
     brand_l = brand.strip().lower()
     totals = {"samples": 0, "lte": 0, "nr": 0, "wifi": 0, "cellular": 0}
@@ -935,7 +958,7 @@ class Portal:
             item = dict(campaign)
             item["results"] = detail
             campaigns.append(item)
-        return {"campaigns": campaigns}
+        return {"campaigns": campaigns, "measurements": _probe_rows(self.ledger.recent_events(200))}
 
     def set_level(self, email: str, level: str) -> dict:
         if level not in ("lite", "premium"):
@@ -1850,6 +1873,9 @@ dt{color:#555} dd{margin:0}
 <div id="users"></div>
 </section>
 <section id="sponsorWrap" hidden>
+<h2>Measurements</h2>
+<p><a href="/magnon-premium.apk">Download the technical release</a></p>
+<div id="measurements"></div>
 <h2>Request a measurement</h2>
 <form id="campaignForm">
 <input name="lat" placeholder="latitude" size="10">
@@ -1880,7 +1906,7 @@ const configured = __CONFIGURED__;
 const clientId = "__CLIENT__";
 const page = "__PAGE__";
 const ROLE_NAMES = ["admin","sponsor","contributor"];
-const DETAIL_KEYS = ["received_at","provider","rat","network_type","download_bps","upload_bps","latency_ms","rsrp","rsrq","sinr","rssi","ss_rsrp","ss_rsrq","ss_sinr","pci","arfcn","earfcn","nrarfcn","band","cqi"];
+const DETAIL_KEYS = ["received_at","provider","rat","network_type","download_bps","upload_bps","latency_ms","rsrp","rsrq","sinr","rssi","ss_rsrp","ss_rsrq","ss_sinr","pci","arfcn","earfcn","nrarfcn","band","cqi","kind","ipv4","ipv4_rtt_ms","ipv6","ipv6_rtt_ms","app","packets","bytes","duration_ms"];
 function esc(value){return String(value).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;")}
 function pick(event){
   const found = {};
@@ -1893,6 +1919,11 @@ function pick(event){
     });
   }
   walk(event);
+  if (event && event.trace && typeof event.trace === "object") {
+    const v4 = (event.trace.ipv4 || []).length;
+    const v6 = (event.trace.ipv6 || []).length;
+    found.traceroute_hops = v4 + v6;
+  }
   return found;
 }
 function detailCards(events){
@@ -2019,6 +2050,7 @@ async function refresh() {
   if (page === "admin") { await loadDevices(); await loadUsers(); }
   if (page === "sponsor") {
     const view = await api("/api/magnon/sponsor");
+    document.getElementById("measurements").innerHTML = detailCards(view.measurements || []);
     document.getElementById("sponsor").innerHTML = campaignCards(view.campaigns || []);
   }
   if (premium) {
